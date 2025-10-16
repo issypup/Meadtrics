@@ -476,6 +476,28 @@ canvas {
   background: var(--accent-2);
 }
 
+/* === Print-only styling for Label Maker === */
+@media print {
+  /* Hide everything on the page by default when printing */
+  body * { visibility: hidden; }
+
+  /* Make only the label box (and its contents) visible */
+  #labelBox, #labelBox * { visibility: visible; }
+
+  /* Position the label box in the top-left corner of the printed page */
+  #labelBox {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+  }
+}
+
+/* Utility class used to hide elements in normal (screen) mode */
+.hidden {
+  display: none !important;
+}
+
 
   </style>
 </head>
@@ -935,7 +957,19 @@ function renderDetail() {
 
         // Append both elements to the header row
         titleRow.append(title, dupBtn);
-        return titleRow;
+		
+				// --- Label Maker button ---
+		const labelBtn = el('button', {
+		  text: '🖨️ Label Maker',
+		  class: 'btn-accent',
+		  title: 'Generate a printable bottle label',
+		  style: 'padding:4px 10px; font-size:13px;',
+		  onclick: () => openLabelMaker(batch)
+		});
+
+		// Append both elements to the header row
+		titleRow.append(title, dupBtn, labelBtn);
+		return titleRow;
       })(),
 
       /* === METADATA AND SUMMARY === */
@@ -1938,9 +1972,73 @@ $('#importFile').addEventListener('change', async (e) => {
   render();
 });
 
+function openLabelMaker(batch) {
+  const modal = $('#labelModal');
+  const preview = $('#labelPreview');
+  modal.classList.remove('hidden');
+
+  // Helper to safely inject text into HTML
+  const escapeHTML = (s) => String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const date = batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '';
+  const lastReading = (batch.sgReadings && batch.sgReadings.length)
+    ? batch.sgReadings[batch.sgReadings.length - 1]
+    : null;
+
+  const OG = parseFloat(batch.og);
+  const FG = lastReading ? parseFloat(lastReading.sg) : NaN;
+  const abv = (isFinite(OG) && isFinite(FG))
+    ? ((OG - FG) * 131.25).toFixed(1) + '%'
+    : '–';
+
+  const honey = batch.honey || 'Mixed Blossom';
+
+  preview.innerHTML = `
+    <h1 style="text-align:center;font-size:20pt;margin:0;">${escapeHTML(batch.name)}</h1>
+    <p style="text-align:center;margin:2mm 0;">${escapeHTML(honey)} Mead</p>
+    <hr style="border:none;border-top:1px solid #8b6b2c;margin:2mm 0;">
+    <p><b>Batch:</b> ${escapeHTML(batch.id)}</p>
+    <p><b>Start:</b> ${escapeHTML(date)}</p>
+    <p><b>ABV:</b> ${abv}</p>
+  `;
+
+  $('#printLabel').onclick = () => window.print();
+  $('#closeLabel').onclick = () => modal.classList.add('hidden');
+  modal.onclick = (e) => {
+  if (e.target === modal) modal.classList.add('hidden');
+};
+}
+
+
 // Initial render when app loads
 render();
 
 </script>
+<!-- === Label Maker Modal === -->
+<div id="labelModal" class="hidden" style="
+  position:fixed; inset:0; background:rgba(0,0,0,0.6);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000;
+">
+  <div id="labelBox" style="
+    background:#fefaf3; color:#333; border:2px solid #8b6b2c;
+    border-radius:10px; padding:10mm; width:100mm; height:70mm;
+    font-family:'Georgia',serif; position:relative;
+  ">
+    <div id="labelPreview"></div>
+    <div style="position:absolute;bottom:6mm;right:6mm;font-size:9pt;font-style:italic;">
+      Crafted with ♥ in Meadtrics
+    </div>
+  </div>
+  <div style="position:absolute;bottom:20px;">
+    <button id="printLabel" class="btn-accent">Print Label</button>
+    <button id="closeLabel" class="btn-danger">Close</button>
+  </div>
+</div>
 </body>
 </html>
