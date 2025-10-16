@@ -522,6 +522,8 @@ canvas {
           <span class="tag">ABV uses (OG − FG) × 131.25</span>
         </div>
         <div class="row">
+		  <button id="saveDriveBtn">Save to Drive</button>
+		  <button id="loadDriveBtn">Load from Drive</button>
           <button id="exportBtn">Export</button>
           <input id="importFile" type="file" accept="application/json" style="display:none" />
           <button id="importBtn">Import</button>
@@ -537,6 +539,8 @@ canvas {
       <div class="meta"></div>
     </div>
   </template>
+
+<script src="https://apis.google.com/js/api.js"></script>
 
   <script>
 /* === Constants and Utility Functions === */
@@ -2002,7 +2006,7 @@ function openLabelMaker(batch) {
     <h1 style="text-align:center;font-size:20pt;margin:0;">${escapeHTML(batch.name)}</h1>
     <p style="text-align:center;margin:2mm 0;">${escapeHTML(honey)} Mead</p>
     <hr style="border:none;border-top:1px solid #8b6b2c;margin:2mm 0;">
-    <p><b>Batch:</b> ${escapeHTML(batch.id)}</p>
+    <p><b>Batch:</b> ${escapeHTML(batch.name)}</p>
     <p><b>Start:</b> ${escapeHTML(date)}</p>
     <p><b>ABV:</b> ${abv}</p>
   `;
@@ -2015,10 +2019,100 @@ function openLabelMaker(batch) {
 }
 
 
+// Addition of google drive
+const GDRIVE_CLIENT_ID = '641880286797-clc4078qporc1sg61u095aubc5csmi70.apps.googleusercontent.com';
+const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+async function gapiInit() {
+  return new Promise((resolve) => {
+    gapi.load('client:auth2', async () => {
+      await gapi.client.init({
+        clientId: GDRIVE_CLIENT_ID,
+        scope: GDRIVE_SCOPE,
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
+      });
+      resolve();
+    });
+  });
+}
+
+async function ensureSignedIn() {
+  const auth = gapi.auth2.getAuthInstance();
+  if (!auth.isSignedIn.get()) {
+    await auth.signIn();
+  }
+  return auth.currentUser.get().getBasicProfile().getName();
+}
+
+// --- Upload Meadtrics JSON ---
+async function saveToDrive(state) {
+  await gapiInit();
+  await ensureSignedIn();
+
+  const fileContent = JSON.stringify(state, null, 2);
+  const blob = new Blob([fileContent], { type: 'application/json' });
+  const metadata = {
+    name: 'meadtrics-data.json',
+    mimeType: 'application/json',
+  };
+
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', blob);
+
+ const token = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: new Headers({ 'Authorization': 'Bearer ' + token }),
+    body: form,
+  });
+  const json = await res.json();
+  console.log('Uploaded to Drive:', json);
+  alert('Saved Meadtrics data to Google Drive.');
+}
+
+// --- Download Meadtrics JSON ---
+async function loadFromDrive() {
+  await gapiInit();
+  await ensureSignedIn();
+  const res = await gapi.client.drive.files.list({
+    q: "name='meadtrics-data.json'",
+    fields: 'files(id, name)',
+  });
+  if (!res.result.files.length) {
+    alert('No Meadtrics backup found in your Drive.');
+    return;
+  }
+  const fileId = res.result.files[0].id;
+  const download = await gapi.client.drive.files.get({
+    fileId,
+    alt: 'media',
+  });
+  const data = JSON.parse(download.body);
+  state = data;
+  save(state);
+  render();
+  alert('Loaded Meadtrics data from Google Drive.');
+}
+
+// --- Google Drive Sync buttons ---
+$('#saveDriveBtn').addEventListener('click', () => saveToDrive(state));
+$('#loadDriveBtn').addEventListener('click', () => loadFromDrive());
+
+window.addEventListener('load', async () => {
+  try {
+    await gapiInit();
+    console.log('Google API initialized');
+  } catch (err) {
+    console.error('Failed to init Google API:', err);
+  }
+});
+
 // Initial render when app loads
 render();
 
 </script>
+
 <!-- === Label Maker Modal === -->
 <div id="labelModal" class="hidden" style="
   position:fixed; inset:0; background:rgba(0,0,0,0.6);
