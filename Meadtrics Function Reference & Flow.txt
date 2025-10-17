@@ -1,0 +1,182 @@
+Meadtrics – Function Reference & Flow
+
+Entry Point
+------------
+window.onload → render()
+
+The application initializes by calling render() after the window loads, populating both the sidebar and detail view from stored data.
+
+render()
+---------
+Purpose:
+Redraws both the sidebar and the main detail panel.
+
+Calls:
+- renderBatchList()
+- renderDetail()
+
+renderBatchList()
+-----------------
+Purpose:
+Displays the sidebar list of mead batches, divided into “Active” and “Archived.”
+
+Calls:
+- fmt(date) → Formats start dates.
+- calcABV(og, fg) → Estimates ABV for quick overview.
+- formatFermentationDays(startDate) → Shows how long fermentation has been running.
+- formatMaturityDays(bottledDate) → Shows age of bottled meads.
+- save(state) → Persists changes when renaming or deleting batches.
+- render() → Refreshes the full UI after updates.
+
+Uses:
+- el(tag, attrs, children) → Utility for dynamic element creation.
+
+renderDetail()
+--------------
+Purpose:
+Displays either the “New Batch” creation form or details for the currently selected batch.
+
+Calls:
+- newBatchForm() → When no batch is selected.
+- When a batch is selected:
+  - chartCard(batch)
+  - sgFormCard(batch)
+  - eventFormCard(batch)
+  - ingredientsTable(batch)
+  - eventsTable(batch)
+  - drawChart(batch) → Renders fermentation chart.
+  - save(state) and render() after edits or duplication.
+  - openLabelMaker(batch) via the Label Maker button.
+
+chartCard(batch)
+----------------
+Purpose:
+Creates the “Gravity & ABV over Time” chart section with a toggle button.
+
+Calls:
+- render() → Re-renders detail view when toggling between SG and ABV mode.
+
+sgFormCard(batch)
+-----------------
+Purpose:
+Allows the user to add new Specific Gravity readings (and automatically logs them as events).
+
+Calls:
+- crypto.randomUUID() → Generates unique SG IDs.
+- batch.sgReadings.push(...)
+- batch.events.push(...)
+- save(state)
+- render() → Refreshes chart and event table.
+
+Also references:
+- calcABV(og, fg) indirectly via the chart update.
+
+eventFormCard(batch)
+--------------------
+Purpose:
+Adds general events or notes (e.g., “racked,” “bottled,” or “note”).
+
+Calls:
+- save(state)
+- render()
+
+Dynamic Behavior:
+Automatically shows/hides the note text field depending on the selected event type.
+
+eventsTable(batch)
+------------------
+Purpose:
+Displays the event and note history for a batch.
+Supports inline editing and deletion of events.
+
+Calls:
+- fmt(date)
+- save(state)
+- render()
+
+Additional Behavior:
+When an SG event is deleted, its corresponding reading is removed from batch.sgReadings.
+
+ingredientsTable(batch)
+------------------------
+Purpose:
+Displays and edits the list of ingredients.
+Users can add, edit, or delete ingredient rows.
+
+Calls:
+- save(state)
+- render()
+
+newBatchForm()
+--------------
+Purpose:
+Collects and initializes data for creating a new mead batch.
+
+Calls:
+- crypto.randomUUID()
+- save(state)
+- render()
+
+drawChart(batch)
+----------------
+Purpose:
+Draws a canvas line chart showing Specific Gravity or ABV progression over time.
+
+Calls:
+- calcABV(og, fg)
+- Internal closure: renderBase() for redraw operations.
+
+Event Handlers:
+- onmousemove and onmouseleave for interactive tooltips.
+
+Depends On:
+- Global chartMode (“sg” or “abv”).
+- batch.sgReadings and batch.og.
+
+openLabelMaker(batch)
+---------------------
+Purpose:
+Opens a modal window with a printable label for the selected batch.
+
+Calls:
+- Inline escapeHTML() for sanitizing text.
+- window.print() for printing.
+- Adds event listeners for modal close actions.
+
+Utility Functions
+-----------------
+Function | Description | Used By
+--------- | ------------ | ---------
+el(tag, attrs, children) | Creates DOM elements dynamically. | Used across all render and form functions.
+$() | Shortcut for document.querySelector. | Used globally.
+fmt(date) | Returns localized date string. | Sidebar, Events Table.
+calcABV(og, fg) | Calculates ABV as (OG − FG) × 131.25. | Chart and sidebar display.
+formatMaturityDays(date) | Converts bottled date to a human-readable age. | Sidebar.
+formatFermentationDays(date) | Converts start date into “Fermenting for X days/weeks.” | Sidebar.
+load() | Loads app data from localStorage. | On startup.
+save(state) | Persists app data to localStorage. | After every edit.
+render() | Redraws the entire interface. | Central refresh trigger.
+
+UI Event Handlers
+-----------------
+Element | Event | Action / Function Calls
+--------- | ------ | --------------------------
+#newBatchBtn | click | Clears selection → render()
+#searchInput | input | Calls renderBatchList()
+#clearBtn | click | Resets state → save() → render()
+#exportBtn | click | Exports current data as JSON file.
+#importBtn / #importFile | click / change | Loads imported JSON → save() → render()
+
+Data Flow Summary
+-----------------
+User Action
+   ↓
+DOM Event (click / input)
+   ↓
+State Mutation (add/edit/delete batch, event, SG)
+   ↓
+save(state)
+   ↓
+render() → renderBatchList() + renderDetail()
+   ↓
+drawChart(batch) (if applicable)
