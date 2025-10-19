@@ -497,8 +497,6 @@ canvas {
 .hidden {
   display: none !important;
 }
-
-
   </style>
 </head>
 <body>
@@ -638,7 +636,6 @@ function render() {
   renderBatchList();
   renderDetail();
 }
-
 
 /**
  * Render the sidebar batch list
@@ -811,13 +808,21 @@ function renderBatchList() {
           ? `🧪 ${formatFermentationDays(b.startDate)}`
           : '';
 
+// 1/3 Sugar Break (only show for active batches)
+let sugarBreakText = '';
+if (!bottledEvent && b.og) {
+  const target = calcSugarBreak(b.og);
+  if (target) sugarBreakText = `🍯 1/3 Sugar Break: ${target}`;
+}
+
       // Build combined info string (dates, gravities, ABV, progress)
-      const metaText =
-        `${fmt(b.startDate)} · OG ${b.og}` +
-        (latestSG ? ` · FG ${latestSG}` : '') +
-        (abv ? ` · ~${abv.toFixed(1)}% ABV` : '') +
-        (fermentText ? `\n${fermentText}` : '') +
-        (maturityText ? `\n${maturityText}` : '');
+const metaText =
+  `${fmt(b.startDate)} · OG ${b.og}` +
+  (latestSG ? ` · FG ${latestSG}` : '') +
+  (abv ? ` · ~${abv.toFixed(1)}% ABV` : '') +
+  (fermentText ? `\n${fermentText}` : '') +
+  (sugarBreakText ? `\n${sugarBreakText}` : '') +
+  (maturityText ? `\n${maturityText}` : '');
 
       // Assemble final item layout
       item.append(headerRow, el('div', { class: 'meta', text: metaText }));
@@ -841,8 +846,6 @@ function renderBatchList() {
   list.append(makeSection('active', '🧪 Active Batches', active, 'No active batches.'));
   list.append(makeSection('archived', '🍾 Archived (Bottled)', archived, 'No bottled batches.'));
 }
-
-
 
 /**
  * Render the main batch detail view.
@@ -974,10 +977,12 @@ function renderDetail() {
 
       /* === METADATA AND SUMMARY === */
       // Basic start date and original gravity
-      el('div', {
-        text: `Started ${fmt(batch.startDate)} · OG ${batch.og}`
-      }),
-
+(()=>{
+  const sugarBreak = calcSugarBreak(batch.og);
+  const text = `Started ${fmt(batch.startDate)} · OG ${batch.og}` + 
+               (sugarBreak ? ` · 1/3 Break: ${sugarBreak}` : '');
+  return el('div',{text});
+})(),
       // Quick metadata summary line (honey, yeast, volume)
       el('div', {
         class: 'meta',
@@ -1001,8 +1006,6 @@ function renderDetail() {
   // Draw the Specific Gravity / ABV chart for this batch
   drawChart(batch);
 }
-
-
 
 /**
  * Create the chart fieldset for displaying fermentation data.
@@ -1057,9 +1060,6 @@ function chartCard(batch) {
   // Return the completed fieldset element to be added to the DOM
   return card;
 }
-
-
-
 
 /**
  * Create a fieldset form for adding new Specific Gravity (SG) readings.
@@ -1144,8 +1144,6 @@ function sgFormCard(batch) {
   wrap.append(form, btn);
   return wrap;
 }
-
-
 
 /**
  * Create a fieldset form for adding general events or notes to a batch.
@@ -1241,7 +1239,6 @@ function eventFormCard(batch) {
   // Return completed fieldset
   return d;
 }
-
 
 /**
  * Create a table displaying all events and notes for a batch.
@@ -1372,8 +1369,6 @@ function eventsTable(batch) {
   return wrap;
 }
 
-
-
 /**
  * Create an editable table for managing the batch's ingredient list.
  * Allows live editing of honey, sugar, water, and additives,
@@ -1483,8 +1478,6 @@ function ingredientsTable(batch) {
 
   return wrap;
 }
-
-
 
 /**
  * Create a form for adding a new mead batch.
@@ -1677,8 +1670,19 @@ function newBatchForm() {
   return f;
 }
 
-
 /* === Utility Functions === */
+
+/**
+ * Calculate the 1/3 sugar break gravity.
+ * Formula: 1 + (OG - 1) / 3
+ * Returns a 3-decimal formatted string.
+ */
+function calcSugarBreak(og) {
+  const ogNum = parseFloat(og);
+  if (!isFinite(ogNum) || ogNum < 0.9 || ogNum > 1.5) return null;
+  const sgBreak = 1 + (ogNum - 1) / 3;
+  return sgBreak.toFixed(3);
+}
 
 /**
  * Calculate Alcohol by Volume (ABV) based on original and final gravity.
@@ -1734,24 +1738,21 @@ function formatFermentationDays(startDate) {
  * Draw a line chart showing either Specific Gravity (SG)
  * or ABV (%) progression over time for the selected batch.
  */
+
 function drawChart(batch) {
   const c = document.getElementById('sgChart');
-  if (!c) return; // chart not rendered in DOM yet
+  if (!c) return;
   const ctx = c.getContext('2d');
-  const pad = { l: 45, r: 10, t: 10, b: 28 }; // chart padding
+  const pad = { l: 45, r: 10, t: 10, b: 28 };
 
-  // --- Prepare data points ---
+  // sort readings and include OG
   const readings = batch.sgReadings
     ? batch.sgReadings.slice().sort((a, b) => new Date(a.date) - new Date(b.date))
     : [];
-
-  // Ensure OG is always included as first data point
-  if (!readings.length || readings[0].date !== batch.startDate) {
+  if (!readings.length || readings[0].date !== batch.startDate)
     readings.unshift({ date: batch.startDate, sg: batch.og });
-  }
   if (!readings.length) return;
 
-  // Convert readings into plotable points
   const points = readings.map(r => ({
     x: new Date(r.date).getTime(),
     y: chartMode === 'sg' ? parseFloat(r.sg) : calcABV(batch.og, r.sg),
@@ -1759,7 +1760,6 @@ function drawChart(batch) {
     sg: parseFloat(r.sg)
   }));
 
-  // Extract axis limits
   const xs = points.map(p => p.x);
   const ys = points.map(p => p.y);
   const minX = Math.min(...xs);
@@ -1767,7 +1767,21 @@ function drawChart(batch) {
   let minY = Math.min(...ys);
   let maxY = Math.max(...ys);
 
-  // Add breathing room to Y-axis range
+  // --- include sugar break in Y-range so it always shows ---
+  const sugarBreak = calcSugarBreak(batch.og);
+  if (sugarBreak) {
+    if (chartMode === 'sg') {
+      const sb = parseFloat(sugarBreak);
+      if (sb < minY) minY = sb - 0.002;
+      if (sb > maxY) maxY = sb + 0.002;
+    } else {
+      const sbAbv = calcABV(batch.og, sugarBreak);
+      if (sbAbv < minY) minY = sbAbv - 0.2;
+      if (sbAbv > maxY) maxY = sbAbv + 0.2;
+    }
+  }
+
+  // small breathing room
   if (chartMode === 'sg') {
     minY = Math.max(0.98, minY - 0.005);
     maxY = Math.min(1.15, maxY + 0.005);
@@ -1776,19 +1790,17 @@ function drawChart(batch) {
     maxY += 0.5;
   }
 
-  // Calculate chart dimensions and scaling functions
   const W = c.width - pad.l - pad.r;
   const H = c.height - pad.t - pad.b;
   const xScale = v => pad.l + (W * (v - minX)) / Math.max(1, maxX - minX);
   const yScale = v => pad.t + H - (H * (v - minY)) / Math.max(0.0001, maxY - minY);
 
-  // Assign pixel coordinates for each point
   points.forEach(p => {
     p.xx = xScale(p.x);
     p.yy = yScale(p.y);
   });
 
-  /* --- Tooltip setup (lazy initialized once) --- */
+  // --- Tooltip element setup ---
   let tooltip = document.getElementById('chart-tooltip');
   if (!tooltip) {
     tooltip = document.createElement('div');
@@ -1799,7 +1811,6 @@ function drawChart(batch) {
     c.parentElement.appendChild(tooltip);
   }
 
-  /* --- Base rendering function --- */
   const renderBase = (highlight = null) => {
     ctx.clearRect(0, 0, c.width, c.height);
 
@@ -1812,7 +1823,7 @@ function drawChart(batch) {
     ctx.lineTo(pad.l + W, pad.t + H);
     ctx.stroke();
 
-    // Y-axis grid and labels
+    // --- Y grid ---
     ctx.fillStyle = '#8fa3bd';
     ctx.font = '12px system-ui';
     ctx.textAlign = 'right';
@@ -1827,7 +1838,7 @@ function drawChart(batch) {
       ctx.stroke();
     }
 
-    // X-axis date ticks
+    // --- X ticks ---
     ctx.textAlign = 'center';
     const ticks = 4;
     for (let i = 0; i <= ticks; i++) {
@@ -1836,20 +1847,56 @@ function drawChart(batch) {
       ctx.fillText(new Date(x).toLocaleDateString(), xx, pad.t + H + 20);
     }
 
-    // Data line
+    // --- Data line ---
     ctx.strokeStyle = chartMode === 'sg' ? '#82cfff' : '#b5e08a';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    points.forEach((p, i) => {
-      i ? ctx.lineTo(p.xx, p.yy) : ctx.moveTo(p.xx, p.yy);
-    });
+    points.forEach((p, i) => (i ? ctx.lineTo(p.xx, p.yy) : ctx.moveTo(p.xx, p.yy)));
     ctx.stroke();
 
-    // Data points (dots)
+    // --- Sugar break line ---
+    if (sugarBreak) {
+      const breakValue =
+        chartMode === 'sg'
+          ? parseFloat(sugarBreak)
+          : calcABV(batch.og, sugarBreak);
+
+      if (breakValue >= minY && breakValue <= maxY) {
+        const yBreak = yScale(breakValue);
+
+        // check if reached
+        const latestSG = batch.sgReadings?.length
+          ? parseFloat(batch.sgReadings[batch.sgReadings.length - 1].sg)
+          : null;
+        const reached = latestSG && latestSG <= parseFloat(sugarBreak);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = reached ? '#00cc66' : '#ffaa33';
+        ctx.lineWidth = 1.2;
+        ctx.moveTo(pad.l, yBreak);
+        ctx.lineTo(pad.l + W, yBreak);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // small dot at right edge
+        ctx.fillStyle = reached ? '#00cc66' : '#ffaa33';
+        ctx.beginPath();
+        ctx.arc(pad.l + W - 8, yBreak, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = '12px system-ui';
+        ctx.textAlign = 'left';
+        ctx.fillText('1/3 Break', pad.l + 8, yBreak - 6);
+        ctx.restore();
+      }
+    }
+
+    // --- Data points ---
     points.forEach((p, i) => {
       ctx.beginPath();
       if (i === 0) {
-        // Original Gravity point
         ctx.fillStyle = '#ffd966';
         ctx.arc(p.xx, p.yy, 5, 0, Math.PI * 2);
         ctx.fill();
@@ -1863,7 +1910,7 @@ function drawChart(batch) {
       }
     });
 
-    // Highlight active point when hovered
+    // --- Hover highlight ---
     if (highlight) {
       ctx.beginPath();
       ctx.strokeStyle = '#fff';
@@ -1873,58 +1920,57 @@ function drawChart(batch) {
     }
   };
 
-  // Initial draw
+  // initial draw
   renderBase();
 
-  /* --- Hover detection and tooltip --- */
-  const radius = 14; // hover detection radius
+  // hover handling
+  const radius = 14;
   c.onmousemove = evt => {
     const rect = c.getBoundingClientRect();
-
-    // Map mouse coordinates to canvas space (accounting for scaling)
     const scaleX = c.width / rect.width;
     const scaleY = c.height / rect.height;
     const mx = (evt.clientX - rect.left) * scaleX;
     const my = (evt.clientY - rect.top) * scaleY;
 
-    // Find nearest data point
     let nearest = null;
     let minDist = radius;
     for (const p of points) {
       const dx = Math.abs(p.xx - mx);
       const dy = Math.abs(p.yy - my);
-      const dist = Math.sqrt(dx * dx + dy * dy * 0.6); // vertical leniency
+      const dist = Math.sqrt(dx * dx + dy * dy * 0.6);
       if (dist < minDist) {
         nearest = p;
         minDist = dist;
       }
     }
 
-    // Show tooltip if hovering near a point
     if (nearest) {
       renderBase(nearest);
       tooltip.style.display = 'block';
-      tooltip.style.left = `${nearest.xx + 15}px`;
-      tooltip.style.top = `${nearest.yy - 10}px`;
+      const left = nearest.xx / (c.width / rect.width) + 15;
+      const top = nearest.yy / (c.height / rect.height) - 10;
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
       tooltip.innerHTML = `
         <div><b>${new Date(nearest.x).toLocaleDateString()}</b></div>
-        <div>${
-          chartMode === 'sg'
-            ? `SG: ${nearest.sg.toFixed(3)}`
-            : `ABV: ${nearest.y.toFixed(1)}%`
-        }</div>`;
+        <div>${chartMode === 'sg'
+          ? `SG: ${nearest.sg.toFixed(3)}`
+          : `ABV: ${nearest.y.toFixed(1)}%`}</div>
+        ${sugarBreak ? `<div style="color:#ffaa33;">1/3 Break: ${sugarBreak}</div>` : ''}
+      `;
     } else {
       tooltip.style.display = 'none';
       renderBase();
     }
   };
 
-  // Hide tooltip when leaving chart area
   c.onmouseleave = () => {
     tooltip.style.display = 'none';
     renderBase();
   };
 }
+
+
 
 /* === UI Event Listeners === */
 
@@ -2013,7 +2059,6 @@ function openLabelMaker(batch) {
   if (e.target === modal) modal.classList.add('hidden');
 };
 }
-
 
 // Initial render when app loads
 render();
