@@ -151,6 +151,7 @@ el(tag, attrs, children) | Creates DOM elements dynamically. | Used across all r
 $() | Shortcut for document.querySelector. | Used globally.
 fmt(date) | Returns localized date string. | Sidebar, Events Table.
 calcABV(og, fg) | Calculates ABV as (OG − FG) × 131.25. | Chart and sidebar display.
+calcSugarBreak(og, fgTarget) | Calculates the 1/3 sugar break gravity point. | drawChart(batch) (for chart marker), sgFormCard(batch) (for sugar-break alert).
 formatMaturityDays(date) | Converts bottled date to a human-readable age. | Sidebar.
 formatFermentationDays(date) | Converts start date into “Fermenting for X days/weeks.” | Sidebar.
 load() | Loads app data from localStorage. | On startup.
