@@ -510,6 +510,27 @@ canvas {
         <input id="searchInput" type="text" placeholder="Search batches… (name or notes)" />
       </div>
       <div id="batchList" class="list"></div>
+	  <!-- === Cloud Sync Card === -->
+<div id="syncCard" class="fieldset collapsible" style="margin:12px;">
+  <legend style="cursor:pointer;">☁️ Cloud Sync</legend>
+
+<div id="syncContent">
+  <p style="font-size:13px;color:var(--muted);">
+    This Mead Tracker saves to a JSONSilo cloud bin.<br>
+    Each bin is private — keep your link safe.
+  </p>
+  <div id="syncInfo" class="tag" style="display:block;word-break:break-all;margin-top:6px;">
+    <b>Bin:</b> <span id="syncUrl">Not assigned yet</span>
+  </div>
+  <div class="tag" style="margin-top:4px;">
+    <b>Service:</b> <span id="syncKey">jsonsilo</span>
+  </div>
+</div>
+
+
+
+</div>
+</aside>
     </aside>
 
     <section class="content">
@@ -591,34 +612,10 @@ const el = (tag, attrs = {}, children = []) => {
 const fmt = (d) => d ? new Date(d).toLocaleDateString() : '';
 
 
-/* === Data Persistence and App State === */
-
-/**
- * Load saved data from localStorage
- * Returns an object with a `batches` array — ensures structure even if storage is empty or invalid.
- */
-function load() {
-  try {
-    // Parse saved JSON; if missing or invalid, return a fallback structure
-    return JSON.parse(localStorage.getItem(LS_KEY)) || { batches: [] };
-  } catch {
-    // On any error (e.g., corrupt JSON), start with a clean state
-    return { batches: [] };
-  }
-}
-
-/**
- * Save current app state to localStorage
- * @param {Object} state - The full application state object
- */
-function save(state) {
-  localStorage.setItem(LS_KEY, JSON.stringify(state));
-}
-
 /* === Application State Variables === */
 
 // Current saved data (list of mead batches)
-let state = load();
+let state = { batches: [] }; // placeholder until loaded
 
 // ID of the currently selected batch (or null if none selected)
 let selectedId = state.batches[0]?.id || null;
@@ -628,6 +625,25 @@ let chartMode = 'sg'; // default chart mode
 
 // Collapsed state tracking for sidebar sections
 let sidebarCollapse = { active: false, archived: false };
+
+// === Core Persistence Helpers (local only) ===
+function load() {
+  try {
+    const data = localStorage.getItem(LS_KEY);
+    return data ? JSON.parse(data) : { batches: [] };
+  } catch (err) {
+    console.error('Failed to load local data', err);
+    return { batches: [] };
+  }
+}
+
+function save(state) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+  } catch (err) {
+    console.error('Failed to save local data', err);
+  }
+}
 
 /**
  * Render the entire UI
@@ -2128,8 +2144,106 @@ function openLabelMaker(batch) {
 };
 }
 
-// Initial render when app loads
-render();
+// === Collapsible Cloud Sync card ===
+const syncCard = document.getElementById('syncCard');
+const syncContent = document.getElementById('syncContent');
+
+if (syncCard) {
+  const legend = syncCard.querySelector('legend');
+  legend.addEventListener('click', () => {
+    const collapsed = syncContent.style.display === 'none';
+    syncContent.style.display = collapsed ? 'block' : 'none';
+    legend.textContent = collapsed ? '☁️ Cloud Sync ▼' : '☁️ Cloud Sync ▶';
+  });
+  // Start collapsed
+  syncContent.style.display = 'none';
+  legend.textContent = '☁️ Cloud Sync ▶';
+}
+
+// === JSONSilo Cloud Sync ===
+let SILO_ID = localStorage.getItem('SILO_ID') || null;
+const SILO_API = 'https://jsonsilo.com/api/bins';
+
+// Update sidebar
+function updateSyncCard() {
+  const urlEl = document.getElementById('syncUrl');
+  const keyEl = document.getElementById('syncKey');
+  if (urlEl) urlEl.textContent = SILO_ID ? `${SILO_API}/${SILO_ID}` : 'Not assigned yet';
+  if (keyEl) keyEl.textContent = 'jsonsilo';
+}
+
+/**
+ * Create a new JSONSilo bin and store its ID locally.
+ */
+async function createSilo() {
+  try {
+    const res = await fetch(SILO_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batches: [] })
+    });
+    const data = await res.json();
+    if (!data.id) throw new Error('No ID returned');
+    SILO_ID = data.id;
+    localStorage.setItem('SILO_ID', SILO_ID);
+    updateSyncCard();
+    alert(`✅ Created JSONSilo bin:\n${SILO_ID}`);
+  } catch (err) {
+    console.error('Failed to create JSONSilo bin', err);
+    alert('⚠️ Could not create JSONSilo bin.');
+  }
+}
+
+/**
+ * Load from JSONSilo or local fallback.
+ */
+async function cloudLoad() {
+  if (!SILO_ID) return load();
+  try {
+    const res = await fetch(`${SILO_API}/${SILO_ID}`);
+    if (!res.ok) throw new Error('Not found');
+    const data = await res.json();
+    return data || load();
+  } catch (err) {
+    console.warn('Cloud load failed, using local copy:', err);
+    return load();
+  }
+}
+
+/**
+ * Save to JSONSilo and localStorage.
+ */
+async function cloudSave(state) {
+  save(state);
+  if (!SILO_ID) return;
+  try {
+    await fetch(`${SILO_API}/${SILO_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state)
+    });
+    console.log('☁️ Synced to JSONSilo');
+  } catch (err) {
+    console.warn('⚠️ Cloud sync failed', err);
+  }
+}
+window.addEventListener('beforeunload', () => cloudSave(state));
+
+// === Startup ===
+(async () => {
+  if (!SILO_ID) {
+    const makeNew = confirm(
+      'No JSONSilo bin found for your Mead Tracker.\n\nCreate one now?'
+    );
+    if (makeNew) await createSilo();
+  }
+
+  state = await cloudLoad();
+  render();
+  updateSyncCard();
+})();
+
+
 
 </script>
 <!-- === Label Maker Modal === -->
