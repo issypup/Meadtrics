@@ -511,19 +511,38 @@ canvas {
       </div>
       <div id="batchList" class="list"></div>
 	  <!-- === Cloud Sync Card === -->
-<div id="syncCard" class="fieldset collapsible" style="margin:12px;">
+<div id="syncCard" class="fieldset collapsible collapsed">
   <legend style="cursor:pointer;">☁️ Cloud Sync</legend>
 
 <div id="syncContent">
   <p style="font-size:13px;color:var(--muted);">
-    This Mead Tracker saves to a JSONSilo cloud bin.<br>
-    Each bin is private — keep your link safe.
+    <b>ExtendsClass JSON Storage</b> (optional cloud backup)<br>
+    • Make a free account at
+    <a href="https://extendsclass.com/json-storage.html" target="_blank">
+      extendsclass.com/json-storage
+    </a><br>
+    • Copy your <b>API key</b> from your account.<br>
+    • Paste it below to enable cloud sync.
   </p>
-  <div id="syncInfo" class="tag" style="display:block;word-break:break-all;margin-top:6px;">
-    <b>Bin:</b> <span id="syncUrl">Not assigned yet</span>
+
+  <input id="apiKeyInput" type="text"
+    placeholder="Paste your ExtendsClass API key here"
+    style="width:100%;margin:6px 0;padding:6px;
+           border-radius:8px;border:1px solid var(--border);
+           background:#0f141b;color:var(--text);">
+
+  <button id="saveApiKeyBtn" class="btn-accent" style="width:100%;">Save API Key</button>
+
+  <div id="syncStatus" style="margin-top:6px;color:var(--muted);font-size:13px;">
+    💾 Local-only mode
+  </div>
+
+  <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
+  <div id="syncInfo" class="tag" style="display:block;word-break:break-all;">
+    <b>Bin:</b> <span id="syncUrl">Local only</span>
   </div>
   <div class="tag" style="margin-top:4px;">
-    <b>Service:</b> <span id="syncKey">jsonsilo</span>
+    <b>Key:</b> <span id="syncKey">meadtracker</span>
   </div>
 </div>
 
@@ -561,7 +580,7 @@ canvas {
 /* === Constants and Utility Functions === */
 
 /* LocalStorage key used to persist app data */
-const LS_KEY = 'mead-tracker:v1';
+const LS_KEY = 'mead-tracker:v2';
 
 /* List of all standard event types available in the app */
 const EVENTS = [
@@ -2145,103 +2164,245 @@ function openLabelMaker(batch) {
 }
 
 // === Collapsible Cloud Sync card ===
-const syncCard = document.getElementById('syncCard');
-const syncContent = document.getElementById('syncContent');
-
+const syncCard = document.getElementById("syncCard");
 if (syncCard) {
-  const legend = syncCard.querySelector('legend');
-  legend.addEventListener('click', () => {
-    const collapsed = syncContent.style.display === 'none';
-    syncContent.style.display = collapsed ? 'block' : 'none';
-    legend.textContent = collapsed ? '☁️ Cloud Sync ▼' : '☁️ Cloud Sync ▶';
+  const legend = syncCard.querySelector("legend");
+  const content = document.getElementById("syncContent");
+
+  legend.addEventListener("click", () => {
+    syncCard.classList.toggle("collapsed");
+    const isCollapsed = syncCard.classList.contains("collapsed");
+    content.style.display = isCollapsed ? "none" : "block";
   });
-  // Start collapsed
-  syncContent.style.display = 'none';
-  legend.textContent = '☁️ Cloud Sync ▶';
+
+  // Start collapsed to match other sections
+  syncCard.classList.add("collapsed");
+  content.style.display = "none";
 }
 
-// === JSONSilo Cloud Sync ===
-let SILO_ID = localStorage.getItem('SILO_ID') || null;
-const SILO_API = 'https://jsonsilo.com/api/bins';
+// === ExtendsClass JSON Storage Hybrid ===
+let EXTENDS_BIN_ID = localStorage.getItem("EXTENDS_BIN_ID") || null;
+let EXTENDS_API_KEY = localStorage.getItem("EXTENDS_API_KEY") || "";
+const EXTENDS_API = "https://json.extendsclass.com/bin";
+const EXTENDS_KEY = "meadtracker";
 
-// Update sidebar
 function updateSyncCard() {
-  const urlEl = document.getElementById('syncUrl');
-  const keyEl = document.getElementById('syncKey');
-  if (urlEl) urlEl.textContent = SILO_ID ? `${SILO_API}/${SILO_ID}` : 'Not assigned yet';
-  if (keyEl) keyEl.textContent = 'jsonsilo';
+  const urlEl = document.getElementById("syncUrl");
+  const keyEl = document.getElementById("syncKey");
+  const keyInput = document.getElementById("apiKeyInput");
+  const statusEl = document.getElementById("syncStatus");
+  if (urlEl) {
+    urlEl.textContent = EXTENDS_BIN_ID
+      ? `${EXTENDS_API}/${EXTENDS_BIN_ID}`
+      : "Local only (no cloud bin)";
+  }
+  if (keyEl) keyEl.textContent = EXTENDS_KEY;
+  if (keyInput) keyInput.value = EXTENDS_API_KEY;
+  if (statusEl)
+    statusEl.textContent = EXTENDS_API_KEY
+      ? "☁️ Cloud Sync Active"
+      : "💾 Local-only mode";
 }
 
 /**
- * Create a new JSONSilo bin and store its ID locally.
+ * Create a new ExtendsClass bin when the user has provided a key.
  */
-async function createSilo() {
+async function createBin() {
   try {
-    const res = await fetch(SILO_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    console.log("Api-key:", `"${EXTENDS_API_KEY}"`);
+    console.log("Security-key:", `"${EXTENDS_KEY}"`);
+
+    const res = await fetch(EXTENDS_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Api-key": EXTENDS_API_KEY,     // your account API key
+        "Security-key": EXTENDS_KEY,    // your chosen per-bin security key
+        "Private": "true"               // optional, keeps the bin private
+      },
       body: JSON.stringify({ batches: [] })
     });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (!data.id) throw new Error('No ID returned');
-    SILO_ID = data.id;
-    localStorage.setItem('SILO_ID', SILO_ID);
+    EXTENDS_BIN_ID = data.id;
+    localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
     updateSyncCard();
-    alert(`✅ Created JSONSilo bin:\n${SILO_ID}`);
+    alert(`✅ Created JSON bin:\n${EXTENDS_BIN_ID}`);
   } catch (err) {
-    console.error('Failed to create JSONSilo bin', err);
-    alert('⚠️ Could not create JSONSilo bin.');
+    console.error("Failed to create bin:", err);
+    alert("⚠️ Could not create JSON bin.");
+  }
+}
+
+async function createBin() {
+  try {
+    console.log("Api-key:", `"${EXTENDS_API_KEY}"`);
+    console.log("Security-key:", `"${EXTENDS_KEY}"`);
+
+    const res = await fetch(EXTENDS_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Api-key": EXTENDS_API_KEY,     // your account API key
+        "Security-key": EXTENDS_KEY,    // your chosen per-bin security key
+        "Private": "true"               // optional, keeps the bin private
+      },
+      body: JSON.stringify({ batches: [] })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    EXTENDS_BIN_ID = data.id;
+    localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
+    updateSyncCard();
+    alert(`✅ Created JSON bin:\n${EXTENDS_BIN_ID}`);
+  } catch (err) {
+    console.error("Failed to create bin:", err);
+    alert("⚠️ Could not create JSON bin.");
   }
 }
 
 /**
- * Load from JSONSilo or local fallback.
+ * Load from ExtendsClass if API key present; otherwise from local storage.
  */
 async function cloudLoad() {
-  if (!SILO_ID) return load();
+  if (!EXTENDS_BIN_ID) return load();
+
   try {
-    const res = await fetch(`${SILO_API}/${SILO_ID}`);
-    if (!res.ok) throw new Error('Not found');
+    const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
+      headers: { "Security-key": EXTENDS_KEY } // 🟢 add this line
+    });
+
+    if (res.status === 404) {
+      console.log("☁️ No cloud data yet, starting fresh.");
+      await cloudSave({ batches: [] });
+      return { batches: [] };
+    }
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
     const data = await res.json();
     return data || load();
+
   } catch (err) {
-    console.warn('Cloud load failed, using local copy:', err);
+    console.warn("Cloud load failed, using local copy:", err);
     return load();
   }
 }
 
 /**
- * Save to JSONSilo and localStorage.
+ * Save to ExtendsClass if API key provided, always save local.
  */
 async function cloudSave(state) {
   save(state);
-  if (!SILO_ID) return;
+  if (!EXTENDS_API_KEY || !EXTENDS_BIN_ID) return; // local only
   try {
-    await fetch(`${SILO_API}/${SILO_ID}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(state)
+    await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Security-key": EXTENDS_API_KEY,
+      },
+      body: JSON.stringify(state),
     });
-    console.log('☁️ Synced to JSONSilo');
+    console.log("☁️ Synced to ExtendsClass");
   } catch (err) {
-    console.warn('⚠️ Cloud sync failed', err);
+    console.warn("⚠️ ExtendsClass sync failed", err);
   }
 }
-window.addEventListener('beforeunload', () => cloudSave(state));
+window.addEventListener("beforeunload", () => cloudSave(state));
+
+/**
+ * Handle API-key input in the side panel.
+ */
+const saveApiKeyBtn = document.getElementById("saveApiKeyBtn");
+if (saveApiKeyBtn) {
+  saveApiKeyBtn.addEventListener("click", async () => {
+    const keyInput = document.getElementById("apiKeyInput");
+    EXTENDS_API_KEY = keyInput.value.trim();
+    localStorage.setItem("EXTENDS_API_KEY", EXTENDS_API_KEY);
+
+    if (!EXTENDS_API_KEY) {
+      alert("API key cleared. Data will now be saved locally only.");
+      updateSyncCard();
+      return;
+    }
+
+    // If key added and no bin exists, create one automatically
+    if (!EXTENDS_BIN_ID) await createBin();
+
+    updateSyncCard();
+    alert("✅ API key saved. Cloud sync enabled.");
+  });
+}
+
+// === Migration: old Mead Tracker → new system ===
+function migrateOldLocalData() {
+  try {
+    const oldKeyNames = [
+      "mead-tracker:v1",
+      "meadTrackerState",
+      "batches",
+      "meadTracker" // catch older keys
+    ];
+
+    // find first matching old key
+    const foundKey = oldKeyNames.find((k) => localStorage.getItem(k));
+    if (!foundKey) return false; // nothing to migrate
+
+    const oldData = JSON.parse(localStorage.getItem(foundKey));
+    if (!oldData || localStorage.getItem("MIGRATION_DONE")) return false;
+
+    console.log(`🧩 Found old Mead Tracker data in '${foundKey}' → migrating...`);
+
+    // Build new state format
+    const newState = oldData.batches
+      ? oldData
+      : { batches: Array.isArray(oldData) ? oldData : [oldData] };
+
+    // Save under new format
+    save(newState);
+    localStorage.setItem("MIGRATION_DONE", "true");
+
+    // If user already has cloud enabled, push immediately
+    if (EXTENDS_API_KEY && EXTENDS_BIN_ID) {
+      cloudSave(newState).then(() =>
+        console.log("☁️ Migrated data uploaded to cloud.")
+      );
+    }
+
+    alert(
+      "✅ Your old Mead Tracker data has been automatically migrated to the new version.\nAll batches are safe and backed up locally."
+    );
+
+    return true;
+  } catch (err) {
+    console.warn("Migration check failed:", err);
+    return false;
+  }
+}
+
 
 // === Startup ===
 (async () => {
-  if (!SILO_ID) {
-    const makeNew = confirm(
-      'No JSONSilo bin found for your Mead Tracker.\n\nCreate one now?'
-    );
-    if (makeNew) await createSilo();
-  }
-
+  // If no key, politely remind the user
+if (!EXTENDS_API_KEY && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
+  alert(
+    "💾 Mead Tracker is saving locally for now.\n\nTo enable free cloud backup, create an account at:\nhttps://extendsclass.com/json-storage.html\nand paste your API key into the Cloud Sync panel."
+  );
+  localStorage.setItem("EXTENDS_NOTICE_SHOWN", "true");
+}
+  // Run migration once on upgrade
+  migrateOldLocalData();
+  
+  // Continue normal startup
   state = await cloudLoad();
   render();
   updateSyncCard();
 })();
+
+
 
 
 
