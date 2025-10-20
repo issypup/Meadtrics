@@ -532,6 +532,9 @@ canvas {
            background:#0f141b;color:var(--text);">
 
   <button id="saveApiKeyBtn" class="btn-accent" style="width:100%;">Save API Key</button>
+  <br>
+  <br>
+  <button id="viewBinBtn" class="btn-accent" style="display:none;">🔗 View Bin</button>
 
   <div id="syncStatus" style="margin-top:6px;color:var(--muted);font-size:13px;">
     💾 Local-only mode
@@ -2228,7 +2231,7 @@ async function createBin() {
     EXTENDS_BIN_ID = data.id;
     localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
     updateSyncCard();
-    alert(`✅ Created JSON bin:\n${EXTENDS_BIN_ID}`);
+    //alert(`✅ Created JSON bin:\n${EXTENDS_BIN_ID}`);
   } catch (err) {
     console.error("Failed to create bin:", err);
     alert("⚠️ Could not create JSON bin.");
@@ -2271,25 +2274,32 @@ async function cloudLoad() {
 
   try {
     const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
-      headers: { "Security-key": EXTENDS_KEY } // 🟢 add this line
+      headers: { "Security-key": EXTENDS_KEY }
     });
 
     if (res.status === 404) {
       console.log("☁️ No cloud data yet, starting fresh.");
       await cloudSave({ batches: [] });
+      updateViewBinButton(); // 🟢 show button even after creating a new bin
       return { batches: [] };
     }
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();
+
+    // 🟢 update View Bin button visibility after a successful load
+    updateViewBinButton();
+
     return data || load();
 
   } catch (err) {
     console.warn("Cloud load failed, using local copy:", err);
+    updateViewBinButton(); // 🟢 still try to show button if key exists
     return load();
   }
 }
+
 
 /**
  * Save to ExtendsClass if API key provided, always save local.
@@ -2297,6 +2307,7 @@ async function cloudLoad() {
 async function cloudSave(state) {
   save(state);
   if (!EXTENDS_API_KEY || !EXTENDS_BIN_ID) return; // local only
+
   try {
     await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
       method: "PUT",
@@ -2306,11 +2317,20 @@ async function cloudSave(state) {
       },
       body: JSON.stringify(state),
     });
+
     console.log("☁️ Synced to ExtendsClass");
+
+    // 🟢 update the View Bin button after a successful save
+    updateViewBinButton();
+
   } catch (err) {
     console.warn("⚠️ ExtendsClass sync failed", err);
+
+    // 🟢 still update button visibility if a bin ID exists
+    updateViewBinButton();
   }
 }
+
 window.addEventListener("beforeunload", () => cloudSave(state));
 
 /**
@@ -2324,7 +2344,7 @@ if (saveApiKeyBtn) {
     localStorage.setItem("EXTENDS_API_KEY", EXTENDS_API_KEY);
 
     if (!EXTENDS_API_KEY) {
-      alert("API key cleared. Data will now be saved locally only.");
+      //alert("API key cleared. Data will now be saved locally only.");
       updateSyncCard();
       return;
     }
@@ -2333,9 +2353,41 @@ if (saveApiKeyBtn) {
     if (!EXTENDS_BIN_ID) await createBin();
 
     updateSyncCard();
-    alert("✅ API key saved. Cloud sync enabled.");
+    //alert("✅ API key saved. Cloud sync enabled.");
   });
 }
+
+function updateViewBinButton() {
+  const btn = document.getElementById('viewBinBtn');
+  if (!btn) return;
+
+  if (EXTENDS_BIN_ID && EXTENDS_API_KEY) {
+    btn.style.display = 'inline-block';
+    btn.onclick = async () => {
+      try {
+        const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
+          headers: { 'Security-key': EXTENDS_API_KEY }
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        // 🟢 open a pretty viewer window
+        const popup = window.open('', '_blank', 'width=600,height=600');
+        popup.document.write(
+          `<pre style="font-family:monospace;white-space:pre-wrap;">${
+            JSON.stringify(data, null, 2)
+          }</pre>`
+        );
+        popup.document.title = 'ExtendsClass Bin Viewer';
+      } catch (err) {
+        alert('Failed to load bin: ' + err.message);
+      }
+    };
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
 
 // === Migration: old Mead Tracker → new system ===
 function migrateOldLocalData() {
