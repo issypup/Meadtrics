@@ -2281,22 +2281,27 @@ async function cloudLoad() {
       console.log("☁️ No cloud data yet, starting fresh.");
       await cloudSave({ batches: [] });
       updateViewBinButton(); // 🟢 show button even after creating a new bin
-      return { batches: [] };
+      return null;
     }
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const data = await res.json();
-
-    // 🟢 update View Bin button visibility after a successful load
     updateViewBinButton();
 
-    return data || load();
+    // 🧠 Only return cloud data if it actually contains batches
+    if (data && data.batches && data.batches.length > 0) {
+      console.log("☁️ Loaded cloud data successfully.");
+      return data;
+    } else {
+      console.log("☁️ Cloud is empty — keeping local data.");
+      return null;
+    }
 
   } catch (err) {
     console.warn("Cloud load failed, using local copy:", err);
     updateViewBinButton(); // 🟢 still try to show button if key exists
-    return load();
+    return null;
   }
 }
 
@@ -2319,14 +2324,10 @@ async function cloudSave(state) {
     });
 
     console.log("☁️ Synced to ExtendsClass");
-
-    // 🟢 update the View Bin button after a successful save
     updateViewBinButton();
 
   } catch (err) {
     console.warn("⚠️ ExtendsClass sync failed", err);
-
-    // 🟢 still update button visibility if a bin ID exists
     updateViewBinButton();
   }
 }
@@ -2438,19 +2439,37 @@ function migrateOldLocalData() {
 
 // === Startup ===
 (async () => {
-  // If no key, politely remind the user
-if (!EXTENDS_API_KEY && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
-  alert(
-    "💾 Mead Tracker is saving locally for now.\n\nTo enable free cloud backup, create an account at:\nhttps://extendsclass.com/json-storage.html\nand paste your API key into the Cloud Sync panel."
-  );
-  localStorage.setItem("EXTENDS_NOTICE_SHOWN", "true");
-}
+  // If no key, politely remind the user once
+  if (!EXTENDS_API_KEY && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
+    alert(
+      "💾 Mead Tracker is saving locally for now.\n\nTo enable free cloud backup, create an account at:\nhttps://extendsclass.com/json-storage.html\nand paste your API key into the Cloud Sync panel."
+    );
+    localStorage.setItem("EXTENDS_NOTICE_SHOWN", "true");
+  }
+
   // Run migration once on upgrade
   migrateOldLocalData();
-  
-  // Continue normal startup
-  state = await cloudLoad();
+
+  // 🧩 Step 1: Load local first for instant render
+  state = load();
   render();
+  updateSyncCard();
+
+  // 🧩 Step 2: Try to load from cloud (non-destructive)
+  try {
+    const cloud = await cloudLoad();
+    if (cloud && cloud.batches && cloud.batches.length > 0) {
+      console.log("☁️ Replacing local with cloud data.");
+      state = cloud;
+      save(state); // update local backup
+      render();
+    } else {
+      console.log("☁️ Cloud empty or unavailable — kept local data.");
+    }
+  } catch (err) {
+    console.warn("⚠️ Cloud load failed — using local copy:", err);
+  }
+
   updateSyncCard();
 })();
 
