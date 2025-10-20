@@ -980,7 +980,20 @@ function renderDetail() {
       // Basic start date and original gravity
 (()=>{
   const sugarBreak = calcSugarBreak(batch.og);
-  const text = `Started ${fmt(batch.startDate)} · OG ${batch.og}` + 
+  
+    // ✅ Safely extract the most recent SG
+  let currentSG = null;
+  if (Array.isArray(batch.sgReadings) && batch.sgReadings.length > 0) {
+    const last = batch.sgReadings[batch.sgReadings.length - 1];
+    currentSG = typeof last === 'object' ? last.sg : last;
+  }
+  
+  
+  // ✅ Debug: see what data we actually have
+  console.log('Current SG reading for', batch.name, ':', currentSG, batch.sgReadings);
+  
+  const text = `Started ${fmt(batch.startDate)} · OG ${batch.og}` +
+               (currentSG ? ` · SG ${currentSG}` : '') +
                (sugarBreak ? ` · 1/3 Break: ${sugarBreak}` : '');
   return el('div',{text});
 })(),
