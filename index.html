@@ -988,12 +988,14 @@ function renderDetail() {
     currentSG = typeof last === 'object' ? last.sg : last;
   }
   
+  const abv = calcABV(batch.og, currentSG);
   
   // ✅ Debug: see what data we actually have
   console.log('Current SG reading for', batch.name, ':', currentSG, batch.sgReadings);
   
   const text = `Started ${fmt(batch.startDate)} · OG ${batch.og}` +
                (currentSG ? ` · SG ${currentSG}` : '') +
+               (abv ? ` · ABV ${abv.toFixed(1)}%` : '') +
                (sugarBreak ? ` · 1/3 Break: ${sugarBreak}` : '');
   return el('div',{text});
 })(),
@@ -1315,13 +1317,65 @@ function eventsTable(batch) {
               },
             });
             td.append(input);
-          } else {
-            // Non-editable text for other event types
-            td.textContent =
-              ev.note ||                   // explicit note (if any)
-              (ev.sg ? `SG: ${ev.sg}` : '') || // show SG value if present
-              ev.type;                     // fallback: show event type
-          }
+          } else if (ev.type === 'added sg reading') {
+  // --- Editable SG value on double-click ---
+  const sgSpan = el('span', {
+    text: `SG: ${ev.sg}`,
+    title: 'Double-click to edit SG reading',
+    style: 'cursor:pointer;'
+  });
+
+  sgSpan.addEventListener('dblclick', () => {
+    const input = el('input', {
+      type: 'number',
+      step: '0.001',
+      min: '0.800',
+      max: '1.500',
+      value: ev.sg,
+      style: 'width:80px;'
+    });
+
+    // Commit edited value
+    const commit = () => {
+      const newVal = parseFloat(input.value);
+      if (!isFinite(newVal)) return render();
+      const sgStr = newVal.toFixed(3);
+      ev.sg = sgStr;
+      ev.note = `SG: ${sgStr}`;
+
+      // --- Update linked sgReading entry (if exists) ---
+      if (ev.sgId) {
+        const reading = batch.sgReadings.find(r => r.id === ev.sgId);
+        if (reading) reading.sg = sgStr;
+      } else {
+        // fallback: match by date if no sgId
+        const reading = batch.sgReadings.find(r => r.date === ev.date);
+        if (reading) reading.sg = sgStr;
+      }
+
+      save(state);
+      render(); // refresh chart + summary
+    };
+
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') input.blur();
+      if (e.key === 'Escape') render();
+    });
+
+    sgSpan.replaceWith(input);
+    input.focus();
+    input.select();
+  });
+
+  td.append(sgSpan);
+} else {
+  // Non-editable text for other event types
+  td.textContent =
+    ev.note ||
+    (ev.sg ? `SG: ${ev.sg}` : '') ||
+    ev.type;
+}
 
           return td;
         })(),
@@ -1971,21 +2025,20 @@ function drawChart(batch) {
         <div>${chartMode === 'sg'
           ? `SG: ${nearest.sg.toFixed(3)}`
           : `ABV: ${nearest.y.toFixed(1)}%`}</div>
-        ${sugarBreak ? `<div style="color:#ffaa33;">1/3 Break: ${sugarBreak}</div>` : ''}
+        ${sugarBreak ? '<div style="color:#ffaa33;">1/3 Break: ' + sugarBreak + '</div>' : ''}
       `;
     } else {
       tooltip.style.display = 'none';
       renderBase();
     }
-  };
+  }; // ✅ ← closes c.onmousemove properly
 
+  // Separate handler for leaving canvas
   c.onmouseleave = () => {
     tooltip.style.display = 'none';
     renderBase();
   };
 }
-
-
 
 /* === UI Event Listeners === */
 
