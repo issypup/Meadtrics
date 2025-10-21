@@ -2393,12 +2393,16 @@ function clearExtendsCredentials() {
   const keys = [
     "EXTENDS_BIN_ID",
     "EXTENDS_KEY",
-    "EXTENDS_API_KEY",
-    "EXTENDS_NOTICE_SHOWN"
+    "EXTENDS_API_KEY"
   ];
   for (const k of keys) localStorage.removeItem(k);
+
+  // 🧠 Mark that user intentionally disabled cloud sync
+  localStorage.setItem("EXTENDS_MANUAL_DISABLE", "1");
+
   console.log("🧹 Cleared ExtendsClass credentials from localStorage.");
 }
+
 
 // === Migration: old Mead Tracker → new system ===
 function migrateOldLocalData() {
@@ -2456,15 +2460,18 @@ function migrateOldLocalData() {
     EXTENDS_BIN_ID.trim() !== "";
 
   // If no bin, politely remind the user once
-  if (!hasValidBin && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
-    alert(
-      "💾 Mead Tracker is saving locally for now.\n\n" +
-        "To enable free cloud backup, create an account at:\n" +
-        "https://extendsclass.com/json-storage.html\n" +
-        "and paste your Bin ID into the Cloud Sync panel."
-    );
-    localStorage.setItem("EXTENDS_NOTICE_SHOWN", "true");
-  }
+  // Only show the local-only alert if the user hasn’t manually disabled cloud sync
+const manuallyDisabled = localStorage.getItem("EXTENDS_MANUAL_DISABLE") === "1";
+  
+if (!hasValidBin && !manuallyDisabled && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
+  alert(
+    "💾 Mead Tracker is saving locally for now.\n\n" +
+    "To enable free cloud backup, create an account at:\n" +
+    "https://extendsclass.com/json-storage.html\n" +
+    "and paste your API key into the Cloud Sync panel."
+  );
+  localStorage.setItem("EXTENDS_NOTICE_SHOWN", "true");
+}
 
   // --- normal startup ---
   migrateOldLocalData();
