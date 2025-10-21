@@ -2235,7 +2235,8 @@ async function createBin() {
     const data = await res.json();
     EXTENDS_BIN_ID = data.id;
     localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
-    updateSyncCard();
+updateViewBinButton();
+updateSyncCard();
     alert(`✅ Created JSON bin:\n${EXTENDS_BIN_ID}`);
   } catch (err) {
     console.error("Failed to create bin:", err);
@@ -2345,12 +2346,50 @@ if (saveApiKeyBtn) {
     console.log("🔑 ExtendsClass API key saved:", EXTENDS_API_KEY);
 
     // Create a new bin if one doesn’t exist yet
-    if (!EXTENDS_BIN_ID) await createBin();
+    if (!EXTENDS_BIN_ID) {
+  // 🧩 Check if a bin already exists for this API key
+  const existingBin = await getExistingBin();
+  if (existingBin) {
+    EXTENDS_BIN_ID = existingBin;
+    localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
+    console.log(`☁️ Using existing bin: ${EXTENDS_BIN_ID}`);
+  } else {
+    await createBin();
+  }
+}
 
     updateSyncCard();
     updateViewBinButton();
     alert("✅ API key saved — cloud sync enabled.");
   });
+}
+
+/**
+ * Try to find an existing ExtendsClass bin for this API key.
+ * Returns the first bin ID found, or null if none exist.
+ */
+async function getExistingBin() {
+  if (!EXTENDS_API_KEY) return null;
+
+  try {
+    const res = await fetch(`${EXTENDS_API}`, {
+      headers: { "Security-key": EXTENDS_API_KEY }
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const bins = await res.json();
+    // bins is an object like: { "bin1-id": "2025-10-20T...", "bin2-id": "..." }
+    const binIds = Object.keys(bins || {});
+    if (binIds.length > 0) {
+      console.log(`☁️ Found existing bin: ${binIds[0]}`);
+      return binIds[0];
+    }
+  } catch (err) {
+    console.warn("⚠️ Could not fetch existing bins:", err);
+  }
+
+  return null;
 }
 
 function updateViewBinButton() {
