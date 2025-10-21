@@ -2366,31 +2366,45 @@ if (saveApiKeyBtn) {
 
 /**
  * Try to find an existing ExtendsClass bin for this API key.
- * Returns the first bin ID found, or null if none exist.
+ * Uses GET https://json.extendsclass.com/bins with header "Api-key".
+ * Returns the first bin ID if found, or null if none.
  */
 async function getExistingBin() {
-  if (!EXTENDS_API_KEY) return null;
+  if (!EXTENDS_API_KEY) {
+    console.log("⚠️ No ExtendsClass API key — skipping bin lookup.");
+    return null;
+  }
 
   try {
-    const res = await fetch(`${EXTENDS_API}`, {
-      headers: { "Security-key": EXTENDS_API_KEY }
+    const res = await fetch("https://json.extendsclass.com/bins", {
+      headers: { "Api-key": EXTENDS_API_KEY }
     });
 
+    if (res.status === 401) {
+      console.warn("⚠️ Wrong API key — cannot fetch bins.");
+      return null;
+    }
+    if (res.status === 429) {
+      console.warn("⚠️ ExtendsClass rate limit exceeded — try again later.");
+      return null;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const bins = await res.json();
-    // bins is an object like: { "bin1-id": "2025-10-20T...", "bin2-id": "..." }
-    const binIds = Object.keys(bins || {});
-    if (binIds.length > 0) {
-      console.log(`☁️ Found existing bin: ${binIds[0]}`);
-      return binIds[0];
+    if (Array.isArray(bins) && bins.length > 0) {
+      console.log(`☁️ Found existing bins: ${bins.join(", ")}`);
+      // reuse the first bin
+      return bins[0];
     }
+
+    console.log("☁️ No existing bins found for this API key.");
+    return null;
   } catch (err) {
     console.warn("⚠️ Could not fetch existing bins:", err);
+    return null;
   }
-
-  return null;
 }
+
 
 function updateViewBinButton() {
   const btn = document.getElementById('viewBinBtn');
