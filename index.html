@@ -2376,9 +2376,11 @@ async function getExistingBin() {
   }
 
   try {
-    const res = await fetch("https://json.extendsclass.com/bins", {
-      headers: { "Api-key": EXTENDS_API_KEY }
-    });
+const res = await fetch(`https://json.extendsclass.com/bins?nocache=${Date.now()}`, {
+  headers: { "Api-key": EXTENDS_API_KEY },
+  cache: "no-store"
+  console.log("Fetched /bins at", new Date().toISOString(), "status", res.status);
+});
 
     if (res.status === 401) {
       console.warn("⚠️ Wrong API key — cannot fetch bins.");
