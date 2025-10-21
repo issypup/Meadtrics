@@ -509,48 +509,52 @@ canvas {
       <div class="search" style="padding: 12px;">
         <input id="searchInput" type="text" placeholder="Search batches… (name or notes)" />
       </div>
-      <div id="batchList" class="list"></div>
-	  <!-- === Cloud Sync Card === -->
-<div id="syncCard" class="fieldset collapsible collapsed">
-  <legend style="cursor:pointer;">☁️ Cloud Sync</legend>
+<div id="batchList" class="list">
+  <!-- 🧪 Active & Archived batches render here dynamically -->
 
-<div id="syncContent">
-  <p style="font-size:13px;color:var(--muted);">
-    <b>ExtendsClass JSON Storage</b> (optional cloud backup)<br>
-    • Make a free account at
-    <a href="https://extendsclass.com/json-storage.html" target="_blank">
-      extendsclass.com/json-storage
-    </a><br>
-    • Copy your <b>API key</b> from your account.<br>
-    • Paste it below to enable cloud sync.
-  </p>
+  <!-- === Cloud Sync Card === -->
+  <div id="syncCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
+    <legend style="cursor:pointer;">☁️ Cloud Sync</legend>
+    <div id="syncContent" style="margin-top:8px;">
+      <p style="font-size:13px;color:var(--muted);">
+        <b>ExtendsClass JSON Storage</b> (optional cloud backup)<br>
+        • Make a free account at
+        <a href="https://extendsclass.com/json-storage.html" target="_blank">
+          extendsclass.com/json-storage
+        </a><br>
+        • Copy your <b>API key</b> from your account.<br>
+        • Paste it below to enable cloud sync.
+      </p>
 
-  <input id="apiKeyInput" type="text"
-    placeholder="Paste your ExtendsClass API key here"
-    style="width:100%;margin:6px 0;padding:6px;
-           border-radius:8px;border:1px solid var(--border);
-           background:#0f141b;color:var(--text);">
+      <input id="apiKeyInput" type="text"
+             placeholder="Paste your ExtendsClass API key here"
+             style="width:100%;margin:6px 0;padding:6px;
+                    border-radius:8px;border:1px solid var(--border);
+                    background:#0f141b;color:var(--text);">
 
-  <button id="saveApiKeyBtn" class="btn-accent" style="width:100%;">Save API Key</button>
-  <br>
-  <br>
-  <button id="viewBinBtn" class="btn-accent" style="display:none;">🔗 View Bin</button>
+      <button id="saveApiKeyBtn" class="btn-accent" style="width:100%;">
+        Save API Key
+      </button>
+      <br><br>
+      <button id="viewBinBtn" class="btn-accent" style="display:none;width:100%;">
+        🔗 View Bin
+      </button>
 
-  <div id="syncStatus" style="margin-top:6px;color:var(--muted);font-size:13px;">
-    💾 Local-only mode
+      <div id="syncStatus"
+           style="margin-top:6px;color:var(--muted);font-size:13px;">
+        💾 Local-only mode
+      </div>
+
+      <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
+      <div id="syncInfo" class="tag"
+           style="display:block;word-break:break-all;">
+        <b>Bin:</b> <span id="syncUrl">Local only</span>
+      </div>
+      <div class="tag" style="margin-top:4px;">
+        <b>Key:</b> <span id="syncKey">meadtracker</span>
+      </div>
+    </div>
   </div>
-
-  <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
-  <div id="syncInfo" class="tag" style="display:block;word-break:break-all;">
-    <b>Bin:</b> <span id="syncUrl">Local only</span>
-  </div>
-  <div class="tag" style="margin-top:4px;">
-    <b>Key:</b> <span id="syncKey">meadtracker</span>
-  </div>
-</div>
-
-
-
 </div>
 </aside>
     </aside>
@@ -683,12 +687,17 @@ function render() {
  */
 function renderBatchList() {
   const list = $('#batchList');
-  list.innerHTML = ''; // Clear previous list content
+  if (!list) return;
+
+  // 🧩 Save Cloud Sync card before clearing
+  const syncCard = document.getElementById('syncCard');
+  const hadSync = syncCard && list.contains(syncCard) ? syncCard : null;
+
+  list.innerHTML = ''; // Clear previous list content (but keep reference above)
 
   /* --- Filter and sort batches --- */
-
   const q = $('#searchInput').value.trim().toLowerCase(); // search query (lowercase)
-  
+
   // Sort newest → oldest, then filter by name or description
   const sorted = [...state.batches]
     .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
@@ -763,7 +772,6 @@ function renderBatchList() {
         nameDiv.style.cursor = 'pointer';
         nameDiv.addEventListener('click', e => {
           e.stopPropagation();
-          // Replace static name with input field
           const input = el('input', {
             type: 'text',
             value: b.name,
@@ -779,11 +787,10 @@ function renderBatchList() {
             `
           });
 
-          // Commit rename on blur or Enter
           const commit = () => {
             const newName = input.value.trim();
             if (newName) b.name = newName;
-            save(state);
+             saveAll(state);
             render();
           };
           input.addEventListener('blur', commit);
@@ -792,7 +799,6 @@ function renderBatchList() {
             if (ev.key === 'Escape') render(); // cancel rename
           });
 
-          // Swap element and focus
           nameDiv.replaceWith(input);
           input.focus();
           input.select();
@@ -810,16 +816,14 @@ function renderBatchList() {
           if (!confirm(`Delete batch “${b.name}”? This cannot be undone.`)) return;
           const i = state.batches.indexOf(b);
           if (i >= 0) {
-            state.batches.splice(i, 1); // remove from list
-            // If deleted batch was selected, select next one if available
+            state.batches.splice(i, 1);
             if (selectedId === b.id) selectedId = state.batches[0]?.id || null;
-            save(state);
+             saveAll(state);
             render();
           }
         }
       });
 
-      // Header row for each batch (name + delete button)
       const headerRow = el(
         'div',
         {
@@ -829,47 +833,40 @@ function renderBatchList() {
         [nameEl, delBtn]
       );
 
-      /* --- Metadata formatting --- */
+      /* --- Metadata --- */
       const latestSG = b.sgReadings?.length
         ? b.sgReadings[b.sgReadings.length - 1].sg
         : null;
       const abv = calcABV(b.og, latestSG);
 
-      // For archived batches: show maturity age
       const bottledEvent = b.events.find(e => e.type === 'bottled');
       const maturityText = bottledEvent
         ? `🧭 Mature: ${formatMaturityDays(bottledEvent.date)}`
         : '';
 
-      // For active batches: show fermentation duration
       const fermentText =
         !bottledEvent && b.startDate
           ? `🧪 ${formatFermentationDays(b.startDate)}`
           : '';
 
-// 1/3 Sugar Break (only show for active batches)
-let sugarBreakText = '';
-if (!bottledEvent && b.og) {
-  const target = calcSugarBreak(b.og);
-  if (target) sugarBreakText = `🍯 1/3 Sugar Break: ${target}`;
-}
+      // 1/3 Sugar Break
+      let sugarBreakText = '';
+      if (!bottledEvent && b.og) {
+        const target = calcSugarBreak(b.og);
+        if (target) sugarBreakText = `🍯 1/3 Sugar Break: ${target}`;
+      }
 
-      // Build combined info string (dates, gravities, ABV, progress)
-const metaText =
-  `${fmt(b.startDate)} · OG ${b.og}` +
-  (latestSG ? ` · FG ${latestSG}` : '') +
-  (abv ? ` · ~${abv.toFixed(1)}% ABV` : '') +
-  (fermentText ? `\n${fermentText}` : '') +
-  (sugarBreakText ? `\n${sugarBreakText}` : '') +
-  (maturityText ? `\n${maturityText}` : '');
+      const metaText =
+        `${fmt(b.startDate)} · OG ${b.og}` +
+        (latestSG ? ` · FG ${latestSG}` : '') +
+        (abv ? ` · ~${abv.toFixed(1)}% ABV` : '') +
+        (fermentText ? `\n${fermentText}` : '') +
+        (sugarBreakText ? `\n${sugarBreakText}` : '') +
+        (maturityText ? `\n${maturityText}` : '');
 
-      // Assemble final item layout
       item.append(headerRow, el('div', { class: 'meta', text: metaText }));
-
-      // Highlight currently selected batch
       item.classList.toggle('active', b.id === selectedId);
 
-      // Clicking batch selects it and refreshes details
       item.addEventListener('click', () => {
         selectedId = b.id;
         render();
@@ -884,7 +881,14 @@ const metaText =
   /* --- Render both main sections --- */
   list.append(makeSection('active', '🧪 Active Batches', active, 'No active batches.'));
   list.append(makeSection('archived', '🍾 Archived (Bottled)', archived, 'No bottled batches.'));
+
+  // 🟢 Re-attach Cloud Sync card under Archived
+  if (hadSync) {
+    list.append(hadSync);
+    hadSync.style.display = 'block';
+  }
 }
+
 
 /**
  * Render the main batch detail view.
@@ -942,7 +946,7 @@ function renderDetail() {
           const commit = () => {
             const newName = input.value.trim();
             if (newName) batch.name = newName;
-            save(state);
+             saveAll(state);
             render();
           };
 
@@ -990,7 +994,7 @@ function renderDetail() {
             // Add new batch to state and select it
             state.batches.push(clone);
             selectedId = id;
-            save(state);
+             saveAll(state);
             render();
 
             alert(`Batch “${batch.name}” duplicated as “${clone.name}”.`);
@@ -1189,7 +1193,7 @@ function sgFormCard(batch) {
       });
 
       // Save updated state and re-render the app
-      save(state);
+       saveAll(state);
       render();
     },
   });
@@ -1270,7 +1274,7 @@ function eventFormCard(batch) {
             batch.events.push(ev);
 
             // Save changes and re-render detail view
-            save(state);
+             saveAll(state);
             render();
 
             // Placeholder for potential "bottled" notification logic
@@ -1351,7 +1355,7 @@ function eventsTable(batch) {
               value: ev.note || '',
               oninput: (e) => {
                 ev.note = e.target.value; // live-update note in memory
-                save(state);              // persist immediately
+                 saveAll(state);             // persist immediately
               },
             });
             td.append(input);
@@ -1391,7 +1395,7 @@ function eventsTable(batch) {
         if (reading) reading.sg = sgStr;
       }
 
-      save(state);
+       saveAll(state);
       render(); // refresh chart + summary
     };
 
@@ -1457,7 +1461,7 @@ function eventsTable(batch) {
                 }
 
                 // Save updated state and re-render UI
-                save(state);
+                 saveAll(state);
                 render();
               }
             },
@@ -1531,7 +1535,7 @@ function ingredientsTable(batch) {
             : parseFloat(e.target.value) || '';
 
           // Save immediately to localStorage
-          save(state);
+           saveAll(state);
         }
       });
 
@@ -1549,7 +1553,7 @@ function ingredientsTable(batch) {
           // Remove this ingredient from the batch
           const i = batch.ingredients.indexOf(ing);
           if (i >= 0) batch.ingredients.splice(i, 1);
-          save(state);
+           saveAll(state);
           render(); // refresh display
         }
       })
@@ -1575,7 +1579,7 @@ function ingredientsTable(batch) {
         water: '',
         additives: ''
       });
-      save(state);
+       saveAll(state);
       render(); // refresh UI
     }
   });
@@ -1768,7 +1772,7 @@ function newBatchForm() {
         /* --- Save and render --- */
         state.batches.push(batch);   // Add to state
         selectedId = id;             // Auto-select new batch
-        save(state);                 // Persist to localStorage
+         saveAll(state);              // Persist to localStorage
         render();                    // Re-render UI
       }
     })
@@ -2094,7 +2098,7 @@ $('#clearBtn').addEventListener('click', () => {
   if (!confirm('Delete ALL mead tracker data?')) return;
   state = { batches: [] };
   selectedId = null;
-  save(state);
+   saveAll(state);
   render();
 });
 
@@ -2120,7 +2124,7 @@ $('#importFile').addEventListener('change', async (e) => {
   const data = JSON.parse(text);
   state = data;
   selectedId = state.batches[0]?.id || null;
-  save(state);
+   saveAll(state);
   render();
 });
 
@@ -2210,33 +2214,6 @@ function updateSyncCard() {
 /**
  * Create a new ExtendsClass bin when the user has provided a key.
  */
-async function createBin() {
-  try {
-    console.log("Api-key:", `"${EXTENDS_API_KEY}"`);
-    console.log("Security-key:", `"${EXTENDS_KEY}"`);
-
-    const res = await fetch(EXTENDS_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Api-key": EXTENDS_API_KEY,     // your account API key
-        "Security-key": EXTENDS_KEY,    // your chosen per-bin security key
-        "Private": "true"               // optional, keeps the bin private
-      },
-      body: JSON.stringify({ batches: [] })
-    });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    EXTENDS_BIN_ID = data.id;
-    localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
-    updateSyncCard();
-    //alert(`✅ Created JSON bin:\n${EXTENDS_BIN_ID}`);
-  } catch (err) {
-    console.error("Failed to create bin:", err);
-    alert("⚠️ Could not create JSON bin.");
-  }
-}
 
 async function createBin() {
   try {
@@ -2270,7 +2247,10 @@ async function createBin() {
  * Load from ExtendsClass if API key present; otherwise from local storage.
  */
 async function cloudLoad() {
-  if (!EXTENDS_BIN_ID) return load();
+  if (!EXTENDS_BIN_ID || !EXTENDS_KEY) {
+    console.log("☁️ No ExtendsClass credentials — using local data only.");
+    return load();
+  }
 
   try {
     const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
@@ -2280,7 +2260,7 @@ async function cloudLoad() {
     if (res.status === 404) {
       console.log("☁️ No cloud data yet, starting fresh.");
       await cloudSave({ batches: [] });
-      updateViewBinButton(); // 🟢 show button even after creating a new bin
+      updateViewBinButton();
       return null;
     }
 
@@ -2289,7 +2269,6 @@ async function cloudLoad() {
     const data = await res.json();
     updateViewBinButton();
 
-    // 🧠 Only return cloud data if it actually contains batches
     if (data && data.batches && data.batches.length > 0) {
       console.log("☁️ Loaded cloud data successfully.");
       return data;
@@ -2297,10 +2276,9 @@ async function cloudLoad() {
       console.log("☁️ Cloud is empty — keeping local data.");
       return null;
     }
-
   } catch (err) {
-    console.warn("Cloud load failed, using local copy:", err);
-    updateViewBinButton(); // 🟢 still try to show button if key exists
+    console.warn("⚠️ Cloud load failed, using local copy:", err);
+    updateViewBinButton();
     return null;
   }
 }
@@ -2310,28 +2288,32 @@ async function cloudLoad() {
  * Save to ExtendsClass if API key provided, always save local.
  */
 async function cloudSave(state) {
+  // Always persist local copy locally
   save(state);
-  if (!EXTENDS_API_KEY || !EXTENDS_BIN_ID) return; // local only
+
+  if (!EXTENDS_BIN_ID || !EXTENDS_KEY) {
+    console.log("💾 Local save only (no ExtendsClass key).");
+    return;
+  }
 
   try {
-    await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
+    const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Security-key": EXTENDS_API_KEY,
+        "Security-key": EXTENDS_KEY
       },
-      body: JSON.stringify(state),
+      body: JSON.stringify(state)
     });
 
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     console.log("☁️ Synced to ExtendsClass");
     updateViewBinButton();
-
   } catch (err) {
     console.warn("⚠️ ExtendsClass sync failed", err);
     updateViewBinButton();
   }
 }
-
 window.addEventListener("beforeunload", () => cloudSave(state));
 
 /**
@@ -2389,6 +2371,10 @@ function updateViewBinButton() {
   }
 }
 
+function saveAll(state) {
+  save(state);       // local
+  cloudSave(state);  // cloud
+}
 
 // === Migration: old Mead Tracker → new system ===
 function migrateOldLocalData() {
@@ -2439,32 +2425,35 @@ function migrateOldLocalData() {
 
 // === Startup ===
 (async () => {
-  // If no key, politely remind the user once
-  if (!EXTENDS_API_KEY && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
+  // Gentle reminder once
+  if (!EXTENDS_KEY && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
     alert(
       "💾 Mead Tracker is saving locally for now.\n\nTo enable free cloud backup, create an account at:\nhttps://extendsclass.com/json-storage.html\nand paste your API key into the Cloud Sync panel."
     );
     localStorage.setItem("EXTENDS_NOTICE_SHOWN", "true");
   }
 
-  // Run migration once on upgrade
   migrateOldLocalData();
 
-  // 🧩 Step 1: Load local first for instant render
+  // Step 1: local render
   state = load();
   render();
   updateSyncCard();
 
-  // 🧩 Step 2: Try to load from cloud (non-destructive)
+  // Step 2: try cloud load
   try {
     const cloud = await cloudLoad();
+
     if (cloud && cloud.batches && cloud.batches.length > 0) {
       console.log("☁️ Replacing local with cloud data.");
       state = cloud;
-      save(state); // update local backup
+      save(state);
       render();
+    } else if (state && state.batches && state.batches.length > 0) {
+      console.log("☁️ Cloud empty — pushing local data up for the first time.");
+      await cloudSave(state);
     } else {
-      console.log("☁️ Cloud empty or unavailable — kept local data.");
+      console.log("☁️ Cloud and local both empty — starting fresh.");
     }
   } catch (err) {
     console.warn("⚠️ Cloud load failed — using local copy:", err);
