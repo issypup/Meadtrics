@@ -2323,20 +2323,33 @@ const saveApiKeyBtn = document.getElementById("saveApiKeyBtn");
 if (saveApiKeyBtn) {
   saveApiKeyBtn.addEventListener("click", async () => {
     const keyInput = document.getElementById("apiKeyInput");
-    EXTENDS_API_KEY = keyInput.value.trim();
-    localStorage.setItem("EXTENDS_API_KEY", EXTENDS_API_KEY);
+    const newKey = keyInput.value.trim();
 
-    if (!EXTENDS_API_KEY) {
-      //alert("API key cleared. Data will now be saved locally only.");
+    // 🧹 If the field is blank, clear all ExtendsClass info
+    if (!newKey) {
+      clearExtendsCredentials();
+      EXTENDS_API_KEY = "";
+      EXTENDS_BIN_ID = "";
       updateSyncCard();
+      updateViewBinButton();
+      console.log("💾 Cloud sync disabled — reverted to local-only mode.");
+      alert("💾 Cloud sync disabled — now saving locally only.");
       return;
     }
 
-    // If key added and no bin exists, create one automatically
+    // Otherwise, save normally
+    EXTENDS_API_KEY = newKey;
+    localStorage.setItem("EXTENDS_API_KEY", EXTENDS_API_KEY);
+    localStorage.setItem("EXTENDS_KEY", EXTENDS_KEY);
+
+    console.log("🔑 ExtendsClass API key saved:", EXTENDS_API_KEY);
+
+    // Create a new bin if one doesn’t exist yet
     if (!EXTENDS_BIN_ID) await createBin();
 
     updateSyncCard();
-    //alert("✅ API key saved. Cloud sync enabled.");
+    updateViewBinButton();
+    alert("✅ API key saved — cloud sync enabled.");
   });
 }
 
@@ -2374,6 +2387,17 @@ function updateViewBinButton() {
 function saveAll(state) {
   save(state);       // local
   cloudSave(state);  // cloud
+}
+
+function clearExtendsCredentials() {
+  const keys = [
+    "EXTENDS_BIN_ID",
+    "EXTENDS_KEY",
+    "EXTENDS_API_KEY",
+    "EXTENDS_NOTICE_SHOWN"
+  ];
+  for (const k of keys) localStorage.removeItem(k);
+  console.log("🧹 Cleared ExtendsClass credentials from localStorage.");
 }
 
 // === Migration: old Mead Tracker → new system ===
@@ -2425,14 +2449,24 @@ function migrateOldLocalData() {
 
 // === Startup ===
 (async () => {
-  // Gentle reminder once
-  if (!EXTENDS_KEY && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
+  // === detect if we have a valid ExtendsClass bin ===
+  const hasValidBin =
+    typeof EXTENDS_BIN_ID !== "undefined" &&
+    EXTENDS_BIN_ID &&
+    EXTENDS_BIN_ID.trim() !== "";
+
+  // If no bin, politely remind the user once
+  if (!hasValidBin && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
     alert(
-      "💾 Mead Tracker is saving locally for now.\n\nTo enable free cloud backup, create an account at:\nhttps://extendsclass.com/json-storage.html\nand paste your API key into the Cloud Sync panel."
+      "💾 Mead Tracker is saving locally for now.\n\n" +
+        "To enable free cloud backup, create an account at:\n" +
+        "https://extendsclass.com/json-storage.html\n" +
+        "and paste your Bin ID into the Cloud Sync panel."
     );
     localStorage.setItem("EXTENDS_NOTICE_SHOWN", "true");
   }
 
+  // --- normal startup ---
   migrateOldLocalData();
 
   // Step 1: local render
@@ -2440,27 +2474,35 @@ function migrateOldLocalData() {
   render();
   updateSyncCard();
 
-  // Step 2: try cloud load
-  try {
-    const cloud = await cloudLoad();
+  // Step 2: cloud logic only if bin exists
+  if (hasValidBin) {
+    try {
+      const cloud = await cloudLoad();
 
-    if (cloud && cloud.batches && cloud.batches.length > 0) {
-      console.log("☁️ Replacing local with cloud data.");
-      state = cloud;
-      save(state);
-      render();
-    } else if (state && state.batches && state.batches.length > 0) {
-      console.log("☁️ Cloud empty — pushing local data up for the first time.");
-      await cloudSave(state);
-    } else {
-      console.log("☁️ Cloud and local both empty — starting fresh.");
+      if (cloud && cloud.batches && cloud.batches.length > 0) {
+        console.log("☁️ Loaded cloud data successfully.");
+        console.log("☁️ Replacing local with cloud data.");
+        state = cloud;
+        save(state);
+        render();
+      } else if (state && state.batches && state.batches.length > 0) {
+        console.log("☁️ Cloud empty — pushing local data up for the first time.");
+        await cloudSave(state);
+      } else {
+        console.log("☁️ Cloud and local both empty — starting fresh.");
+      }
+    } catch (err) {
+      console.warn("⚠️ Cloud load failed — using local copy:", err);
     }
-  } catch (err) {
-    console.warn("⚠️ Cloud load failed — using local copy:", err);
+  } else {
+    console.log("💾 Loaded local data (no ExtendsClass bin configured).");
   }
 
   updateSyncCard();
 })();
+
+
+
 
 
 
