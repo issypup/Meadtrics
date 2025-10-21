@@ -790,7 +790,7 @@ function renderBatchList() {
           const commit = () => {
             const newName = input.value.trim();
             if (newName) b.name = newName;
-             saveAll(state);
+             saveAll(state, b, ["name"]);
             render();
           };
           input.addEventListener('blur', commit);
@@ -946,7 +946,7 @@ function renderDetail() {
           const commit = () => {
             const newName = input.value.trim();
             if (newName) batch.name = newName;
-             saveAll(state);
+             saveAll(state, batch, ["name"]);
             render();
           };
 
@@ -1193,7 +1193,7 @@ function sgFormCard(batch) {
       });
 
       // Save updated state and re-render the app
-       saveAll(state);
+       saveAll(state, batch, ["sgReadings", "events"]);
       render();
     },
   });
@@ -1274,7 +1274,7 @@ function eventFormCard(batch) {
             batch.events.push(ev);
 
             // Save changes and re-render detail view
-             saveAll(state);
+             saveAll(state, batch, ["events"]);
             render();
 
             // Placeholder for potential "bottled" notification logic
@@ -1355,69 +1355,69 @@ function eventsTable(batch) {
               value: ev.note || '',
               oninput: (e) => {
                 ev.note = e.target.value; // live-update note in memory
-                 saveAll(state);             // persist immediately
+                saveAll(state, batch, ["events"]); // patch only notes/events
               },
             });
             td.append(input);
           } else if (ev.type === 'added sg reading') {
-  // --- Editable SG value on double-click ---
-  const sgSpan = el('span', {
-    text: `SG: ${ev.sg}`,
-    title: 'Double-click to edit SG reading',
-    style: 'cursor:pointer;'
-  });
+            // --- Editable SG value on double-click ---
+            const sgSpan = el('span', {
+              text: `SG: ${ev.sg}`,
+              title: 'Double-click to edit SG reading',
+              style: 'cursor:pointer;'
+            });
 
-  sgSpan.addEventListener('dblclick', () => {
-    const input = el('input', {
-      type: 'number',
-      step: '0.001',
-      min: '0.800',
-      max: '1.500',
-      value: ev.sg,
-      style: 'width:80px;'
-    });
+            sgSpan.addEventListener('dblclick', () => {
+              const input = el('input', {
+                type: 'number',
+                step: '0.001',
+                min: '0.800',
+                max: '1.500',
+                value: ev.sg,
+                style: 'width:80px;'
+              });
 
-    // Commit edited value
-    const commit = () => {
-      const newVal = parseFloat(input.value);
-      if (!isFinite(newVal)) return render();
-      const sgStr = newVal.toFixed(3);
-      ev.sg = sgStr;
-      ev.note = `SG: ${sgStr}`;
+              // Commit edited value
+              const commit = () => {
+                const newVal = parseFloat(input.value);
+                if (!isFinite(newVal)) return render();
+                const sgStr = newVal.toFixed(3);
+                ev.sg = sgStr;
+                ev.note = `SG: ${sgStr}`;
 
-      // --- Update linked sgReading entry (if exists) ---
-      if (ev.sgId) {
-        const reading = batch.sgReadings.find(r => r.id === ev.sgId);
-        if (reading) reading.sg = sgStr;
-      } else {
-        // fallback: match by date if no sgId
-        const reading = batch.sgReadings.find(r => r.date === ev.date);
-        if (reading) reading.sg = sgStr;
-      }
+                // --- Update linked sgReading entry (if exists) ---
+                if (ev.sgId) {
+                  const reading = batch.sgReadings.find(r => r.id === ev.sgId);
+                  if (reading) reading.sg = sgStr;
+                } else {
+                  // fallback: match by date if no sgId
+                  const reading = batch.sgReadings.find(r => r.date === ev.date);
+                  if (reading) reading.sg = sgStr;
+                }
 
-       saveAll(state);
-      render(); // refresh chart + summary
-    };
+                saveAll(state, batch, ["sgReadings", "events"]);
+                render(); // refresh chart + summary
+              };
 
-    input.addEventListener('blur', commit);
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') input.blur();
-      if (e.key === 'Escape') render();
-    });
+              input.addEventListener('blur', commit);
+              input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') render();
+              });
 
-    sgSpan.replaceWith(input);
-    input.focus();
-    input.select();
-  });
+              sgSpan.replaceWith(input);
+              input.focus();
+              input.select();
+            });
 
-  td.append(sgSpan);
-} else {
-  // Non-editable text for other event types
-  td.textContent =
-    ev.note ||
-    (ev.sg ? `SG: ${ev.sg}` : '') ||
-    ev.type;
-}
+            td.append(sgSpan);
+          } else {
+            // Non-editable text for other event types
+            td.textContent =
+              ev.note ||
+              (ev.sg ? `SG: ${ev.sg}` : '') ||
+              ev.type;
+          }
 
           return td;
         })(),
@@ -1461,7 +1461,7 @@ function eventsTable(batch) {
                 }
 
                 // Save updated state and re-render UI
-                 saveAll(state);
+                saveAll(state, batch, ["sgReadings", "events"]);
                 render();
               }
             },
@@ -1535,7 +1535,7 @@ function ingredientsTable(batch) {
             : parseFloat(e.target.value) || '';
 
           // Save immediately to localStorage
-           saveAll(state);
+           saveAll(state, batch, ["ingredients"]);
         }
       });
 
@@ -1553,7 +1553,7 @@ function ingredientsTable(batch) {
           // Remove this ingredient from the batch
           const i = batch.ingredients.indexOf(ing);
           if (i >= 0) batch.ingredients.splice(i, 1);
-           saveAll(state);
+           saveAll(state, batch, ["ingredients"]);
           render(); // refresh display
         }
       })
@@ -1579,7 +1579,7 @@ function ingredientsTable(batch) {
         water: '',
         additives: ''
       });
-       saveAll(state);
+       saveAll(state, batch, ["ingredients"]);
       render(); // refresh UI
     }
   });
@@ -2292,15 +2292,7 @@ async function cloudLoad() {
  * Save to ExtendsClass if API key provided, always save local.
  * Uses PATCH (merge) when possible instead of full PUT overwrite.
  */
-async function cloudSave(state, patchOnly = true) {
-  // Always persist local copy locally
-  save(state);
-
-  if (!EXTENDS_BIN_ID || !EXTENDS_KEY) {
-    console.log("💾 Local save only (no ExtendsClass key).");
-    return;
-  }
-
+async function cloudSave(payload, patchOnly = true) {
   try {
     const method = patchOnly ? "PATCH" : "PUT";
     const headers = {
@@ -2313,10 +2305,9 @@ async function cloudSave(state, patchOnly = true) {
     const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
       method,
       headers,
-      body: JSON.stringify(state)
+      body: JSON.stringify(payload)
     });
 
-    // If PATCH fails (404 or 400), fallback to full PUT
     if (!res.ok) {
       if (patchOnly && (res.status === 400 || res.status === 404)) {
         console.warn(`⚠️ PATCH failed (${res.status}), retrying full PUT`);
@@ -2325,8 +2316,7 @@ async function cloudSave(state, patchOnly = true) {
       throw new Error(`HTTP ${res.status}`);
     }
 
-    const data = await res.json();
-    console.log(`☁️ ${method} sync successful. Updated bin:`, data);
+    console.log(`☁️ ${method} sync successful`);
     updateViewBinButton();
   } catch (err) {
     console.warn("⚠️ ExtendsClass sync failed", err);
@@ -2460,9 +2450,35 @@ function updateViewBinButton() {
   }
 }
 
-function saveAll(state) {
-  save(state);       // local
-  cloudSave(state);  // cloud
+async function saveAll(state, changedBatch = null, changedFields = null) {
+  save(state); // always save local first
+
+  // No cloud connection configured
+  if (!EXTENDS_BIN_ID || !EXTENDS_KEY) {
+    console.log("💾 Local-only save (no ExtendsClass key).");
+    return;
+  }
+
+  // Build minimal patch payload if we know what changed
+  let payload;
+  if (changedBatch && Array.isArray(changedFields) && changedFields.length) {
+    const partial = { batches: [] };
+    const patch = { id: changedBatch.id };
+    for (const f of changedFields) {
+      // Copy only requested properties
+      if (changedBatch[f] !== undefined)
+        patch[f] = structuredClone(changedBatch[f]);
+    }
+    partial.batches.push(patch);
+    payload = partial;
+    console.log("☁️ Sending minimal PATCH:", partial);
+  } else {
+    payload = state;
+    console.log("☁️ Sending full PATCH (no diff info).");
+  }
+
+  // Send to cloud
+  await cloudSave(payload, true);
 }
 
 function clearExtendsCredentials() {
