@@ -2288,7 +2288,11 @@ async function cloudLoad() {
 /**
  * Save to ExtendsClass if API key provided, always save local.
  */
-async function cloudSave(state) {
+/**
+ * Save to ExtendsClass if API key provided, always save local.
+ * Uses PATCH (merge) when possible instead of full PUT overwrite.
+ */
+async function cloudSave(state, patchOnly = true) {
   // Always persist local copy locally
   save(state);
 
@@ -2298,23 +2302,38 @@ async function cloudSave(state) {
   }
 
   try {
+    const method = patchOnly ? "PATCH" : "PUT";
+    const headers = {
+      "Content-Type": patchOnly
+        ? "application/merge-patch+json"
+        : "application/json",
+      "Security-key": EXTENDS_KEY
+    };
+
     const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Security-key": EXTENDS_KEY
-      },
+      method,
+      headers,
       body: JSON.stringify(state)
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    console.log("☁️ Synced to ExtendsClass");
+    // If PATCH fails (404 or 400), fallback to full PUT
+    if (!res.ok) {
+      if (patchOnly && (res.status === 400 || res.status === 404)) {
+        console.warn(`⚠️ PATCH failed (${res.status}), retrying full PUT`);
+        return cloudSave(state, false);
+      }
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    console.log(`☁️ ${method} sync successful. Updated bin:`, data);
     updateViewBinButton();
   } catch (err) {
     console.warn("⚠️ ExtendsClass sync failed", err);
     updateViewBinButton();
   }
 }
+
 window.addEventListener("beforeunload", () => cloudSave(state));
 
 /**
