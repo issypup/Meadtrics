@@ -505,7 +505,7 @@ canvas {
   <div class="app">
     <aside class="sidebar card">
       <header>
-        <h1>Mead Tracker</h1>
+        <h1>MeadTrics</h1>
         <button id="newBatchBtn" class="btn btn-accent">+ New</button>
       </header>
       <div class="search" style="padding: 12px;">
@@ -2336,7 +2336,7 @@ $('#searchInput').addEventListener('input', renderBatchList);
 
 // Clear all data (reset localStorage)
 $('#clearBtn').addEventListener('click', () => {
-  if (!confirm('Delete ALL mead tracker data?')) return;
+  if (!confirm('Delete ALL MeadTrics data?')) return;
   state = { batches: [] };
   selectedId = null;
    saveAll(state);
@@ -3149,7 +3149,7 @@ function clearExtendsCredentials() {
 }
 
 
-// === Migration: old Mead Tracker → new system ===
+// === Migration: old MeadTrics → new system ===
 function migrateOldLocalData() {
   try {
     const oldKeyNames = [
@@ -3166,7 +3166,7 @@ function migrateOldLocalData() {
     const oldData = JSON.parse(localStorage.getItem(foundKey));
     if (!oldData || localStorage.getItem("MIGRATION_DONE")) return false;
 
-    console.log(`🧩 Found old Mead Tracker data in '${foundKey}' → migrating...`);
+    console.log(`🧩 Found old MeadTrics data in '${foundKey}' → migrating...`);
 
     // Build new state format
     const newState = oldData.batches
@@ -3185,7 +3185,7 @@ function migrateOldLocalData() {
     }
 
     alert(
-      "✅ Your old Mead Tracker data has been automatically migrated to the new version.\nAll batches are safe and backed up locally."
+      "✅ Your old MeadTrics data has been automatically migrated to the new version.\nAll batches are safe and backed up locally."
     );
 
     return true;
@@ -3210,7 +3210,7 @@ const manuallyDisabled = localStorage.getItem("EXTENDS_MANUAL_DISABLE") === "1";
   
 if (!hasValidBin && !manuallyDisabled && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
   alert(
-    "💾 Mead Tracker is saving locally for now.\n\n" +
+    "💾 MeadTrics is saving locally for now.\n\n" +
     "To enable free cloud backup, create an account at:\n" +
     "https://extendsclass.com/json-storage.html\n" +
     "and paste your API key into the Cloud Sync panel."
