@@ -2453,7 +2453,7 @@ function updateSyncCard() {
 }
 
 
-// === Dynamic YAN estimator (BatchBuildr-style) ===
+// === Dynamic YAN estimator) ===
 function updateYAN() {
   const yeastABV = parseFloat(document.getElementById('tosnaYeastABV').value) || 14;
   const sweetness = document.getElementById('tosnaSweetness').value;
@@ -2521,7 +2521,7 @@ function calcTOSNA() {
     return;
   }
 
-  /* === 1️⃣ Determine effective YAN (mg N/L) like BatchBuildr === */
+  /* === 1️⃣ Determine effective YAN (mg N/L)=== */
   let yan = 150;
 
   if (yeastABV <= 12) {
@@ -2546,7 +2546,7 @@ function calcTOSNA() {
   const fg = sweetness === 'dry' ? 1.000 : sweetness === 'semi' ? 1.015 : 1.030;
   const og = (fg + yeastABV / 131.25).toFixed(3);
 
-  /* === 3️⃣ BatchBuildr-matched empirical nutrient scaling (respects type) === */
+  /* === empirical nutrient scaling (respects type) === */
   let o = 0, k = 0, dap = 0;
   let basePerL = 0.42;              // medium (~150 mg/L)
   if (yan <= 140) basePerL = 0.38;  // low (~125 mg/L)
@@ -2577,7 +2577,7 @@ function calcTOSNA() {
   const tspKhalf = k ? Math.round(((k / 2) / 4.0) * 100) / 100 : 0;
   const tspDhalf = dap ? Math.round(((dap / 2) / 4.6) * 100) / 100 : 0;
 
-  /* === 5️⃣ Build BatchBuildr-style schedule === */
+  /* === schedule === */
   const oHalf = Math.round((o / 2) * 10) / 10;
   const kHalf = Math.round((k / 2) * 10) / 10;
   const dapHalf = Math.round((dap / 2) * 10) / 10;
@@ -2710,7 +2710,7 @@ function calcBacksweetening() {
     return;
   }
 
-  // Convert SG to sugar g/L (VinoLab approximation)
+  // Convert SG to sugar g/L
   const sgToGpl = sg => (182.4601 * sg ** 3) - (775.6821 * sg ** 2) + (1262.7794 * sg) - 669.5622;
   const sugarCurrent = sgToGpl(sg1);
   const sugarDesired = sgToGpl(sg2);
