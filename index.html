@@ -497,6 +497,8 @@ canvas {
 .hidden {
   display: none !important;
 }
+
+
   </style>
 </head>
 <body>
@@ -926,12 +928,14 @@ const hadSync = syncCard && list.contains(syncCard) ? syncCard : null;
       'div',
       {
         class: 'row',
-        style: `
-          justify-content: space-between;
-          align-items: center;
-          cursor: pointer;
-          user-select: none;
-        `,
+style: `
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+`,
         onclick: () => {
           sidebarCollapse[key] = !sidebarCollapse[key]; // toggle state
           renderBatchList(); // re-render sidebar only
