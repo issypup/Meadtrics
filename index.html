@@ -2267,10 +2267,26 @@ async function cloudLoad() {
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    const data = await res.json();
+    const raw = await res.json();
     updateViewBinButton();
 
-    if (data && data.batches && data.batches.length > 0) {
+    // 🧩 Normalize ExtendsClass format
+    let data = null;
+
+    if (raw.data) {
+      // If data is stored as a JSON string, parse it
+      try {
+        data = typeof raw.data === "string" ? JSON.parse(raw.data) : raw.data;
+      } catch (e) {
+        console.warn("⚠️ Failed to parse nested data, using raw:", e);
+        data = raw.data;
+      }
+    } else {
+      // Fallback: older bins (no wrapper)
+      data = raw;
+    }
+
+    if (data && Array.isArray(data.batches) && data.batches.length > 0) {
       console.log("☁️ Loaded cloud data successfully.");
       return data;
     } else {
@@ -2285,6 +2301,7 @@ async function cloudLoad() {
 }
 
 
+
 /**
  * Save to ExtendsClass if API key provided, always save local.
  */
@@ -2294,6 +2311,22 @@ async function cloudLoad() {
  */
 async function cloudSave(payload, patchOnly = true) {
   try {
+    // 🔧 Always start from full state
+    let merged = structuredClone(state);
+
+    // If payload is partial, merge it into the existing state before sending
+    if (payload && payload.batches) {
+      for (const patchBatch of payload.batches) {
+        const idx = merged.batches.findIndex(b => b.id === patchBatch.id);
+        if (idx !== -1) {
+          Object.assign(merged.batches[idx], patchBatch);
+        } else {
+          // new batch
+          merged.batches.push(patchBatch);
+        }
+      }
+    }
+
     const method = patchOnly ? "PATCH" : "PUT";
     const headers = {
       "Content-Type": patchOnly
@@ -2305,7 +2338,8 @@ async function cloudSave(payload, patchOnly = true) {
     const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
       method,
       headers,
-      body: JSON.stringify(payload)
+      // ✅ send merged full dataset
+      body: JSON.stringify({ data: merged })
     });
 
     if (!res.ok) {
@@ -2323,6 +2357,7 @@ async function cloudSave(payload, patchOnly = true) {
     updateViewBinButton();
   }
 }
+
 
 window.addEventListener("beforeunload", () => cloudSave(state));
 
@@ -2478,7 +2513,7 @@ async function saveAll(state, changedBatch = null, changedFields = null) {
   }
 
   // Send to cloud
-  await cloudSave(payload, true);
+  await cloudSave(state, true);
 }
 
 function clearExtendsCredentials() {
