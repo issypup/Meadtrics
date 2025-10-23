@@ -512,6 +512,67 @@ canvas {
 <div id="batchList" class="list">
   <!-- 🧪 Active & Archived batches render here dynamically -->
 
+
+<!-- === TOSNA Calculator Card === -->
+<div id="tosnaCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
+  <legend style="cursor:pointer;">🍯 TOSNA Calculator</legend>
+  <div id="tosnaContent" style="margin-top:8px;">
+    <p style="font-size:13px;color:var(--muted);">
+      Based on <b>TOSNA 2.0</b> — calculates nutrient additions by volume, yeast, and target YAN.
+    </p>
+
+    <label>Volume (L):</label>
+    <input id="tosnaVol" type="number" step="0.1" value="5" style="width:100%;margin-bottom:6px;">
+
+    <label>Yeast ABV Tolerance (%):</label>
+    <input id="tosnaYeastABV" type="number" step="0.1" value="14" style="width:100%;margin-bottom:6px;">
+
+    <label>Desired Sweetness:</label>
+    <select id="tosnaSweetness" style="width:100%;margin-bottom:6px;">
+      <option value="dry">Dry (little to no residual sugar)</option>
+      <option value="semi" selected>Semi-sweet (balanced)</option>
+      <option value="sweet">Sweet (high residual sugar)</option>
+    </select>
+
+    <div id="tosnaFGOG" style="font-size:13px;color:var(--muted);margin-bottom:8px;">
+      Estimated FG: <b>1.010</b> → Suggested OG: <b>1.110</b>
+    </div>
+
+    <label>Fermentation Type (sets YAN):</label>
+<label>Yeast Nitrogen Requirement:</label>
+<select id="tosnaReq" style="width:100%;margin-bottom:6px;">
+  <option value="low">
+    Low — e.g., D47, 71B, K1V — Traditional, show, hydromel
+  </option>
+  <option value="medium" selected>
+    Medium — e.g., QA23, D21, RC212 — Melomel, metheglin, pyment
+  </option>
+  <option value="high">
+    High — e.g., EC-1118, BM4x4, D254 — Bochet, capsicumel, cyser, braggot
+  </option>
+</select>
+
+
+    <label>Target YAN (mg N/L):</label>
+    <input id="tosnaYan" type="number" step="1" value="150" style="width:100%;margin-bottom:6px;">
+
+    <label>Nutrient Type:</label>
+    <select id="tosnaType" style="width:100%;margin-bottom:6px;">
+      <option value="O">Fermaid O (TOSNA)</option>
+      <option value="OK">Fermaid O + K</option>
+      <option value="OKDAP">Fermaid O + K + DAP</option>
+    </select>
+
+    <button id="calcTosna" class="btn-accent" style="width:100%;">Calculate TOSNA</button>
+
+    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
+    <div id="tosnaResult" style="font-size:13px;color:var(--muted);"></div>
+  </div>
+</div>
+
+
+
+
   <!-- === Cloud Sync Card === -->
   <div id="syncCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
     <legend style="cursor:pointer;">☁️ Cloud Sync</legend>
@@ -551,7 +612,7 @@ canvas {
         <b>Bin:</b> <span id="syncUrl">Local only</span>
       </div>
       <div class="tag" style="margin-top:4px;">
-        <b>Key:</b> <span id="syncKey">meadtracker</span>
+        <b>Security Key:</b> <span id="syncKey">meadtracker</span>
       </div>
     </div>
   </div>
@@ -690,7 +751,6 @@ function renderBatchList() {
   if (!list) return;
 
   // 🧩 Save Cloud Sync card before clearing
-  const syncCard = document.getElementById('syncCard');
   const hadSync = syncCard && list.contains(syncCard) ? syncCard : null;
 
   list.innerHTML = ''; // Clear previous list content (but keep reference above)
@@ -882,12 +942,20 @@ function renderBatchList() {
   list.append(makeSection('active', '🧪 Active Batches', active, 'No active batches.'));
   list.append(makeSection('archived', '🍾 Archived (Bottled)', archived, 'No bottled batches.'));
 
-  // 🟢 Re-attach Cloud Sync card under Archived
+  // 🟢 Re-attach TOSNA and Cloud Sync cards
+  if (tosnaCard) {
+    list.append(tosnaCard);
+    tosnaCard.style.display = 'block';
+  }
+
   if (hadSync) {
     list.append(hadSync);
     hadSync.style.display = 'block';
   }
-}
+  }
+
+
+
 
 
 /**
@@ -2211,9 +2279,167 @@ function updateSyncCard() {
       : "💾 Local-only mode";
 }
 
+
+// === Dynamic YAN estimator (BatchBuildr-style) ===
+function updateYAN() {
+  const yeastABV = parseFloat(document.getElementById('tosnaYeastABV').value) || 14;
+  const sweetness = document.getElementById('tosnaSweetness').value;
+  const req = document.getElementById('tosnaReq').value;
+  let effYAN = 150;
+
+  if (yeastABV <= 12) {
+    if (sweetness === 'dry') effYAN = req === 'low' ? 100 : req === 'medium' ? 125 : 150;
+    else if (sweetness === 'semi') effYAN = req === 'low' ? 120 : req === 'medium' ? 140 : 160;
+    else effYAN = req === 'low' ? 130 : req === 'medium' ? 150 : 180;
+  } else if (yeastABV <= 14) {
+    if (sweetness === 'dry') effYAN = req === 'low' ? 120 : req === 'medium' ? 140 : 160;
+    else if (sweetness === 'semi') effYAN = req === 'low' ? 130 : req === 'medium' ? 150 : 180;
+    else effYAN = req === 'low' ? 150 : req === 'medium' ? 180 : 200;
+  } else if (yeastABV <= 16) {
+    if (sweetness === 'dry') effYAN = req === 'low' ? 140 : req === 'medium' ? 170 : 190;
+    else if (sweetness === 'semi') effYAN = req === 'low' ? 160 : req === 'medium' ? 190 : 220;
+    else effYAN = req === 'low' ? 170 : req === 'medium' ? 200 : 250;
+  } else {
+    effYAN = req === 'low' ? 180 : req === 'medium' ? 210 : 260;
+  }
+
+  document.getElementById('tosnaYan').value = Math.round(effYAN);
+}
+
+// update automatically when ABV, sweetness, or requirement change
+['tosnaYeastABV','tosnaSweetness','tosnaReq'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('input',updateYAN);
+});
+updateYAN();
+
+// === Auto FG / OG Estimator ===
+function updateFGOG() {
+  const yeastABV = parseFloat(document.getElementById('tosnaYeastABV').value) || 14;
+  const sweetness = document.getElementById('tosnaSweetness').value;
+  let fg = 1.000;
+
+  if (sweetness === 'dry') fg = 1.000;
+  else if (sweetness === 'semi') fg = 1.015;
+  else if (sweetness === 'sweet') fg = 1.030;
+
+  // Estimate OG needed to reach ABV goal
+  const og = (fg + (yeastABV / 131.25)).toFixed(3);
+
+  const display = document.getElementById('tosnaFGOG');
+  display.innerHTML = `Estimated FG: <b>${fg.toFixed(3)}</b> → Suggested OG: <b>${og}</b>`;
+}
+
+document.getElementById('tosnaYeastABV').addEventListener('input', updateFGOG);
+document.getElementById('tosnaSweetness').addEventListener('change', updateFGOG);
+updateFGOG(); // run once at start
+
+// === Main TOSNA calculator ===
+
+function calcTOSNA() {
+  const vol = parseFloat(document.getElementById('tosnaVol').value) || 0;
+  const yeastABV = parseFloat(document.getElementById('tosnaYeastABV').value) || 14;
+  const sweetness = document.getElementById('tosnaSweetness').value;
+  const req = document.getElementById('tosnaReq').value;
+  const type = document.getElementById('tosnaType').value;
+
+  if (!vol) {
+    alert("Please enter a valid volume.");
+    return;
+  }
+
+  /* === 1️⃣  Determine effective YAN (mg N/L) like BatchBuildr === */
+  let yan = 150;
+
+  if (yeastABV <= 12) {
+    if (sweetness === 'dry') yan = req === 'low' ? 100 : req === 'medium' ? 125 : 150;
+    else if (sweetness === 'semi') yan = req === 'low' ? 120 : req === 'medium' ? 140 : 160;
+    else yan = req === 'low' ? 130 : req === 'medium' ? 150 : 180;
+  } else if (yeastABV <= 14) {
+    if (sweetness === 'dry') yan = req === 'low' ? 120 : req === 'medium' ? 140 : 160;
+    else if (sweetness === 'semi') yan = req === 'low' ? 130 : req === 'medium' ? 150 : 180;
+    else yan = req === 'low' ? 150 : req === 'medium' ? 180 : 200;
+  } else if (yeastABV <= 16) {
+    if (sweetness === 'dry') yan = req === 'low' ? 140 : req === 'medium' ? 170 : 190;
+    else if (sweetness === 'semi') yan = req === 'low' ? 160 : req === 'medium' ? 190 : 220;
+    else yan = req === 'low' ? 170 : req === 'medium' ? 200 : 250;
+  } else {
+    yan = req === 'low' ? 180 : req === 'medium' ? 210 : 260;
+  }
+
+  document.getElementById('tosnaYan').value = Math.round(yan);
+
+  /* === 2️⃣  Calculate OG/FG estimate (for display only) === */
+  let fg = sweetness === 'dry' ? 1.000 : sweetness === 'semi' ? 1.015 : 1.030;
+  const og = (fg + (yeastABV / 131.25)).toFixed(3);
+
+  /* === 3️⃣  BatchBuildr-style empirical nutrient scaling === */
+  let o = 0, k = 0, dap = 0;
+  let basePerL = 0.46;           // baseline g/L for medium (~150 mg/L)
+  if (yan <= 140) basePerL = 0.42;     // low
+  else if (yan >= 200) basePerL = 0.70; // high
+
+  // primary nutrient weights
+  o = basePerL * vol;
+  k = o * 1.09;   // +9%
+  dap = o * 0.43; // +43%
+
+  // round totals
+  o = Math.round(o * 10) / 10;
+  k = Math.round(k * 10) / 10;
+  dap = Math.round(dap * 10) / 10;
+
+  /* === 4️⃣  Split O into 4 equal additions (rounded 0.1 g) === */
+  const oSplit = Math.round((o / 4) * 10) / 10;
+  const lastOSplit = Math.round((o - oSplit * 3) * 10) / 10;
+
+  /* === 5️⃣  Build result HTML === */
+  let result = "";
+  result += "<h6 style='margin:0;color:var(--accent);'>Nutrient Schedule</h6>";
+  result += "<div style='margin-top:4px;'>📦 For <b>" + vol + " L</b> at <b>OG " + og +
+    "</b> → FG " + fg.toFixed(3) +
+    "<br>Yeast Tolerance <b>" + yeastABV + "%</b> · Sweetness <b>" + sweetness +
+    "</b> · Req <b>" + req + "</b> · YAN <b>" + yan + " mg/L</b></div><br>";
+
+  result += "<b>Fermaid O:</b> " + o.toFixed(1) + " g";
+  result += " · <b>Fermaid K:</b> " + k.toFixed(1) + " g";
+  result += " · <b>DAP:</b> " + dap.toFixed(1) + " g<br><br>";
+
+  result += "<b>Schedule:</b><br>";
+  result += "• 24 h → " + oSplit + " g O<br>";
+  result += "• 48 h → " + oSplit + " g O<br>";
+  result += "• 72 h → " + oSplit + " g O<br>";
+  result += "• 1⁄3 Sugar Break → " + lastOSplit + " g O + " +
+             k.toFixed(1) + " g K + " + dap.toFixed(1) + " g DAP";
+
+  /* === 6️⃣  Output === */
+  document.getElementById('tosnaResult').innerHTML = result;
+}
+
+document.getElementById('calcTosna').addEventListener('click', calcTOSNA);
+
+
+// === Collapsible TOSNA card ===
+const tosnaCard = document.getElementById("tosnaCard");
+if (tosnaCard) {
+  const legend = tosnaCard.querySelector("legend");
+  const content = document.getElementById("tosnaContent");
+
+  legend.addEventListener("click", () => {
+    tosnaCard.classList.toggle("collapsed");
+    const isCollapsed = tosnaCard.classList.contains("collapsed");
+    content.style.display = isCollapsed ? "none" : "block";
+  });
+
+  // Start collapsed (like others)
+  tosnaCard.classList.add("collapsed");
+  content.style.display = "none";
+}
+
 /**
  * Create a new ExtendsClass bin when the user has provided a key.
  */
+
 
 async function createBin() {
   try {
