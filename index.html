@@ -510,8 +510,24 @@ canvas {
         <input id="searchInput" type="text" placeholder="Search batches… (name or notes)" />
       </div>
 <div id="batchList" class="list">
+
+<div class="fieldset" id="batchesHeader" style="margin-top:16px; text-align:center; padding:10px 0;
+     background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+     border-radius: var(--radius); box-shadow: var(--shadow);">
+  <legend style="color: var(--accent); font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">
+    ⚙️ Batches
+  </legend>
+</div>
+
   <!-- 🧪 Active & Archived batches render here dynamically -->
 
+<div class="fieldset" id="utilitiesHeader" style="margin-top:16px; text-align:center; padding:10px 0;
+     background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+     border-radius: var(--radius); box-shadow: var(--shadow);">
+  <legend style="color: var(--accent); font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">
+    ⚙️ Utilities
+  </legend>
+</div>
 
 <!-- === TOSNA Calculator Card === -->
 <div id="tosnaCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
@@ -570,8 +586,122 @@ canvas {
   </div>
 </div>
 
+<!-- === backsweeting Additions Card === -->
+<div id="backsweetCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
+  <legend style="cursor:pointer;">🍯 Backsweetening Additions</legend>
+  <div id="backContent" style="margin-top:8px;">
+    <p style="font-size:13px;color:var(--muted);">
+      Estimate how much <b>sugar</b>, <b>honey</b>, or a <b>custom sweetener</b> to add after fermentation
+      to reach your desired sweetness. (Ensure your mead is stabilized first!)
+    </p>
 
+    <label>Current SG (after fermentation):</label>
+    <input id="back_currentSG" type="number" step="0.001" value="1.000" style="width:100%;margin-bottom:6px;">
 
+    <label>Desired Final SG:</label>
+    <input id="back_desiredSG" type="number" step="0.001" value="1.015" style="width:100%;margin-bottom:6px;">
+
+    <label>Volume (L):</label>
+    <input id="back_volume" type="number" step="0.1" value="5" style="width:100%;margin-bottom:6px;">
+
+    <label>Addition Type:</label>
+    <select id="back_type" style="width:100%;margin-bottom:6px;">
+      <option value="sugar" selected>White Sugar (100%)</option>
+      <option value="honey">Honey (≈82%)</option>
+      <option value="custom">Custom Sweetener (%)</option>
+    </select>
+
+    <div id="customPercentWrap" style="display:none;margin-bottom:6px;">
+      <label>Custom Sugar Content (%):</label>
+      <input id="back_customPercent" type="number" step="1" min="1" max="100" value="75" style="width:100%;">
+    </div>
+
+    <label>Amount to Add (kg):</label>
+    <input id="back_resultKg" type="text" readonly style="width:100%;margin-bottom:6px;">
+
+    <button id="calcBacksweetBtn" class="btn-accent" style="width:100%;">Calculate Backsweetening</button>
+
+    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
+    <div id="backResult" style="font-size:13px;color:var(--muted);"></div>
+  </div>
+</div>
+
+<!-- === Dilution Calculator Card === -->
+<div id="dilutionCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
+  <legend style="cursor:pointer;">💧 Dilution Calculator</legend>
+  <div id="dilutionContent" style="margin-top:8px;">
+    <p style="font-size:13px;color:var(--muted);">
+      Calculate how much water to add to reduce specific gravity or ABV.
+    </p>
+
+    <label>Current SG:</label>
+    <input id="dil_current" type="number" step="0.001" value="1.120" style="width:100%;margin-bottom:6px;">
+
+    <label>Target SG:</label>
+    <input id="dil_target" type="number" step="0.001" value="1.090" style="width:100%;margin-bottom:6px;">
+
+    <label>Current Volume (L):</label>
+    <input id="dil_volume" type="number" step="0.1" value="5" style="width:100%;margin-bottom:6px;">
+
+    <button id="calcDilutionBtn" class="btn-accent" style="width:100%;">Calculate Dilution</button>
+
+    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
+    <div id="dilResult" style="font-size:13px;color:var(--muted);"></div>
+  </div>
+</div>
+
+<!-- === Priming Sugar Calculator Card === -->
+<div id="primingCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
+  <legend style="cursor:pointer;">🍾 Priming Calculator (Expermential!) </legend>
+  <div id="primingContent" style="margin-top:8px;">
+    <p style="font-size:13px;color:var(--muted);">
+      Simple guide for adding sugar before bottling to achieve your desired carbonation.
+    </p>
+
+    <label>Batch Volume (L):</label>
+    <input id="prime_volume" type="number" step="0.1" value="5" style="width:100%;margin-bottom:6px;">
+
+    <label>Carbonation Level:</label>
+    <select id="prime_co2" style="width:100%;margin-bottom:6px;">
+      <option value="0">Still (no carbonation)</option>
+      <option value="1.5">Light / Pétillant</option>
+      <option value="2.5" selected>Medium (Sparkling)</option>
+      <option value="3.0">Strong (Champagne-like)</option>
+    </select>
+
+    <button id="calcPrimingBtn" class="btn-accent" style="width:100%;">Calculate Priming Sugar</button>
+
+    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
+    <div id="primeResult" style="font-size:13px;color:var(--muted);"></div>
+  </div>
+</div>
+
+<!-- === Stabilisation Calculator Card === -->
+<div id="stabilCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
+  <legend style="cursor:pointer;">🧴 Stabilisation Calculator</legend>
+  <div id="stabilContent" style="margin-top:8px;">
+    <p style="font-size:13px;color:var(--muted);">
+      Simple guideline for adding <b>Potassium Sorbate</b> and <b>Potassium Metabisulfite</b> 
+      to stabilize your mead before backsweetening.
+    </p>
+
+    <label>Batch Volume (L):</label>
+    <input id="stab_volume" type="number" step="0.1" value="5" style="width:100%;margin-bottom:6px;">
+
+    <button id="calcStabilBtn" class="btn-accent" style="width:100%;">Calculate Additions</button>
+
+    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
+    <div id="stabResult" style="font-size:13px;color:var(--muted);"></div>
+  </div>
+</div>
+
+<div class="fieldset" id="backupHeader" style="margin-top:16px; text-align:center; padding:10px 0;
+     background: rgba(255,255,255,0.02); border: 1px solid var(--border);
+     border-radius: var(--radius); box-shadow: var(--shadow);">
+  <legend style="color: var(--accent); font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">
+    ⚙️ Backup
+  </legend>
+</div>
 
   <!-- === Cloud Sync Card === -->
   <div id="syncCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
@@ -751,7 +881,15 @@ function renderBatchList() {
   if (!list) return;
 
   // 🧩 Save Cloud Sync card before clearing
-  const hadSync = syncCard && list.contains(syncCard) ? syncCard : null;
+  const batchHeader = document.getElementById('batchesHeader');
+  const utilHeader = document.getElementById('utilitiesHeader');
+ const tosnaCard = document.getElementById('tosnaCard');
+const backsweetCard = document.getElementById('backsweetCard');
+const dilCard = document.getElementById('dilutionCard');
+const primeCard = document.getElementById('primingCard');
+const stabCard = document.getElementById('stabilCard');
+const backupHeader = document.getElementById('backupHeader');
+const hadSync = syncCard && list.contains(syncCard) ? syncCard : null;
 
   list.innerHTML = ''; // Clear previous list content (but keep reference above)
 
@@ -938,25 +1076,56 @@ function renderBatchList() {
     return section;
   };
 
+if (batchHeader) {
+  list.append(batchHeader);
+  batchHeader.style.display = 'block';
+}
+
   /* --- Render both main sections --- */
   list.append(makeSection('active', '🧪 Active Batches', active, 'No active batches.'));
   list.append(makeSection('archived', '🍾 Archived (Bottled)', archived, 'No bottled batches.'));
 
-  // 🟢 Re-attach TOSNA and Cloud Sync cards
-  if (tosnaCard) {
-    list.append(tosnaCard);
-    tosnaCard.style.display = 'block';
-  }
+// 🟢 Re-attach TOSNA, Chaptalisation, and Cloud Sync cards
+if (utilHeader) {
+  list.append(utilHeader);
+  utilHeader.style.display = 'block';
+}
 
-  if (hadSync) {
-    list.append(hadSync);
-    hadSync.style.display = 'block';
-  }
-  }
+if (tosnaCard) {
+  list.append(tosnaCard);
+  tosnaCard.style.display = 'block';
+}
 
+if (backsweetCard) {
+  list.append(backsweetCard);
+  backsweetCard.style.display = 'block';
+}
 
+if (dilCard) {
+  list.append(dilCard);
+  dilCard.style.display = 'block';
+}
 
+if (primeCard) {
+  list.append(primeCard);
+  primeCard.style.display = 'block';
+}
 
+if (stabCard) {
+  list.append(stabCard);
+  stabCard.style.display = 'block';
+}
+
+if (backupHeader) {
+  list.append(backupHeader);
+  utilHeader.style.display = 'block';
+}
+
+if (hadSync) {
+  list.append(hadSync);
+  hadSync.style.display = 'block';
+}
+} // ✅ closes renderBatchList()
 
 /**
  * Render the main batch detail view.
@@ -2465,10 +2634,200 @@ if (tosnaCard) {
   content.style.display = "none";
 }
 
+// === Collapsible backsweeting card ===
+const backsweetCard = document.getElementById("backsweetCard");
+if (backsweetCard) {
+  const legend = backsweetCard.querySelector("legend");
+  const content = document.getElementById("backContent");
+
+  legend.addEventListener("click", () => {
+    backsweetCard.classList.toggle("collapsed");
+    const isCollapsed = backsweetCard.classList.contains("collapsed");
+    content.style.display = isCollapsed ? "none" : "block";
+  });
+
+  // Start collapsed like other cards
+  backsweetCard.classList.add("collapsed");
+  content.style.display = "none";
+}
+
+// === Collapsible Dilution card ===
+const dilCard = document.getElementById("dilutionCard");
+if (dilCard) {
+  const legend = dilCard.querySelector("legend");
+  const content = document.getElementById("dilutionContent");
+  legend.addEventListener("click", () => {
+    dilCard.classList.toggle("collapsed");
+    const isCollapsed = dilCard.classList.contains("collapsed");
+    content.style.display = isCollapsed ? "none" : "block";
+  });
+  dilCard.classList.add("collapsed");
+  content.style.display = "none";
+}
+
+// === Collapsible Priming card ===
+const primeCard = document.getElementById("primingCard");
+if (primeCard) {
+  const legend = primeCard.querySelector("legend");
+  const content = document.getElementById("primingContent");
+  legend.addEventListener("click", () => {
+    primeCard.classList.toggle("collapsed");
+    const isCollapsed = primeCard.classList.contains("collapsed");
+    content.style.display = isCollapsed ? "none" : "block";
+  });
+  primeCard.classList.add("collapsed");
+  content.style.display = "none";
+}
+
+// === Collapsible Stabilisation card ===
+const stabCard = document.getElementById("stabilCard");
+if (stabCard) {
+  const legend = stabCard.querySelector("legend");
+  const content = document.getElementById("stabilContent");
+  legend.addEventListener("click", () => {
+    stabCard.classList.toggle("collapsed");
+    const isCollapsed = stabCard.classList.contains("collapsed");
+    content.style.display = isCollapsed ? "none" : "block";
+  });
+  stabCard.classList.add("collapsed");
+  content.style.display = "none";
+}
+
+// === Backsweetening Calculator ===
+function calcBacksweetening() {
+  const sg1 = parseFloat(document.getElementById('back_currentSG').value);
+  const sg2 = parseFloat(document.getElementById('back_desiredSG').value);
+  const vol = parseFloat(document.getElementById('back_volume').value);
+  const type = document.getElementById('back_type').value;
+  const customPercent = parseFloat(document.getElementById('back_customPercent').value);
+
+  if (isNaN(sg1) || isNaN(sg2) || isNaN(vol)) {
+    alert("Please enter valid SG values and volume.");
+    return;
+  }
+
+  // Convert SG to sugar g/L (VinoLab approximation)
+  const sgToGpl = sg => (182.4601 * sg ** 3) - (775.6821 * sg ** 2) + (1262.7794 * sg) - 669.5622;
+  const sugarCurrent = sgToGpl(sg1);
+  const sugarDesired = sgToGpl(sg2);
+  const sugarDiff = sugarDesired - sugarCurrent;
+
+  const sugarKg = (sugarDiff * vol) / 1000; // g/L × L → g → kg
+
+  // Convert to equivalent total weight based on type
+  let factor = 1; // default 100% sugar
+  let label = "sugar";
+
+  if (type === "honey") {
+    factor = 0.82;
+    label = "honey";
+  } else if (type === "custom") {
+    if (isNaN(customPercent) || customPercent <= 0 || customPercent > 100) {
+      alert("Please enter a valid custom sugar % between 1–100.");
+      return;
+    }
+    factor = customPercent / 100;
+    label = `${customPercent}% custom sweetener`;
+  }
+
+  const requiredKg = sugarKg / factor;
+
+  document.getElementById('back_resultKg').value = requiredKg.toFixed(3);
+  document.getElementById('backResult').innerHTML = `
+    <b>Result:</b><br>
+    • Add <b>${requiredKg.toFixed(3)} kg</b> of ${label}<br>
+    (to raise SG from ${sg1.toFixed(3)} → ${sg2.toFixed(3)})
+  `;
+}
+
+document.getElementById('calcBacksweetBtn').addEventListener('click', calcBacksweetening);
+
+// === Dilution Calculator ===
+function calcDilution() {
+  const sg1 = parseFloat(document.getElementById('dil_current').value);
+  const sg2 = parseFloat(document.getElementById('dil_target').value);
+  const vol = parseFloat(document.getElementById('dil_volume').value);
+
+  if (isNaN(sg1) || isNaN(sg2) || isNaN(vol) || sg2 >= sg1) {
+    alert("Enter valid numbers (target SG must be lower than current).");
+    return;
+  }
+
+  const waterToAdd = vol * ((sg1 - sg2) / sg2);
+  document.getElementById('dilResult').innerHTML =
+    `Add approximately <b>${waterToAdd.toFixed(2)} L</b> of water to reduce from ${sg1.toFixed(3)} → ${sg2.toFixed(3)} SG.`;
+}
+document.getElementById('calcDilutionBtn').addEventListener('click', calcDilution);
+
+// === Priming Calculator ===
+function calcPriming() {
+  const vol = parseFloat(document.getElementById('prime_volume').value);
+  const co2 = parseFloat(document.getElementById('prime_co2').value);
+
+  if (isNaN(vol) || vol <= 0) {
+    alert("Enter a valid batch volume in litres.");
+    return;
+  }
+
+  if (co2 === 0) {
+    document.getElementById('primeResult').innerHTML = `
+      For <b>${vol.toFixed(1)} L</b> batch:<br>
+      • No sugar needed — for still mead.
+    `;
+    return;
+  }
+
+  // Simple rule: 1 CO₂ volume ≈ 4 g sugar per litre
+  const sugarPerL = co2 * 4;
+  const totalSugarG = vol * sugarPerL;
+  const totalSugarKg = totalSugarG / 1000;
+
+  document.getElementById('primeResult').innerHTML = `
+    For <b>${vol.toFixed(1)} L</b> batch:<br>
+    • Add <b>${totalSugarG.toFixed(0)} g</b> sugar 
+      (<b>${totalSugarKg.toFixed(2)} kg</b>)<br>
+    • Target carbonation: <b>${co2.toFixed(1)} vols CO₂</b><br>
+    (Use table sugar or dextrose. Mix thoroughly before bottling.)
+  `;
+}
+document.getElementById('calcPrimingBtn').addEventListener('click', calcPriming);
+
+// === Stabilisation Calculator ===
+function calcStabilisation() {
+  const vol = parseFloat(document.getElementById('stab_volume').value);
+  if (isNaN(vol) || vol <= 0) {
+    alert("Enter a valid batch volume in litres.");
+    return;
+  }
+
+  // Standard “rule of thumb” stabilisation:
+  // 0.2 g/L Potassium Sorbate
+  // 0.15 g/L Potassium Metabisulfite
+  const sorbate = vol * 0.2;
+  const meta = vol * 0.15;
+
+  document.getElementById('stabResult').innerHTML = `
+    For <b>${vol.toFixed(1)} L</b> batch:<br>
+    • Add <b>${sorbate.toFixed(2)} g</b> Potassium Sorbate<br>
+    • Add <b>${meta.toFixed(2)} g</b> Potassium Metabisulfite<br>
+  `;
+}
+document.getElementById('calcStabilBtn').addEventListener('click', calcStabilisation);
+
+
+
+// === Show/hide custom % input dynamically ===
+document.getElementById('back_type').addEventListener('change', e => {
+  const showCustom = e.target.value === 'custom';
+  document.getElementById('customPercentWrap').style.display = showCustom ? 'block' : 'none';
+});
+
+document.getElementById('calcBacksweetBtn').addEventListener('click', calcBacksweetening);
+
+
 /**
  * Create a new ExtendsClass bin when the user has provided a key.
  */
-
 
 async function createBin() {
   try {
