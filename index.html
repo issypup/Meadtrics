@@ -2428,7 +2428,7 @@ function updateViewBinButton() {
     btn.onclick = async () => {
       try {
         const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
-          headers: { 'Security-key': EXTENDS_API_KEY }
+          headers: { 'Security-key': EXTENDS_KEY }
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
