@@ -589,8 +589,76 @@ canvas {
   background: #222a33;
 }
 
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 15, 20, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background: #0f141b;
+  color: var(--text);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  max-width: 320px;
+  text-align: left;
+}
+
+.icon-btn {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 46px;
+  height: 46px;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  z-index: 1000;
+}
+
+.popup {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.6);
+  z-index: 999;
+}
+
+.popup.hidden { display: none; }
+
+.popup-content {
+  background: #0f141b;
+  color: var(--text);
+  padding: 16px;
+  border-radius: 8px;
+  width: 300px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+}
+
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 
   </style>
+  
 </head>
 <body>
   <div class="app">
@@ -603,276 +671,10 @@ canvas {
         <input id="searchInput" type="text" placeholder="Search batches… (name or notes)" />
       </div>
 <div id="batchList" class="list">
-
-<div class="fieldset" id="batchesHeader" style="margin-top:16px; text-align:center; padding:10px 0;
-     background: rgba(255,255,255,0.02); border: 1px solid var(--border);
-     border-radius: var(--radius); box-shadow: var(--shadow);">
-  <legend style="color: var(--accent); font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">
-    ⚙️ Batches
-  </legend>
-</div>
-
-  <!-- 🧪 Active & Archived batches render here dynamically -->
-
-<div class="fieldset" id="utilitiesHeader" style="margin-top:16px; text-align:center; padding:10px 0;
-     background: rgba(255,255,255,0.02); border: 1px solid var(--border);
-     border-radius: var(--radius); box-shadow: var(--shadow);">
-  <legend style="color: var(--accent); font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">
-    ⚙️ Utilities
-  </legend>
-</div>
-
-<!-- === TOSNA Calculator Card === -->
-<div id="tosnaCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
-  <legend style="cursor:pointer;">🍯 TOSNA Calculator</legend>
-  <div id="tosnaContent" style="margin-top:8px;">
-    <p style="font-size:13px;color:var(--muted);">
-      Based on <b>TOSNA 2.0</b> — calculates nutrient additions by volume, yeast, and target YAN.
-    </p>
-
-    <label>Volume (L):</label>
-    <input id="tosnaVol" type="number" step="0.1" value="5" style="width:100%;margin-bottom:6px;">
-
-    <label>Yeast ABV Tolerance (%):</label>
-    <input id="tosnaYeastABV" type="number" step="0.1" value="14" style="width:100%;margin-bottom:6px;">
-
-    <label>Desired Sweetness:</label>
-    <select id="tosnaSweetness" style="width:100%;margin-bottom:6px;">
-      <option value="dry">Dry (little to no residual sugar)</option>
-      <option value="semi" selected>Semi-sweet (balanced)</option>
-      <option value="sweet">Sweet (high residual sugar)</option>
-    </select>
-
-    <div id="tosnaFGOG" style="font-size:13px;color:var(--muted);margin-bottom:8px;">
-      Estimated FG: <b>1.010</b> → Suggested OG: <b>1.110</b>
-    </div>
-
-    <label>Fermentation Type (sets YAN):</label>
-<label>Yeast Nitrogen Requirement:</label>
-<select id="tosnaReq" style="width:100%;margin-bottom:6px;">
-  <option value="low">
-    Low — e.g., D47, 71B, K1V — Traditional, show, hydromel
-  </option>
-  <option value="medium" selected>
-    Medium — e.g., QA23, D21, RC212 — Melomel, metheglin, pyment
-  </option>
-  <option value="high">
-    High — e.g., EC-1118, BM4x4, D254 — Bochet, capsicumel, cyser, braggot
-  </option>
-</select>
-
-
-    <label>Target YAN (mg N/L):</label>
-    <input id="tosnaYan" type="number" step="1" value="150" style="width:100%;margin-bottom:6px;">
-
-    <label>Nutrient Type:</label>
-    <select id="tosnaType" style="width:100%;margin-bottom:6px;">
-      <option value="O">Fermaid O (TOSNA)</option>
-      <option value="OK">Fermaid O + K</option>
-      <option value="OKDAP">Fermaid O + K + DAP</option>
-    </select>
-
-    <button id="calcTosna" class="btn-accent" style="width:100%;">Calculate TOSNA</button>
-
-    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
-    <div id="tosnaResult" style="font-size:13px;color:var(--muted);"></div>
-  </div>
-</div>
-
-<!-- === backsweeting Additions Card === -->
-<div id="backsweetCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
-  <legend style="cursor:pointer;">🍯 Backsweetening Additions</legend>
-  <div id="backContent" style="margin-top:8px;">
-    <p style="font-size:13px;color:var(--muted);">
-      Estimate how much <b>sugar</b>, <b>honey</b>, or a <b>custom sweetener</b> to add after fermentation
-      to reach your desired sweetness. (Ensure your mead is stabilized first!)
-    </p>
-
-    <label>Current SG (after fermentation):</label>
-    <input id="back_currentSG" type="number" step="0.001" value="1.000" style="width:100%;margin-bottom:6px;">
-
-    <label>Desired Final SG:</label>
-    <input id="back_desiredSG" type="number" step="0.001" value="1.015" style="width:100%;margin-bottom:6px;">
-
-    <label>Volume (L):</label>
-    <input id="back_volume" type="number" step="0.1" value="5" style="width:100%;margin-bottom:6px;">
-
-    <label>Addition Type:</label>
-    <select id="back_type" style="width:100%;margin-bottom:6px;">
-      <option value="sugar" selected>White Sugar (100%)</option>
-      <option value="honey">Honey (≈82%)</option>
-      <option value="custom">Custom Sweetener (%)</option>
-    </select>
-
-    <div id="customPercentWrap" style="display:none;margin-bottom:6px;">
-      <label>Custom Sugar Content (%):</label>
-      <input id="back_customPercent" type="number" step="1" min="1" max="100" value="75" style="width:100%;">
-    </div>
-
-    <label>Amount to Add (kg):</label>
-    <input id="back_resultKg" type="text" readonly style="width:100%;margin-bottom:6px;">
-
-    <button id="calcBacksweetBtn" class="btn-accent" style="width:100%;">Calculate Backsweetening</button>
-
-    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
-    <div id="backResult" style="font-size:13px;color:var(--muted);"></div>
-  </div>
-</div>
-
-<!-- === Dilution Calculator Card === -->
-<div id="dilutionCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
-  <legend style="cursor:pointer;">💧 Dilution Calculator</legend>
-  <div id="dilutionContent" style="margin-top:8px;">
-    <p style="font-size:13px;color:var(--muted);">
-      Calculate how much water to add to reduce specific gravity or ABV.
-    </p>
-
-    <label>Current SG:</label>
-    <input id="dil_current" type="number" step="0.001" value="1.120" style="width:100%;margin-bottom:6px;">
-
-    <label>Target SG:</label>
-    <input id="dil_target" type="number" step="0.001" value="1.090" style="width:100%;margin-bottom:6px;">
-
-    <label>Current Volume (L):</label>
-    <input id="dil_volume" type="number" step="0.1" value="5" style="width:100%;margin-bottom:6px;">
-
-    <button id="calcDilutionBtn" class="btn-accent" style="width:100%;">Calculate Dilution</button>
-
-    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
-    <div id="dilResult" style="font-size:13px;color:var(--muted);"></div>
-  </div>
-</div>
-
-<!-- === Priming Sugar Calculator Card === -->
-<div id="primingCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
-  <legend style="cursor:pointer;">🍾 Priming Calculator (Expermential!) </legend>
-  <div id="primingContent" style="margin-top:8px;">
-    <p style="font-size:13px;color:var(--muted);">
-      Simple guide for adding sugar before bottling to achieve your desired carbonation.
-    </p>
-
-    <label>Batch Volume (L):</label>
-    <input id="prime_volume" type="number" step="0.1" value="5" style="width:100%;margin-bottom:6px;">
-
-    <label>Carbonation Level:</label>
-    <select id="prime_co2" style="width:100%;margin-bottom:6px;">
-      <option value="0">Still (no carbonation)</option>
-      <option value="1.5">Light / Pétillant</option>
-      <option value="2.5" selected>Medium (Sparkling)</option>
-      <option value="3.0">Strong (Champagne-like)</option>
-    </select>
-
-    <button id="calcPrimingBtn" class="btn-accent" style="width:100%;">Calculate Priming Sugar</button>
-
-    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
-    <div id="primeResult" style="font-size:13px;color:var(--muted);"></div>
-  </div>
-</div>
-
-<!-- === Stabilisation Calculator Card === -->
-<div id="stabilCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
-  <legend style="cursor:pointer;">🧴 Stabilisation Calculator</legend>
-  <div id="stabilContent" style="margin-top:8px;">
-    <p style="font-size:13px;color:var(--muted);">
-      Simple guideline for adding <b>Potassium Sorbate</b> and <b>Potassium Metabisulfite</b> 
-      to stabilize your mead before backsweetening.
-    </p>
-
-    <label>Batch Volume (L):</label>
-    <input id="stab_volume" type="number" step="0.1" value="5" style="width:100%;margin-bottom:6px;">
-
-    <button id="calcStabilBtn" class="btn-accent" style="width:100%;">Calculate Additions</button>
-
-    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
-    <div id="stabResult" style="font-size:13px;color:var(--muted);"></div>
-  </div>
-</div>
-
-<!-- === Brix <-> SG Converter Card === -->
-<div id="brixConverterCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
-  <legend style="cursor:pointer;">🧮 Brix ↔ SG Converter</legend>
-  <div id="brixContent" style="margin-top:8px;">
-    <p style="font-size:13px;color:var(--muted);">
-      Convert between <b>Brix</b> and <b>Specific Gravity</b>.
-    </p>
-
-    <label>Brix (°Bx):</label>
-    <input id="brixInput" type="number" step="0.01" placeholder="e.g. 20.5"
-           style="width:100%;margin-bottom:6px;">
-
-    <label>Specific Gravity (SG):</label>
-    <input id="sgInput" type="number" step="0.0001" placeholder="e.g. 1.083"
-           style="width:100%;margin-bottom:6px;">
-
-    <div class="row" style="margin-top:8px; gap:8px;">
-      <button id="convertBrixToSG" class="btn-accent" style="flex:1;">Brix → SG</button>
-      <button id="convertSGToBrix" class="btn-accent" style="flex:1;">SG → Brix</button>
-      <button id="clearBrixFields" class="btn-danger" style="flex:1;">Clear</button>
-    </div>
-
-    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
-    <div id="brixResult" style="font-size:13px;color:var(--muted);"></div>
-  </div>
-</div>
-
-
-
-
-<div class="fieldset" id="backupHeader" style="margin-top:16px; text-align:center; padding:10px 0;
-     background: rgba(255,255,255,0.02); border: 1px solid var(--border);
-     border-radius: var(--radius); box-shadow: var(--shadow);">
-  <legend style="color: var(--accent); font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">
-    ⚙️ Backup
-  </legend>
-</div>
-
-  <!-- === Cloud Sync Card === -->
-  <div id="syncCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
-    <legend style="cursor:pointer;">☁️ Cloud Sync</legend>
-    <div id="syncContent" style="margin-top:8px;">
-      <p style="font-size:13px;color:var(--muted);">
-        <b>ExtendsClass JSON Storage</b> (optional cloud backup)<br>
-        • Make a free account at
-        <a href="https://extendsclass.com/json-storage.html" target="_blank">
-          extendsclass.com/json-storage
-        </a><br>
-        • Copy your <b>API key</b> from your account.<br>
-        • Paste it below to enable cloud sync.
-      </p>
-
-      <input id="apiKeyInput" type="text"
-             placeholder="Paste your ExtendsClass API key here"
-             style="width:100%;margin:6px 0;padding:6px;
-                    border-radius:8px;border:1px solid var(--border);
-                    background:#0f141b;color:var(--text);">
-
-      <button id="saveApiKeyBtn" class="btn-accent" style="width:100%;">
-        Save API Key
-      </button>
-      <br><br>
-      <button id="viewBinBtn" class="btn-accent" style="display:none;width:100%;">
-        🔗 View Bin
-      </button>
-
-      <div id="syncStatus"
-           style="margin-top:6px;color:var(--muted);font-size:13px;">
-        💾 Local-only mode
-      </div>
-
-      <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
-      <div id="syncInfo" class="tag"
-           style="display:block;word-break:break-all;">
-        <b>Bin:</b> <span id="syncUrl">Local only</span>
-      </div>
-      <div class="tag" style="margin-top:4px;">
-        <b>Security Key:</b> <span id="syncKey">MeadTrics</span>
-      </div>
-    </div>
-  </div>
 </div>
 </aside>
     </aside>
-
+	
     <section class="content">
       <div id="detail" class="detail card"></div>
       <div class="footer card">
@@ -912,6 +714,7 @@ canvas {
     </div>
   </div>
 </div>
+
 
   <script>
 /* === Constants and Utility Functions === */
@@ -1002,6 +805,1145 @@ function save(state) {
 }
 
 /**
+ * Create the "⚙️ Batches" header card dynamically
+ * using the `el()` utility.
+ */
+function batchHeaderCard() {
+  return el('div', {
+    class: 'fieldset',
+    id: 'batchesHeader',
+    style: `
+      margin-top:16px;
+      text-align:center;
+      padding:10px 0;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    `
+  }, [
+    el('legend', {
+      text: '⚙️ Batches',
+      style: `
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: 0.5px;
+      `
+    })
+  ]);
+}
+
+/**
+ * Create the "⚙️ Utilities" header card dynamically
+ * using the `el()` utility.
+ */
+function utilitiesHeaderCard() {
+  return el('div', {
+    class: 'fieldset',
+    id: 'utilitiesHeader',
+    style: `
+      margin-top:16px;
+      text-align:center;
+      padding:10px 0;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    `
+  }, [
+    el('legend', {
+      text: '⚙️ Utilities',
+      style: `
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: 0.5px;
+      `
+    })
+  ]);
+}
+
+/**
+ * 🍯 TOSNA calculator logic (global)
+ * Calculates nutrient additions based on batch volume, YAN, yeast, and protocol
+ */
+function calcTosna() {
+  const vol = parseFloat(document.getElementById("tosnaVol")?.value || 0);
+  const yan = parseFloat(document.getElementById("tosnaYan")?.value || 0);
+  const req = document.getElementById("tosnaReq")?.value || "medium";
+  const type = document.getElementById("tosnaType")?.value || "OK";
+  const result = document.getElementById("tosnaResult");
+
+  if (!vol || !yan || !result) {
+    console.warn("calcTosna() skipped — elements not ready");
+    return;
+  }
+
+  // === Base ratios ===
+  const reqMap = { low: 125, medium: 150, high: 200 }; // mg N/L targets
+  const targetYan = reqMap[req] || 150;
+
+  const yanNeeded = targetYan - yan;
+  if (yanNeeded <= 0) {
+    result.textContent = "YAN already sufficient.";
+    return;
+  }
+
+  // Approximate yields (mg N per g/L)
+  const fermaidO_YAN = 20;
+  const fermaidK_YAN = 25;
+  const dap_YAN = 60;
+
+  let fermaidO = 0, fermaidK = 0, dap = 0;
+  if (type === "O") {
+    fermaidO = (yanNeeded / fermaidO_YAN) * vol;
+  } else if (type === "OK") {
+    fermaidO = (yanNeeded * 0.6 / fermaidO_YAN) * vol;
+    fermaidK = (yanNeeded * 0.4 / fermaidK_YAN) * vol;
+  } else if (type === "OKDAP") {
+    fermaidO = (yanNeeded * 0.5 / fermaidO_YAN) * vol;
+    fermaidK = (yanNeeded * 0.3 / fermaidK_YAN) * vol;
+    dap = (yanNeeded * 0.2 / dap_YAN) * vol;
+  }
+
+  const schedule = [
+    `• 24h → ${(fermaidO / 4).toFixed(2)} g O`,
+    `• 48h → ${(fermaidO / 4).toFixed(2)} g O`,
+    `• 72h → ${(fermaidO / 4).toFixed(2)} g O`,
+    `• 1/3 Break → ${(fermaidO / 4).toFixed(2)} g O + ${fermaidK.toFixed(2)} g K + ${dap.toFixed(2)} g DAP`
+  ].join("\n");
+
+  result.innerHTML =
+    `📦 For ${vol.toFixed(1)} L at ${targetYan} mg/L target YAN<br><br>` +
+    `Fermaid O ≈ ${fermaidO.toFixed(1)} g · ` +
+    `Fermaid K ≈ ${fermaidK.toFixed(1)} g · ` +
+    `DAP ≈ ${dap.toFixed(1)} g<br><br>` +
+    `Schedule:<br>${schedule.replace(/\n/g, "<br>")}`;
+}
+
+
+/**
+ * 🍯 Create the TOSNA Calculator card dynamically using `el()`
+ * Returns a collapsible fieldset with all inputs and logic
+ */
+function tosnaCard() {
+  // --- Collapsed state ---
+  let collapsed = true;
+
+  // === Core DOM structure ===
+  const volInput = el('input', {
+    id: 'tosnaVol',
+    type: 'number',
+    step: '0.1',
+    value: '5',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+const abvInput = el('input', {
+  id: 'tosnaYeastABV',
+  type: 'number',
+  step: '0.1',
+  value: '14',
+  style: 'width:100%;margin-bottom:6px;'
+});
+
+const sweetSel = el('select', {
+  id: 'tosnaSweetness',
+  style: 'width:100%;margin-bottom:6px;'
+}, [
+  el('option', { value: 'dry', text: 'Dry (little to no residual sugar)' }),
+  el('option', { value: 'semi', text: 'Semi-sweet (balanced)', selected: true }),
+  el('option', { value: 'sweet', text: 'Sweet (high residual sugar)' })
+]);
+
+abvInput.addEventListener('input', updateFGOG);
+sweetSel.addEventListener('change', updateFGOG);
+
+  const reqSel = el('select', {
+    id: 'tosnaReq',
+    style: 'width:100%;margin-bottom:6px;'
+  }, [
+    el('option', {
+      value: 'low',
+      text: 'Low — e.g., D47, 71B, K1V — Traditional, show, hydromel'
+    }),
+    el('option', {
+      value: 'medium',
+      text: 'Medium — e.g., QA23, D21, RC212 — Melomel, metheglin, pyment',
+      selected: true
+    }),
+    el('option', {
+      value: 'high',
+      text: 'High — e.g., EC-1118, BM4x4, D254 — Bochet, capsicumel, cyser, braggot'
+    })
+  ]);
+
+  const yanInput = el('input', {
+    id: 'tosnaYan',
+    type: 'number',
+    step: '1',
+    value: '150',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const typeSel = el('select', {
+    id: 'tosnaType',
+    style: 'width:100%;margin-bottom:6px;'
+  }, [
+    el('option', { value: 'O', text: 'Fermaid O (TOSNA)' }),
+    el('option', { value: 'OK', text: 'Fermaid O + K' }),
+    el('option', { value: 'OKDAP', text: 'Fermaid O + K + DAP' })
+  ]);
+
+  const fgog = el('div', {
+    id: 'tosnaFGOG',
+    style: 'font-size:13px;color:var(--muted);margin-bottom:8px;',
+    text: 'Estimated FG: 1.010 → Suggested OG: 1.110'
+  });
+
+  const result = el('div', {
+    id: 'tosnaResult',
+    style: 'font-size:13px;color:var(--muted);'
+  });
+
+const calcBtn = el('button', {
+  id: 'calcTosna',
+  class: 'btn-accent',
+  text: 'Calculate TOSNA',
+  style: 'width:100%;',
+  onclick: () => calcTosna()
+});
+
+  // --- Content body ---
+  const body = el('div', {
+    id: 'tosnaContent',
+    style: 'margin-top:8px;'
+  }, [
+    el('p', {
+      style: 'font-size:13px;color:var(--muted);',
+      text: 'Based on TOSNA 2.0 — calculates nutrient additions by volume, yeast, and target YAN.'
+    }),
+    el('label', { text: 'Volume (L):' }),
+    volInput,
+    el('label', { text: 'Yeast ABV Tolerance (%):' }),
+    abvInput,
+    el('label', { text: 'Desired Sweetness:' }),
+    sweetSel,
+    fgog,
+    el('label', { text: 'Yeast Nitrogen Requirement:' }),
+    reqSel,
+    el('label', { text: 'Target YAN (mg N/L):' }),
+    yanInput,
+    el('label', { text: 'Nutrient Type:' }),
+    typeSel,
+    calcBtn,
+    el('hr', {
+      style: 'margin:10px 0;border:none;border-top:1px solid var(--border);'
+    }),
+    result
+  ]);
+
+  // --- Legend (collapsible toggle) ---
+  const legend = el('legend', {
+    text: '🍯 TOSNA Calculator',
+    style: 'cursor:pointer;',
+    onclick: () => {
+      collapsed = !collapsed;
+      body.style.display = collapsed ? 'none' : 'block';
+      legend.textContent = (collapsed ? '▶ ' : '▼ ') + '🍯 TOSNA Calculator';
+    }
+  });
+
+  // --- Outer card ---
+  const card = el('div', {
+    id: 'tosnaCard',
+    class: 'fieldset collapsible',
+    style: 'margin-top:16px;'
+  }, [legend, body]);
+
+  // Initialize collapsed
+  collapsed = true;
+  body.style.display = 'none';
+
+  return card;
+}
+
+/**
+ * 🍯 Create the Backsweetening Additions card dynamically using `el()`
+ * Returns a collapsible fieldset with all inputs and calculation logic
+ */
+function backsweetCard() {
+  let collapsed = true;
+
+  // === Inputs ===
+  const currentSG = el('input', {
+    id: 'back_currentSG',
+    type: 'number',
+    step: '0.001',
+    value: '1.000',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const desiredSG = el('input', {
+    id: 'back_desiredSG',
+    type: 'number',
+    step: '0.001',
+    value: '1.015',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const volume = el('input', {
+    id: 'back_volume',
+    type: 'number',
+    step: '0.1',
+    value: '5',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const typeSel = el('select', {
+    id: 'back_type',
+    style: 'width:100%;margin-bottom:6px;'
+  }, [
+    el('option', { value: 'sugar', text: 'White Sugar (100%)', selected: true }),
+    el('option', { value: 'honey', text: 'Honey (≈82%)' }),
+    el('option', { value: 'custom', text: 'Custom Sweetener (%)' })
+  ]);
+
+  const customWrap = el('div', {
+    id: 'customPercentWrap',
+    style: 'display:none;margin-bottom:6px;'
+  }, [
+    el('label', { text: 'Custom Sugar Content (%):' }),
+    el('input', {
+      id: 'back_customPercent',
+      type: 'number',
+      step: '1',
+      min: '1',
+      max: '100',
+      value: '75',
+      style: 'width:100%;'
+    })
+  ]);
+
+  const resultField = el('input', {
+    id: 'back_resultKg',
+    type: 'text',
+    readonly: true,
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const resultDiv = el('div', {
+    id: 'backResult',
+    style: 'font-size:13px;color:var(--muted);'
+  });
+
+  // === Core Logic ===
+  const calcBacksweet = () => {
+    const sg1 = parseFloat(currentSG.value);
+    const sg2 = parseFloat(desiredSG.value);
+    const vol = parseFloat(volume.value);
+    const type = typeSel.value;
+    const customPct = parseFloat(document.getElementById('back_customPercent')?.value || '75');
+
+    if (isNaN(sg1) || isNaN(sg2) || isNaN(vol) || sg2 <= sg1)
+      return (resultDiv.textContent = '⚠️ Please enter valid SG and volume values.');
+
+    const delta = (sg2 - sg1) * 1000; // "points" difference
+    let sugarGrams = delta * vol * 1.53; // ~1.53g/L/point empirical factor
+
+    // Adjust by sugar content
+    let label = '';
+    if (type === 'honey') {
+      sugarGrams /= 0.82;
+      label = 'honey';
+    } else if (type === 'custom') {
+      sugarGrams /= (customPct / 100);
+      label = 'custom sweetener';
+    } else {
+      label = 'sugar';
+    }
+
+    const kg = sugarGrams / 1000;
+    resultField.value = kg.toFixed(3);
+    resultDiv.innerHTML = `Add approximately <b>${kg.toFixed(3)} kg</b> of ${label}.`;
+  };
+
+  // === Button ===
+  const calcBtn = el('button', {
+    id: 'calcBacksweetBtn',
+    class: 'btn-accent',
+    text: 'Calculate Backsweetening',
+    style: 'width:100%;',
+    onclick: calcBacksweet
+  });
+
+  // === Body ===
+  const body = el('div', {
+    id: 'backContent',
+    style: 'margin-top:8px;'
+  }, [
+    el('p', {
+      style: 'font-size:13px;color:var(--muted);',
+      text: 'Estimate how much sugar, honey, or custom sweetener to add after fermentation to reach your desired sweetness. (Ensure your mead is stabilized first!)'
+    }),
+    el('label', { text: 'Current SG (after fermentation):' }),
+    currentSG,
+    el('label', { text: 'Desired Final SG:' }),
+    desiredSG,
+    el('label', { text: 'Volume (L):' }),
+    volume,
+    el('label', { text: 'Addition Type:' }),
+    typeSel,
+    customWrap,
+    el('label', { text: 'Amount to Add (kg):' }),
+    resultField,
+    calcBtn,
+    el('hr', {
+      style: 'margin:10px 0;border:none;border-top:1px solid var(--border);'
+    }),
+    resultDiv
+  ]);
+
+  // === Legend / Collapsible ===
+  const legend = el('legend', {
+    text: '🍯 Backsweetening Additions',
+    style: 'cursor:pointer;',
+    onclick: () => {
+      collapsed = !collapsed;
+      body.style.display = collapsed ? 'none' : 'block';
+      legend.textContent = (collapsed ? '▶ ' : '▼ ') + '🍯 Backsweetening Additions';
+    }
+  });
+
+  // === Wrapper ===
+  const card = el('div', {
+    id: 'backsweetCard',
+    class: 'fieldset collapsible',
+    style: 'margin-top:16px;'
+  }, [legend, body]);
+
+  // Initialize collapsed
+  collapsed = true;
+  body.style.display = 'none';
+
+  // === Behavior for custom percent toggle ===
+  typeSel.addEventListener('change', () => {
+    customWrap.style.display = typeSel.value === 'custom' ? 'block' : 'none';
+  });
+
+  return card;
+  updateFGOG();
+  
+}
+
+/**
+ * 💧 Create the Dilution Calculator card dynamically using `el()`
+ * Returns a collapsible fieldset with inputs and logic
+ */
+function dilutionCard() {
+  let collapsed = true;
+
+  // === Inputs ===
+  const sg1Input = el('input', {
+    id: 'dil_sg1',
+    type: 'number',
+    step: '0.001',
+    value: '1.120',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const sg2Input = el('input', {
+    id: 'dil_sg2',
+    type: 'number',
+    step: '0.001',
+    value: '1.070',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const volumeInput = el('input', {
+    id: 'dil_volume',
+    type: 'number',
+    step: '0.1',
+    value: '5',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const resultDiv = el('div', {
+    id: 'dilResult',
+    style: 'font-size:13px;color:var(--muted);'
+  });
+
+  // === Logic ===
+  const calcDilution = () => {
+    const sg1 = parseFloat(sg1Input.value);
+    const sg2 = parseFloat(sg2Input.value);
+    const vol = parseFloat(volumeInput.value);
+
+    if (isNaN(sg1) || isNaN(sg2) || isNaN(vol) || sg2 >= sg1) {
+      resultDiv.textContent = '⚠️ Please enter valid values (target SG must be lower).';
+      return;
+    }
+
+    // “points” difference per SG
+    const points1 = (sg1 - 1) * 1000;
+    const points2 = (sg2 - 1) * 1000;
+
+    // V1 * P1 = (V1 + Vx) * P2 → solve for Vx
+    const addWater = (vol * (points1 - points2)) / points2;
+
+    resultDiv.innerHTML =
+      `To dilute <b>${vol.toFixed(2)} L</b> of ${sg1.toFixed(3)} SG must ` +
+      `to ${sg2.toFixed(3)} SG, add approximately <b>${addWater.toFixed(2)} L</b> of water.`;
+  };
+
+  // === Button ===
+  const calcBtn = el('button', {
+    id: 'calcDilution',
+    class: 'btn-accent',
+    text: 'Calculate Dilution',
+    style: 'width:100%;',
+    onclick: calcDilution
+  });
+
+  // === Body ===
+  const body = el('div', {
+    id: 'dilContent',
+    style: 'margin-top:8px;'
+  }, [
+    el('p', {
+      style: 'font-size:13px;color:var(--muted);',
+      text: 'Determine how much water to add to reach your target specific gravity.'
+    }),
+    el('label', { text: 'Current SG:' }),
+    sg1Input,
+    el('label', { text: 'Target SG:' }),
+    sg2Input,
+    el('label', { text: 'Current Volume (L):' }),
+    volumeInput,
+    calcBtn,
+    el('hr', {
+      style: 'margin:10px 0;border:none;border-top:1px solid var(--border);'
+    }),
+    resultDiv
+  ]);
+
+  // === Legend / Collapsible ===
+  const legend = el('legend', {
+    text: '💧 Dilution Calculator',
+    style: 'cursor:pointer;',
+    onclick: () => {
+      collapsed = !collapsed;
+      body.style.display = collapsed ? 'none' : 'block';
+      legend.textContent = (collapsed ? '▶ ' : '▼ ') + '💧 Dilution Calculator';
+    }
+  });
+
+  // === Wrapper ===
+  const card = el('div', {
+    id: 'dilutionCard',
+    class: 'fieldset collapsible',
+    style: 'margin-top:16px;'
+  }, [legend, body]);
+
+  collapsed = true;
+  body.style.display = 'none';
+
+  return card;
+}
+
+/**
+ * 🧪 Create the Priming Calculator card dynamically using `el()`
+ * Returns a collapsible fieldset that estimates sugar needed for carbonation.
+ */
+function primingCard() {
+  let collapsed = true;
+
+  // === Inputs ===
+  const volInput = el('input', {
+    id: 'prime_volume',
+    type: 'number',
+    step: '0.1',
+    value: '5',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const tempInput = el('input', {
+    id: 'prime_temp',
+    type: 'number',
+    step: '0.1',
+    value: '20',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const co2Input = el('input', {
+    id: 'prime_co2',
+    type: 'number',
+    step: '0.1',
+    value: '2.5',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const sugarSel = el('select', {
+    id: 'prime_sugar',
+    style: 'width:100%;margin-bottom:6px;'
+  }, [
+    el('option', { value: 'dextrose', text: 'Corn Sugar (Dextrose)', selected: true }),
+    el('option', { value: 'sucrose', text: 'Table Sugar (Sucrose)' }),
+    el('option', { value: 'honey', text: 'Honey' })
+  ]);
+
+  const resultDiv = el('div', {
+    id: 'primeResult',
+    style: 'font-size:13px;color:var(--muted);'
+  });
+
+  // === Core Logic ===
+  const calcPriming = () => {
+    const vol = parseFloat(volInput.value);
+    const temp = parseFloat(tempInput.value);
+    const co2 = parseFloat(co2Input.value);
+    const sugarType = sugarSel.value;
+
+    if (isNaN(vol) || isNaN(temp) || isNaN(co2)) {
+      resultDiv.textContent = '⚠️ Please enter valid volume, temperature, and CO₂ level.';
+      return;
+    }
+
+    // CO₂ already in solution based on temp (empirical)
+    const residualCO2 = 3.0378 - 0.050062 * temp + 0.00026555 * temp ** 2;
+
+    // Difference to reach target
+    const neededCO2 = co2 - residualCO2;
+    if (neededCO2 <= 0) {
+      resultDiv.textContent = 'No priming sugar needed — CO₂ already at or above target.';
+      return;
+    }
+
+    // grams/L CO₂ factor depending on sugar type
+    let factor = 4.01; // g/L per CO₂ volume for dextrose
+    if (sugarType === 'sucrose') factor = 3.83;
+    if (sugarType === 'honey') factor = 4.52;
+
+    const grams = neededCO2 * vol * factor;
+    const tsp = grams / 4.2; // rough tsp conversion
+
+    resultDiv.innerHTML =
+      `To reach <b>${co2.toFixed(2)} volumes CO₂</b> at ${temp.toFixed(1)}°C ` +
+      `for <b>${vol.toFixed(1)} L</b>, add approximately:<br>` +
+      `<b>${grams.toFixed(1)} g</b> (${tsp.toFixed(1)} tsp) of ${sugarType}.`;
+  };
+
+  // === Button ===
+  const calcBtn = el('button', {
+    id: 'calcPriming',
+    class: 'btn-accent',
+    text: 'Calculate Priming Sugar',
+    style: 'width:100%;',
+    onclick: calcPriming
+  });
+
+  // === Body ===
+  const body = el('div', {
+    id: 'primeContent',
+    style: 'margin-top:8px;'
+  }, [
+    el('p', {
+      style: 'font-size:13px;color:var(--muted);',
+      text: 'Estimate how much sugar to add for bottle carbonation. Experimental values only; verify before bottling!'
+    }),
+    el('label', { text: 'Batch Volume (L):' }),
+    volInput,
+    el('label', { text: 'Beer/Mead Temperature (°C):' }),
+    tempInput,
+    el('label', { text: 'Target CO₂ Volumes:' }),
+    co2Input,
+    el('label', { text: 'Sugar Type:' }),
+    sugarSel,
+    calcBtn,
+    el('hr', { style: 'margin:10px 0;border:none;border-top:1px solid var(--border);' }),
+    resultDiv
+  ]);
+
+  // === Collapsible Legend ===
+  const legend = el('legend', {
+    text: '🧪 Priming Calculator (Experimental)',
+    style: 'cursor:pointer;',
+    onclick: () => {
+      collapsed = !collapsed;
+      body.style.display = collapsed ? 'none' : 'block';
+      legend.textContent = (collapsed ? '▶ ' : '▼ ') + '🧪 Priming Calculator (Experimental)';
+    }
+  });
+
+  // === Wrapper ===
+  const card = el('div', {
+    id: 'primingCard',
+    class: 'fieldset collapsible',
+    style: 'margin-top:16px;'
+  }, [legend, body]);
+
+  collapsed = true;
+  body.style.display = 'none';
+
+  return card;
+}
+
+/**
+ * ⚗️ Create the Stabilisation Calculator card dynamically using `el()`
+ * Helps estimate sorbate/sulfite additions to stabilize mead before backsweetening.
+ */
+function stabilCard() {
+  let collapsed = true;
+
+  // === Inputs ===
+  const volInput = el('input', {
+    id: 'stab_volume',
+    type: 'number',
+    step: '0.1',
+    value: '5',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const campdenInput = el('input', {
+    id: 'stab_campden',
+    type: 'number',
+    step: '0.1',
+    value: '0.44',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const sorbateInput = el('input', {
+    id: 'stab_sorbate',
+    type: 'number',
+    step: '0.1',
+    value: '0.75',
+    style: 'width:100%;margin-bottom:6px;'
+  });
+
+  const resultDiv = el('div', {
+    id: 'stabResult',
+    style: 'font-size:13px;color:var(--muted);'
+  });
+
+  // === Logic ===
+  const calcStabil = () => {
+    const vol = parseFloat(volInput.value);
+    const campden = parseFloat(campdenInput.value);
+    const sorbate = parseFloat(sorbateInput.value);
+
+    if (isNaN(vol) || isNaN(campden) || isNaN(sorbate)) {
+      resultDiv.textContent = '⚠️ Please enter valid numbers.';
+      return;
+    }
+
+    // Campden tablets: each ≈ 0.44g K-meta → 50 mg SO₂ per L for 5 L per tablet
+    const campdenTotal = (vol * campden) / 5;
+    const sorbateTotal = (vol * sorbate) / 5;
+
+    resultDiv.innerHTML =
+      `For <b>${vol.toFixed(1)} L</b> batch:<br>` +
+      `Add approximately <b>${campdenTotal.toFixed(2)} g</b> potassium metabisulfite (≈ ${(
+        campdenTotal / 0.44
+      ).toFixed(1)} tablets)<br>` +
+      `and <b>${sorbateTotal.toFixed(2)} g</b> potassium sorbate.<br><br>` +
+      `<i>Ensure fermentation has completely stopped before stabilising.</i>`;
+  };
+
+  // === Button ===
+  const calcBtn = el('button', {
+    id: 'calcStabil',
+    class: 'btn-accent',
+    text: 'Calculate Additions',
+    style: 'width:100%;',
+    onclick: calcStabil
+  });
+
+  // === Body ===
+  const body = el('div', {
+    id: 'stabContent',
+    style: 'margin-top:8px;'
+  }, [
+    el('p', {
+      style: 'font-size:13px;color:var(--muted);',
+      text: 'Estimate stabilising agent additions before backsweetening. Typical use: 0.44 g K-meta and 0.75 g sorbate per 5 L.'
+    }),
+    el('label', { text: 'Batch Volume (L):' }),
+    volInput,
+    el('label', { text: 'K-meta (g per 5 L):' }),
+    campdenInput,
+    el('label', { text: 'K-sorbate (g per 5 L):' }),
+    sorbateInput,
+    calcBtn,
+    el('hr', { style: 'margin:10px 0;border:none;border-top:1px solid var(--border);' }),
+    resultDiv
+  ]);
+
+  // === Collapsible Legend ===
+  const legend = el('legend', {
+    text: '⚗️ Stabilisation Calculator',
+    style: 'cursor:pointer;',
+    onclick: () => {
+      collapsed = !collapsed;
+      body.style.display = collapsed ? 'none' : 'block';
+      legend.textContent =
+        (collapsed ? '▶ ' : '▼ ') + '⚗️ Stabilisation Calculator';
+    }
+  });
+
+  // === Wrapper ===
+  const card = el('div', {
+    id: 'stabilCard',
+    class: 'fieldset collapsible',
+    style: 'margin-top:16px;'
+  }, [legend, body]);
+
+  collapsed = true;
+  body.style.display = 'none';
+
+  return card;
+}
+
+/**
+ * 🧮 Create the Brix ↔ SG Converter card dynamically using `el()`
+ * Converts between Brix (°Bx) and Specific Gravity (SG)
+ */
+function brixCard() {
+  let collapsed = true;
+
+  // --- Conversion formulas ---
+  const brixToSG = (brix) =>
+    1 + (brix / (258.6 - ((brix / 258.2) * 227.1)));
+  const sgToBrix = (sg) =>
+    (((182.4601 * sg - 775.6821) * sg + 1262.7794) * sg - 669.5622);
+
+  // --- Inputs ---
+  const brixInput = el("input", {
+    id: "brixInput",
+    type: "number",
+    step: "0.01",
+    placeholder: "e.g. 20.5",
+    style: "width:100%;margin-bottom:6px;"
+  });
+
+  const sgInput = el("input", {
+    id: "sgInput",
+    type: "number",
+    step: "0.0001",
+    placeholder: "e.g. 1.083",
+    style: "width:100%;margin-bottom:6px;"
+  });
+
+  const resultDiv = el("div", {
+    id: "brixResult",
+    style: "font-size:13px;color:var(--muted);"
+  });
+
+  // --- Conversion logic ---
+  const convertBrixToSG = () => {
+    const brix = parseFloat(brixInput.value);
+    if (isNaN(brix)) return (resultDiv.textContent = "⚠️ Enter a valid Brix value.");
+    const sg = brixToSG(brix);
+    sgInput.value = sg.toFixed(4);
+    resultDiv.innerHTML = `<b>${brix.toFixed(2)} °Bx</b> = SG <b>${sg.toFixed(4)}</b>`;
+  };
+
+  const convertSGToBrix = () => {
+    const sg = parseFloat(sgInput.value);
+    if (isNaN(sg)) return (resultDiv.textContent = "⚠️ Enter a valid SG value.");
+    const brix = sgToBrix(sg);
+    brixInput.value = brix.toFixed(2);
+    resultDiv.innerHTML = `SG <b>${sg.toFixed(4)}</b> = <b>${brix.toFixed(2)} °Bx</b>`;
+  };
+
+  const clearFields = () => {
+    brixInput.value = "";
+    sgInput.value = "";
+    resultDiv.textContent = "";
+  };
+
+  // --- Buttons ---
+  const btnBrixToSG = el("button", {
+    class: "btn-accent",
+    text: "Brix → SG",
+    style: "flex:1;",
+    onclick: convertBrixToSG
+  });
+  const btnSGToBrix = el("button", {
+    class: "btn-accent",
+    text: "SG → Brix",
+    style: "flex:1;",
+    onclick: convertSGToBrix
+  });
+  const btnClear = el("button", {
+    class: "btn-danger",
+    text: "Clear",
+    style: "flex:1;",
+    onclick: clearFields
+  });
+
+  const buttonRow = el("div", {
+    class: "row",
+    style: "margin-top:8px;gap:8px;"
+  }, [btnBrixToSG, btnSGToBrix, btnClear]);
+
+  // --- Body ---
+  const body = el("div", {
+    id: "brixContent",
+    style: "margin-top:8px;"
+  }, [
+    el("p", {
+      style: "font-size:13px;color:var(--muted);",
+      text: "Convert between Brix and Specific Gravity using BrewersFriend formulas."
+    }),
+    el("label", { text: "Brix (°Bx):" }),
+    brixInput,
+    el("label", { text: "Specific Gravity (SG):" }),
+    sgInput,
+    buttonRow,
+    el("hr", { style: "margin:10px 0;border:none;border-top:1px solid var(--border);" }),
+    resultDiv
+  ]);
+
+  // --- Collapsible Legend ---
+  const legend = el("legend", {
+    text: "🧮 Brix ↔ SG Converter",
+    style: "cursor:pointer;",
+    onclick: () => {
+      collapsed = !collapsed;
+      body.style.display = collapsed ? "none" : "block";
+      legend.textContent = (collapsed ? "▶ " : "▼ ") + "🧮 Brix ↔ SG Converter";
+    }
+  });
+
+  // --- Wrapper ---
+  const card = el("div", {
+    id: "brixConverterCard",
+    class: "fieldset collapsible",
+    style: "margin-top:16px;"
+  }, [legend, body]);
+
+  collapsed = true;
+  body.style.display = "none";
+
+  return card;
+}
+
+/**
+ * 💾 Create the Backup & Restore header dynamically using `el()`
+ * Provides a consistent styled header above cloud sync / backup section.
+ */
+function backupHeaderCard() {
+  return el("div", {
+    class: "fieldset",
+    id: "backupHeader",
+    style: `
+      margin-top:16px;
+      text-align:center;
+      padding:10px 0;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    `
+  }, [
+    el("legend", {
+      text: "💾 Backup & Restore",
+      style: `
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: 0.5px;
+      `
+    })
+  ]);
+}
+
+/**
+ * ☁️ Create the Cloud Sync card dynamically using `el()`
+ * Handles ExtendsClass JSON Storage cloud backup configuration.
+ */
+function syncCard() {
+  let collapsed = true;
+
+  // --- Elements ---
+  const infoPara = el("p", {
+    style: "font-size:13px;color:var(--muted);"
+  }, [
+    el("b", { text: "ExtendsClass JSON Storage" }),
+    document.createTextNode(" (optional cloud backup)"),
+    el("br"),
+    document.createTextNode("• Make a free account at "),
+    el("a", {
+      href: "https://extendsclass.com/json-storage.html",
+      target: "_blank",
+      text: "extendsclass.com/json-storage"
+    }),
+    el("br"),
+    document.createTextNode("• Copy your "),
+    el("b", { text: "API key" }),
+    document.createTextNode(" from your account."),
+    el("br"),
+    document.createTextNode("• Paste it below to enable cloud sync.")
+  ]);
+
+  const apiInput = el("input", {
+    id: "apiKeyInput",
+    type: "text",
+    placeholder: "Paste your ExtendsClass API key here",
+    style: `
+      width:100%;margin:6px 0;padding:6px;
+      border-radius:8px;border:1px solid var(--border);
+      background:#0f141b;color:var(--text);
+    `
+  });
+
+  const saveBtn = el("button", {
+    id: "saveApiKeyBtn",
+    class: "btn-accent",
+    text: "Save API Key",
+    style: "width:100%;",
+    onclick: () => {
+      const key = apiInput.value.trim();
+      if (!key) {
+        syncStatus.textContent = "⚠️ Please enter a valid API key.";
+        return;
+      }
+      localStorage.setItem("EXTENDS_KEY", key);
+      syncStatus.textContent = "☁️ Cloud sync key saved.";
+      console.log("☁️ Cloud sync key saved:", key);
+    }
+  });
+
+  const viewBtn = el("button", {
+    id: "viewBinBtn",
+    class: "btn-accent",
+    text: "🔗 View Bin",
+    style: "display:none;width:100%;"
+  });
+
+  const syncStatus = el("div", {
+    id: "syncStatus",
+    style: "margin-top:6px;color:var(--muted);font-size:13px;",
+    text: "💾 Local-only mode"
+  });
+
+  const syncUrl = el("span", { id: "syncUrl", text: "Local only" });
+  const syncKey = el("span", { id: "syncKey", text: "MeadTrics" });
+
+  const syncInfo = el("div", {
+    id: "syncInfo",
+    class: "tag",
+    style: "display:block;word-break:break-all;"
+  }, [
+    el("b", { text: "Bin:" }), document.createTextNode(" "), syncUrl
+  ]);
+
+  const keyInfo = el("div", {
+    class: "tag",
+    style: "margin-top:4px;"
+  }, [
+    el("b", { text: "Security Key:" }), document.createTextNode(" "), syncKey
+  ]);
+
+  // --- Body ---
+  const body = el("div", {
+    id: "syncContent",
+    style: "margin-top:8px;"
+  }, [
+    infoPara,
+    apiInput,
+    saveBtn,
+    el("br"),
+    el("br"),
+    viewBtn,
+    syncStatus,
+    el("hr", { style: "margin:10px 0;border:none;border-top:1px solid var(--border);" }),
+    syncInfo,
+    keyInfo
+  ]);
+
+  // --- Collapsible Legend ---
+  const legend = el("legend", {
+    text: "☁️ Cloud Sync",
+    style: "cursor:pointer;",
+    onclick: () => {
+      collapsed = !collapsed;
+      body.style.display = collapsed ? "none" : "block";
+      legend.textContent = (collapsed ? "▶ " : "▼ ") + "☁️ Cloud Sync";
+    }
+  });
+
+  // --- Wrapper ---
+  const card = el("div", {
+    id: "syncCard",
+    class: "fieldset collapsible",
+    style: "margin-top:16px;"
+  }, [legend, body]);
+
+  collapsed = true;
+  body.style.display = "none";
+
+  return card;
+}
+
+// === Feedback button + popup (dynamic) ===
+function initFeedbackPopup() {
+  // Remove any existing elements
+  document.getElementById('feedbackBtn')?.remove();
+  document.getElementById('feedbackPopup')?.remove();
+
+  // Create floating feedback button
+  const btn = el('button', {
+    id: 'feedbackBtn',
+    title: 'Send Feedback',
+    class: 'icon-btn',
+    text: '📝',
+    onclick: () => popup.classList.remove('hidden')
+  });
+
+  // Create popup
+  const popup = el('div', { id: 'feedbackPopup', class: 'popup hidden' }, [
+    el('div', { class: 'popup-content' }, [
+      el('h3', { text: 'Send Feedback' }),
+      el('textarea', {
+        id: 'feedbackText',
+        placeholder: 'Describe your idea, bug, or suggestion...',
+        rows: '5'
+      }),
+      el('div', { class: 'popup-actions' }, [
+        el('button', {
+          id: 'feedbackSubmit',
+          class: 'primary',
+          text: 'Submit',
+          onclick: async () => {
+            const text = document.getElementById('feedbackText').value.trim();
+            if (!text) return alert('Please enter your feedback first!');
+            console.log('📝 Feedback submitted:', text);
+            alert('Thanks for your feedback!');
+            popup.classList.add('hidden');
+            document.getElementById('feedbackText').value = '';
+          }
+        }),
+        el('button', {
+          id: 'feedbackCancel',
+          class: 'secondary',
+          text: 'Cancel',
+          onclick: () => popup.classList.add('hidden')
+        })
+      ])
+    ])
+  ]);
+
+  // Append to body
+  document.body.append(btn, popup);
+}
+
+// Initialize after render
+initFeedbackPopup();
+
+
+/**
  * Render the entire UI
  * Calls both the sidebar (batch list) and the detail panel
  */
@@ -1016,66 +1958,48 @@ function render() {
  * supports search filtering, inline renaming, and deletion.
  */
 function renderBatchList() {
-  const list = $('#batchList');
+  const list = document.getElementById('batchList');
   if (!list) return;
 
-  // 🧩 Save Cloud Sync card before clearing
-  const batchHeader = document.getElementById('batchesHeader');
-  const utilHeader = document.getElementById('utilitiesHeader');
- const tosnaCard = document.getElementById('tosnaCard');
-const backsweetCard = document.getElementById('backsweetCard');
-const dilCard = document.getElementById('dilutionCard');
-const primeCard = document.getElementById('primingCard');
-const stabCard = document.getElementById('stabilCard');
-const brixCard = document.getElementById('brixConverterCard');
-const backupHeader = document.getElementById('backupHeader');
-const hadSync = syncCard && list.contains(syncCard) ? syncCard : null;
+  // --- Clear old content ---
+  list.innerHTML = '';
 
-  list.innerHTML = ''; // Clear previous list content (but keep reference above)
+  // --- Filter + sort batches ---
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
 
-  /* --- Filter and sort batches --- */
-  const q = $('#searchInput').value.trim().toLowerCase(); // search query (lowercase)
-
-  // Sort newest → oldest, then filter by name or description
   const sorted = [...state.batches]
     .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
-    .filter(
-      b =>
-        !q ||
-        b.name.toLowerCase().includes(q) ||
-        (b.description || '').toLowerCase().includes(q)
+    .filter(b =>
+      !q ||
+      b.name.toLowerCase().includes(q) ||
+      (b.description || '').toLowerCase().includes(q)
     );
 
-  // Split batches into active vs archived (bottled)
   const active = sorted.filter(b => !b.events.some(e => e.type === 'bottled'));
   const archived = sorted.filter(b => b.events.some(e => e.type === 'bottled'));
 
   /**
-   * Helper: create a collapsible section (Active / Archived)
-   * @param {string} key - state key ('active' | 'archived')
-   * @param {string} title - section title with emoji
-   * @param {Array} batches - list of batch objects
-   * @param {string} emptyText - placeholder if no entries
+   * Helper: collapsible batch section
    */
   const makeSection = (key, title, batches, emptyText) => {
     const isCollapsed = sidebarCollapse[key];
     const section = el('div', { class: 'fieldset', style: 'margin-bottom:12px;' });
 
-    /* --- Section header with collapse toggle --- */
+    // --- Section header ---
     const header = el(
       'div',
       {
         class: 'row',
-style: `
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  cursor: pointer;
-  user-select: none;
-`,
+        style: `
+          display:flex;
+          align-items:center;
+          justify-content:flex-start;
+          gap:6px;
+          cursor:pointer;
+          user-select:none;
+        `,
         onclick: () => {
-          sidebarCollapse[key] = !sidebarCollapse[key]; // toggle state
+          sidebarCollapse[key] = !sidebarCollapse[key];
           renderBatchList(); // re-render sidebar only
         }
       },
@@ -1083,26 +2007,26 @@ style: `
         el('legend', { text: title }),
         el('span', {
           text: isCollapsed ? '▶' : '▼',
-          style: 'font-size:14px; margin-left:4px;'
+          style: 'font-size:14px;margin-left:4px;'
         })
       ]
     );
+
     section.append(header);
 
-    // If collapsed, return header only
     if (isCollapsed) return section;
 
-    // If no batches in this section, show placeholder
+    // --- Empty message ---
     if (!batches.length) {
       section.append(el('div', { class: 'empty', text: emptyText }));
       return section;
     }
 
-    /* --- Render each batch item --- */
+    // --- Each batch item ---
     batches.forEach(b => {
       const item = el('div', { class: 'batch' });
 
-      /* --- Inline rename feature --- */
+      // --- Inline rename ---
       const nameEl = (() => {
         const nameDiv = el('div', {
           class: 'name',
@@ -1126,19 +2050,17 @@ style: `
               padding:4px 6px;
             `
           });
-
           const commit = () => {
             const newName = input.value.trim();
             if (newName) b.name = newName;
-             saveAll(state, b, ["name"]);
+            saveAll(state, b, ['name']);
             render();
           };
           input.addEventListener('blur', commit);
           input.addEventListener('keydown', ev => {
             if (ev.key === 'Enter') input.blur();
-            if (ev.key === 'Escape') render(); // cancel rename
+            if (ev.key === 'Escape') render();
           });
-
           nameDiv.replaceWith(input);
           input.focus();
           input.select();
@@ -1146,7 +2068,7 @@ style: `
         return nameDiv;
       })();
 
-      /* --- Delete button --- */
+      // --- Delete button ---
       const delBtn = el('button', {
         text: '✕',
         class: 'btn-danger',
@@ -1158,22 +2080,18 @@ style: `
           if (i >= 0) {
             state.batches.splice(i, 1);
             if (selectedId === b.id) selectedId = state.batches[0]?.id || null;
-             saveAll(state);
+            saveAll(state);
             render();
           }
         }
       });
 
-      const headerRow = el(
-        'div',
-        {
-          class: 'row',
-          style: 'justify-content: space-between; align-items: center;'
-        },
-        [nameEl, delBtn]
-      );
+      const headerRow = el('div', {
+        class: 'row',
+        style: 'justify-content:space-between;align-items:center;'
+      }, [nameEl, delBtn]);
 
-      /* --- Metadata --- */
+      // --- Metadata ---
       const latestSG = b.sgReadings?.length
         ? b.sgReadings[b.sgReadings.length - 1].sg
         : null;
@@ -1183,13 +2101,11 @@ style: `
       const maturityText = bottledEvent
         ? `🧭 Mature: ${formatMaturityDays(bottledEvent.date)}`
         : '';
-
       const fermentText =
         !bottledEvent && b.startDate
           ? `🧪 ${formatFermentationDays(b.startDate)}`
           : '';
 
-      // 1/3 Sugar Break
       let sugarBreakText = '';
       if (!bottledEvent && b.og) {
         const target = calcSugarBreak(b.og);
@@ -1218,64 +2134,24 @@ style: `
     return section;
   };
 
-if (batchHeader) {
-  list.append(batchHeader);
-  batchHeader.style.display = 'block';
-}
-
-  /* --- Render both main sections --- */
+  // --- Sidebar Build Order ---
+  list.append(batchHeaderCard());
   list.append(makeSection('active', '🧪 Active Batches', active, 'No active batches.'));
   list.append(makeSection('archived', '🍾 Archived (Bottled)', archived, 'No bottled batches.'));
+  list.append(utilitiesHeaderCard());
+  list.append(tosnaCard());
+  list.append(backsweetCard());
+  list.append(dilutionCard());
+  list.append(primingCard());
+  list.append(stabilCard());
+  list.append(brixCard());
+  list.append(backupHeaderCard());
+  list.append(syncCard());
 
-//Utility Header
-if (utilHeader) {
-  list.append(utilHeader);
-  utilHeader.style.display = 'block';
+  // --- Re-attach listeners after render ---
+  initTosnaBindings();
 }
 
-if (tosnaCard) {
-  list.append(tosnaCard);
-  tosnaCard.style.display = 'block';
-}
-
-if (backsweetCard) {
-  list.append(backsweetCard);
-  backsweetCard.style.display = 'block';
-}
-
-if (dilCard) {
-  list.append(dilCard);
-  dilCard.style.display = 'block';
-}
-
-if (primeCard) {
-  list.append(primeCard);
-  primeCard.style.display = 'block';
-}
-
-if (stabCard) {
-  list.append(stabCard);
-  stabCard.style.display = 'block';
-}
-
-if (brixCard) {
-  list.append(brixCard);
-  brixCard.style.display = 'block';
-}
-
-//Backup Header
-
-if (backupHeader) {
-  list.append(backupHeader);
-  utilHeader.style.display = 'block';
-}
-
-if (hadSync) {
-  list.append(hadSync);
-  hadSync.style.display = 'block';
-}
-
-} // ✅ closes renderBatchList()
 
 /**
  * Render the main batch detail view.
@@ -1283,174 +2159,155 @@ if (hadSync) {
  * If no batch is selected, shows the "New Batch" creation form instead.
  */
 function renderDetail() {
-  const root = $('#detail'); // main detail panel container
-  const batch = state.batches.find(b => b.id === selectedId); // currently selected batch
+  const root = document.getElementById('detail'); // main detail panel
+  const batch = state.batches.find(b => b.id === selectedId); // selected batch
 
-  /* --- Handle empty state (no batch selected) --- */
+  // --- Empty state ---
   if (!batch) {
-    root.innerHTML = '';             // clear any previous content
-    root.append(newBatchForm());     // show "Create New Batch" form
+    root.innerHTML = '';
+    root.append(newBatchForm());
     return;
   }
 
-  /* --- Batch detail view --- */
-  root.innerHTML = ''; // clear existing content before re-render
+  // --- Clear previous content ---
+  root.innerHTML = '';
 
-  root.append(
-    el('div', {}, [
-      (() => {
-        /* === TITLE ROW === */
-        // Contains the editable batch name and the duplicate button
-        const titleRow = el('div', {
-          class: 'row',
-          style: 'justify-content: space-between; align-items: center;'
-        });
+  // === TITLE ROW ===
+  const titleRow = (() => {
+    const row = el('div', {
+      class: 'row',
+      style: 'justify-content: space-between; align-items: center;'
+    });
 
-        /* --- Click-to-rename batch title --- */
-        const title = el('h2', {
-          text: batch.name,
-          title: 'Click to rename batch'
-        });
-        title.style.cursor = 'pointer';
-        title.addEventListener('click', () => {
-          // Replace <h2> with an input for inline editing
-          const input = el('input', {
-            type: 'text',
-            value: batch.name,
-            class: 'wide',
-            style: `
-              font-size:20px;
-              font-weight:700;
-              border:1px solid var(--border);
-              background:#0f141b;
-              color:var(--text);
-              border-radius:8px;
-              padding:6px 10px;
-            `
-          });
+    // --- Click-to-rename batch title ---
+    const title = el('h2', {
+      text: batch.name,
+      title: 'Click to rename batch'
+    });
+    title.style.cursor = 'pointer';
+    title.addEventListener('click', () => {
+      const input = el('input', {
+        type: 'text',
+        value: batch.name,
+        class: 'wide',
+        style: `
+          font-size:20px;
+          font-weight:700;
+          border:1px solid var(--border);
+          background:#0f141b;
+          color:var(--text);
+          border-radius:8px;
+          padding:6px 10px;
+        `
+      });
+      const commit = () => {
+        const newName = input.value.trim();
+        if (newName) batch.name = newName;
+        saveAll(state, batch, ['name']);
+        render();
+      };
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') input.blur();
+        if (e.key === 'Escape') render();
+      });
+      title.replaceWith(input);
+      input.focus();
+      input.select();
+    });
 
-          // Commit rename when leaving field or pressing Enter
-          const commit = () => {
-            const newName = input.value.trim();
-            if (newName) batch.name = newName;
-             saveAll(state, batch, ["name"]);
-            render();
-          };
+    // --- Duplicate batch button ---
+    const dupBtn = el('button', {
+      text: '🔁 Duplicate',
+      class: 'btn-accent',
+      title: 'Duplicate this batch',
+      style: 'padding:4px 10px;font-size:13px;',
+      onclick: () => {
+        if (!confirm(`Duplicate batch “${batch.name}”?`)) return;
+        const today = new Date().toISOString().slice(0, 10);
+        const id = crypto.randomUUID();
+        const clone = {
+          id,
+          name: batch.name + ' (Copy)',
+          startDate: today,
+          og: batch.og,
+          honey: batch.honey,
+          yeast: batch.yeast,
+          volume: batch.volume,
+          description: batch.description,
+          sgReadings: [],
+          events: [{ date: today, type: 'primary fermentation' }],
+          ingredients: JSON.parse(JSON.stringify(batch.ingredients || []))
+        };
+        state.batches.push(clone);
+        selectedId = id;
+        saveAll(state);
+        render();
+        alert(`Batch “${batch.name}” duplicated as “${clone.name}”.`);
+      }
+    });
 
-          // Handle Enter (save) and Escape (cancel)
-          input.addEventListener('blur', commit);
-          input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') input.blur();  // save on Enter
-            if (e.key === 'Escape') render();     // cancel on Escape
-          });
+    // --- Label Maker button ---
+    const labelBtn = el('button', {
+      text: '🖨️ Label Maker',
+      class: 'btn-accent',
+      title: 'Generate a printable bottle label',
+      style: 'padding:4px 10px;font-size:13px;',
+      onclick: () => openLabelMaker(batch)
+    });
 
-          // Replace title element and focus input
-          title.replaceWith(input);
-          input.focus();
-          input.select();
-        });
+    row.append(title, dupBtn, labelBtn);
+    return row;
+  })();
 
-        /* --- Duplicate batch button --- */
-        const dupBtn = el('button', {
-          text: '🔁 Duplicate',
-          class: 'btn-accent',
-          title: 'Duplicate this batch',
-          style: 'padding:4px 10px; font-size:13px;',
-          onclick: () => {
-            // Confirm duplication
-            if (!confirm(`Duplicate batch “${batch.name}”?`)) return;
+  // === METADATA & SUMMARY ===
+  const summarySection = (() => {
+    const sugarBreak = calcSugarBreak(batch.og);
 
-            const today = new Date().toISOString().slice(0, 10);
-            const id = crypto.randomUUID();
+    let currentSG = null;
+    if (Array.isArray(batch.sgReadings) && batch.sgReadings.length > 0) {
+      const last = batch.sgReadings[batch.sgReadings.length - 1];
+      currentSG = typeof last === 'object' ? last.sg : last;
+    }
 
-            // Create deep copy of the batch with reset progress
-            const clone = {
-              id,
-              name: batch.name + ' (Copy)',              // suffix to indicate duplication
-              startDate: today,                          // new start date
-              og: batch.og,
-              honey: batch.honey,
-              yeast: batch.yeast,
-              volume: batch.volume,
-              description: batch.description,
-              sgReadings: [],                            // clear gravity history
-              events: [{ date: today, type: 'primary fermentation' }], // reset event timeline
-              ingredients: JSON.parse(JSON.stringify(batch.ingredients || [])) // deep clone ingredients
-            };
+    const abv = calcABV(batch.og, currentSG);
+    console.log('Current SG reading for', batch.name, ':', currentSG, batch.sgReadings);
 
-            // Add new batch to state and select it
-            state.batches.push(clone);
-            selectedId = id;
-             saveAll(state);
-            render();
+    const text =
+      `Started ${fmt(batch.startDate)} · OG ${batch.og}` +
+      (currentSG ? ` · SG ${currentSG}` : '') +
+      (abv ? ` · ABV ${abv.toFixed(1)}%` : '') +
+      (sugarBreak ? ` · 1/3 Break: ${sugarBreak}` : '');
 
-            alert(`Batch “${batch.name}” duplicated as “${clone.name}”.`);
-          }
-        });
+    const metaLine = el('div', { text });
+    const honeyLine = el('div', {
+      class: 'meta',
+      text:
+        `${batch.honey ? 'Honey: ' + batch.honey + ' · ' : ''}` +
+        `${batch.yeast ? 'Yeast: ' + batch.yeast + ' · ' : ''}` +
+        `${batch.volume ? 'Volume: ' + batch.volume + 'L' : ''}`
+    });
 
-        // Append both elements to the header row
-        titleRow.append(title, dupBtn);
-		
-				// --- Label Maker button ---
-		const labelBtn = el('button', {
-		  text: '🖨️ Label Maker',
-		  class: 'btn-accent',
-		  title: 'Generate a printable bottle label',
-		  style: 'padding:4px 10px; font-size:13px;',
-		  onclick: () => openLabelMaker(batch)
-		});
+    return el('div', {}, [metaLine, honeyLine]);
+  })();
 
-		// Append both elements to the header row
-		titleRow.append(title, dupBtn, labelBtn);
-		return titleRow;
-      })(),
+  // === MAIN INTERACTIVE COMPONENTS ===
+  const components = [
+    chartCard(batch),
+    sgFormCard(batch),
+    eventFormCard(batch),
+    ingredientsTable(batch),
+    eventsTable(batch)
+  ];
 
-      /* === METADATA AND SUMMARY === */
-      // Basic start date and original gravity
-(()=>{
-  const sugarBreak = calcSugarBreak(batch.og);
-  
-    // ✅ Safely extract the most recent SG
-  let currentSG = null;
-  if (Array.isArray(batch.sgReadings) && batch.sgReadings.length > 0) {
-    const last = batch.sgReadings[batch.sgReadings.length - 1];
-    currentSG = typeof last === 'object' ? last.sg : last;
-  }
-  
-  const abv = calcABV(batch.og, currentSG);
-  
-  // ✅ Debug: see what data we actually have
-  console.log('Current SG reading for', batch.name, ':', currentSG, batch.sgReadings);
-  
-  const text = `Started ${fmt(batch.startDate)} · OG ${batch.og}` +
-               (currentSG ? ` · SG ${currentSG}` : '') +
-               (abv ? ` · ABV ${abv.toFixed(1)}%` : '') +
-               (sugarBreak ? ` · 1/3 Break: ${sugarBreak}` : '');
-  return el('div',{text});
-})(),
-      // Quick metadata summary line (honey, yeast, volume)
-      el('div', {
-        class: 'meta',
-        text:
-          `${batch.honey ? 'Honey: ' + batch.honey + ' · ' : ''}` +
-          `${batch.yeast ? 'Yeast: ' + batch.yeast + ' · ' : ''}` +
-          `${batch.volume ? 'Volume: ' + batch.volume + 'L' : ''}`
-      }),
+  // === Build and render full detail view ===
+  const container = el('div', {}, [titleRow, summarySection, ...components]);
+  root.append(container);
 
-      /* === INTERACTIVE COMPONENTS === */
-      // Order of components: Chart → SG Form → Event Form → Ingredients → Events Table
-      chartCard(batch),        // Canvas for gravity/ABV chart
-      sgFormCard(batch),       // Form to add new specific gravity reading
-      eventFormCard(batch),    // Form to add general events or notes
-      ingredientsTable(batch), // Ingredient list for the batch
-      eventsTable(batch)       // Historical event log with edit/delete
-    ])
-  );
-
-  /* === CHART RENDER === */
-  // Draw the Specific Gravity / ABV chart for this batch
+  // === Render chart ===
   drawChart(batch);
 }
+
 
 /**
  * Create the chart fieldset for displaying fermentation data.
@@ -1461,49 +2318,58 @@ function renderDetail() {
  * @returns {HTMLElement} - A <fieldset> element containing the chart UI
  */
 function chartCard(batch) {
-  // Outer fieldset container for the chart section
-  const card = el('fieldset', { class: 'fieldset' }, [
+  return el('div', {
+    class: 'fieldset',
+    style: 'margin-top:16px;'
+  }, [
+    // --- Collapsible legend / title ---
+    el('legend', {
+      text: '📈 Gravity & ABV Over Time',
+      style: 'font-weight:600;'
+    }),
 
-    // Section title (legend)
-    el('legend', { text: 'Gravity & ABV over time' }),
-
-    /* --- Header row with mode indicator and switch button --- */
+    // --- Header row with chart mode + toggle ---
     el('div', {
       class: 'row',
-      style: 'justify-content: space-between; align-items: center; margin-bottom:8px;'
+      style: `
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom:8px;
+      `
     }, [
-      // Text label indicating current chart mode
       el('span', {
+        id: 'chartModeLabel',
         text: chartMode === 'sg'
           ? 'Showing Specific Gravity'
-          : 'Showing ABV (%)'
+          : 'Showing ABV (%)',
+        style: 'font-size:13px;color:var(--muted);'
       }),
-
-      // Button to toggle between SG and ABV chart views
       el('button', {
-        text: chartMode === 'sg' ? 'Switch to ABV' : 'Switch to SG',
+        id: 'chartModeToggle',
         class: 'btn-accent',
-        style: 'padding:3px 10px; font-size:12px;',
+        text: chartMode === 'sg' ? 'Switch to ABV' : 'Switch to SG',
+        style: 'padding:3px 10px;font-size:12px;',
         onclick: () => {
-          // Flip mode and re-render full detail view to refresh chart
           chartMode = chartMode === 'sg' ? 'abv' : 'sg';
-          render();
+          render(); // re-render full detail view to refresh chart
         }
       })
     ]),
 
-    /* --- Chart canvas --- */
-    // A fixed-size canvas where drawChart() will render the data line and points
+    // --- Canvas container ---
     el('canvas', {
       id: 'sgChart',
-      width: 800,   // logical drawing width
-      height: 260,  // logical drawing height
-      style: 'width:100%; max-width:800px; border-radius:8px;' // responsive fit
+      width: 800,
+      height: 260,
+      style: `
+        width:100%;
+        max-width:800px;
+        border-radius:8px;
+        background:#0f141b;
+        box-shadow:var(--shadow);
+      `
     })
   ]);
-
-  // Return the completed fieldset element to be added to the DOM
-  return card;
 }
 
 /**
@@ -1514,24 +2380,41 @@ function chartCard(batch) {
  * @returns {HTMLElement} - A <fieldset> element containing the SG input form
  */
 function sgFormCard(batch) {
-  // Outer container fieldset for this section
-  const wrap = el('fieldset', { class: 'fieldset' }, [
-    el('legend', { text: 'Add Specific Gravity Reading' }),
+  // === Outer container ===
+  const card = el('div', {
+    class: 'fieldset',
+    style: 'margin-top:16px;'
+  }, [
+    el('legend', {
+      text: '📏 Add Specific Gravity Reading',
+      style: 'font-weight:600;'
+    })
   ]);
 
-  /* --- Form inputs (two columns: date and SG value) --- */
-  const form = el('div', { class: 'grid' }, [
-    // Left column: Date picker
+  // === Form layout ===
+  const form = el('div', {
+    class: 'grid',
+    style: 'gap:8px;'
+  }, [
+    // --- Date column ---
     el('div', { class: 'col-6' }, [
       el('label', { text: 'Date' }),
       el('input', {
         id: 'sgDate',
         type: 'date',
-        value: new Date().toISOString().slice(0, 10), // prefill with today’s date
-      }),
+        value: new Date().toISOString().slice(0, 10),
+        style: `
+          width:100%;
+          border-radius:6px;
+          padding:6px;
+          border:1px solid var(--border);
+          background:#0f141b;
+          color:var(--text);
+        `
+      })
     ]),
 
-    // Right column: SG numeric input
+    // --- SG column ---
     el('div', { class: 'col-6' }, [
       el('label', { text: 'Specific Gravity (SG)' }),
       el('input', {
@@ -1540,55 +2423,60 @@ function sgFormCard(batch) {
         step: '0.001',
         min: '0.800',
         max: '1.500',
-        placeholder: 'e.g., 1.045', // visual hint for typical range
-      }),
-    ]),
+        placeholder: 'e.g. 1.045',
+        style: `
+          width:100%;
+          border-radius:6px;
+          padding:6px;
+          border:1px solid var(--border);
+          background:#0f141b;
+          color:var(--text);
+        `
+      })
+    ])
   ]);
 
-  /* --- Add Reading Button --- */
-  const btn = el('button', {
+  // === Button ===
+  const addBtn = el('button', {
     class: 'btn-accent',
     text: 'Add Reading',
-    style: 'margin-top:8px;',
+    style: 'margin-top:10px;width:100%;',
     onclick: () => {
-      // Read input values
       const date = form.querySelector('#sgDate').value;
       const sgNum = parseFloat(form.querySelector('#sgValue').value);
 
-      // Basic input validation
-      if (!date || !isFinite(sgNum))
-        return alert('Please enter a valid date and SG value.');
+      if (!date || !isFinite(sgNum)) {
+        alert('Please enter a valid date and SG value.');
+        return;
+      }
 
-      const sgStr = sgNum.toFixed(3); // normalize precision to 3 decimals
-      const sgId = crypto.randomUUID(); // unique ID to link event & reading
+      const sgStr = sgNum.toFixed(3);
+      const sgId = crypto.randomUUID();
 
-      /* --- Update batch data --- */
-
-      // ✅ Add new SG reading to batch
+      // --- Add reading ---
       batch.sgReadings.push({ id: sgId, date, sg: sgStr });
-
-      // Ensure readings are in chronological order
       batch.sgReadings.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      // ✅ Log this as a corresponding event (visible in Events table)
+      // --- Add event for reading ---
       batch.events.push({
         date,
         type: 'added sg reading',
         sg: sgStr,
-        sgId, // keep link to reading entry for deletion syncing
-        note: `SG: ${sgStr}`,
+        sgId,
+        note: `SG: ${sgStr}`
       });
 
-      // Save updated state and re-render the app
-       saveAll(state, batch, ["sgReadings", "events"]);
+      // --- Save and re-render ---
+      saveAll(state, batch, ['sgReadings', 'events']);
       render();
-    },
+    }
   });
 
-  // Combine form and button into the wrapper
-  wrap.append(form, btn);
-  return wrap;
+  // === Assemble card ===
+  card.append(form, addBtn);
+  return card;
 }
+
 
 /**
  * Create a fieldset form for adding general events or notes to a batch.
@@ -1599,92 +2487,134 @@ function sgFormCard(batch) {
  * @returns {HTMLElement} - A <fieldset> element containing the event form
  */
 function eventFormCard(batch) {
-  // Default date set to today (ISO format)
   const today = new Date().toISOString().slice(0, 10);
 
-  // Create the fieldset wrapper for the event form
-  const d = el('fieldset', { class: 'fieldset' }, [
-    el('legend', { text: 'Add Event' }),
-
-    // --- Main grid container for inputs ---
-    el('div', { class: 'grid' }, [
-
-      /* === Date input === */
-      el('div', { class: 'col-6' }, [
-        el('label', { for: 'evDate', text: 'Date' }),
-        el('input', { id: 'evDate', type: 'date', value: today })
-      ]),
-
-      /* === Event type selector === */
-      el('div', { class: 'col-6' }, [
-        el('label', { for: 'evType', text: 'Event' }),
-
-        // Dropdown populated with all defined EVENTS + "note" type
-        (() => {
-          const sel = el('select', { id: 'evType' });
-          [...EVENTS, 'note'].forEach(e =>
-            sel.append(el('option', { value: e, text: e }))
-          );
-          return sel;
-        })()
-      ]),
-
-      /* === Optional note field (hidden unless "note" is selected) === */
-      el('div', { class: 'col-12', id: 'noteWrap', style: 'display:none;' }, [
-        el('label', { for: 'evNote', text: 'Note text' }),
-        el('textarea', {
-          id: 'evNote',
-          placeholder: 'Write a note about this batch...'
-        })
-      ]),
-
-      /* === Add Event button === */
-      el('div', { class: 'col-12' }, [
-        el('button', {
-          text: 'Add Event',
-		  class:'btn-accent',
-          onclick: () => {
-            // Retrieve input values
-            const date = d.querySelector('#evDate').value;
-            const type = d.querySelector('#evType').value;
-            const note = d.querySelector('#evNote')?.value.trim() || '';
-
-            // Validation check
-            if (!date || !type)
-              return alert('Please choose a date and event.');
-
-            // Build new event object
-            const ev = { date, type };
-            if (type === 'note' && note) ev.note = note;
-
-            // Add event to current batch
-            batch.events.push(ev);
-
-            // Save changes and re-render detail view
-             saveAll(state, batch, ["events"]);
-            render();
-
-            // Placeholder for potential "bottled" notification logic
-            if (ev.type === 'bottled') {
-              // alert(`Batch “${batch.name}” marked as bottled and moved to Archived.`);
-            }
-          }
-        })
-      ])
-    ])
+  // === Outer container ===
+  const card = el('div', {
+    class: 'fieldset',
+    style: 'margin-top:16px;'
+  }, [
+    el('legend', {
+      text: '🗓️ Add Event',
+      style: 'font-weight:600;'
+    })
   ]);
 
-  /* === Dynamic field visibility === */
-  // Show or hide the "Note text" field based on selected event type
-  const sel = d.querySelector('#evType');
-  sel.addEventListener('change', () => {
-    d.querySelector('#noteWrap').style.display =
-      sel.value === 'note' ? 'block' : 'none';
+  // === Main grid layout ===
+  const grid = el('div', {
+    class: 'grid',
+    style: 'gap:8px;'
   });
 
-  // Return completed fieldset
-  return d;
+  // --- Date input ---
+  const dateInput = el('input', {
+    id: 'evDate',
+    type: 'date',
+    value: today,
+    style: `
+      width:100%;
+      border-radius:6px;
+      padding:6px;
+      border:1px solid var(--border);
+      background:#0f141b;
+      color:var(--text);
+    `
+  });
+  const dateCol = el('div', { class: 'col-6' }, [
+    el('label', { for: 'evDate', text: 'Date' }),
+    dateInput
+  ]);
+
+  // --- Event type selector ---
+  const typeSelect = (() => {
+    const sel = el('select', {
+      id: 'evType',
+      style: `
+        width:100%;
+        border-radius:6px;
+        padding:6px;
+        border:1px solid var(--border);
+        background:#0f141b;
+        color:var(--text);
+      `
+    });
+    [...EVENTS, 'note'].forEach(e =>
+      sel.append(el('option', { value: e, text: e }))
+    );
+    return sel;
+  })();
+
+  const typeCol = el('div', { class: 'col-6' }, [
+    el('label', { for: 'evType', text: 'Event Type' }),
+    typeSelect
+  ]);
+
+  // --- Note textarea (hidden unless type === 'note') ---
+  const noteWrap = el('div', {
+    class: 'col-12',
+    id: 'noteWrap',
+    style: 'display:none;'
+  }, [
+    el('label', { for: 'evNote', text: 'Note Text' }),
+    el('textarea', {
+      id: 'evNote',
+      placeholder: 'Write a note about this batch...',
+      style: `
+        width:100%;
+        min-height:60px;
+        border-radius:6px;
+        padding:6px;
+        border:1px solid var(--border);
+        background:#0f141b;
+        color:var(--text);
+        resize:vertical;
+      `
+    })
+  ]);
+
+  // --- Add Event button ---
+  const addBtn = el('button', {
+    class: 'btn-accent',
+    text: 'Add Event',
+    style: 'width:100%;margin-top:8px;',
+    onclick: () => {
+      const date = dateInput.value;
+      const type = typeSelect.value;
+      const note = card.querySelector('#evNote')?.value.trim() || '';
+
+      if (!date || !type) {
+        alert('Please choose a date and event.');
+        return;
+      }
+
+      const ev = { date, type };
+      if (type === 'note' && note) ev.note = note;
+
+      batch.events.push(ev);
+      saveAll(state, batch, ['events']);
+      render();
+
+      // Optional: notify when bottled
+      if (ev.type === 'bottled') {
+        // alert(`Batch “${batch.name}” marked as bottled and moved to Archived.`);
+      }
+    }
+  });
+
+  const btnRow = el('div', { class: 'col-12' }, [addBtn]);
+
+  // --- Assemble grid ---
+  grid.append(dateCol, typeCol, noteWrap, btnRow);
+  card.append(grid);
+
+  // --- Dynamic note visibility ---
+  typeSelect.addEventListener('change', () => {
+    noteWrap.style.display = typeSelect.value === 'note' ? 'block' : 'none';
+  });
+
+  return card;
 }
+
 
 /**
  * Create a table displaying all events and notes for a batch.
@@ -1695,177 +2625,187 @@ function eventFormCard(batch) {
  * @returns {HTMLElement} - A <fieldset> element containing the events table
  */
 function eventsTable(batch) {
-  // --- Outer container ---
-  const wrap = el('fieldset', { class: 'fieldset' }, [
-    el('legend', { text: 'Events & Notes' }),
+  // === Outer container ===
+  const card = el("div", {
+    class: "fieldset",
+    style: "margin-top:16px;"
+  }, [
+    el("legend", {
+      text: "📜 Events & Notes",
+      style: "font-weight:600;"
+    })
   ]);
 
-  // --- Build table structure ---
-  const table = el('table', { class: 'table' });
+  // === Table ===
+  const table = el("table", {
+    class: "table",
+    style: `
+      width:100%;
+      border-collapse:collapse;
+      border:1px solid var(--border);
+      border-radius:8px;
+      overflow:hidden;
+      font-size:13px;
+    `
+  });
 
-  // Header row
-  const thead = el('thead', {}, [
-    el('tr', {}, [
-      el('th', { text: 'Date' }),
-      el('th', { text: 'Event Type' }),
-      el('th', { text: 'Note' }),
-      el('th', { text: '' }), // column for delete button
-    ]),
+  // === Table header ===
+  const thead = el("thead", {}, [
+    el("tr", {}, [
+      el("th", { text: "Date" }),
+      el("th", { text: "Event Type" }),
+      el("th", { text: "Note / SG" }),
+      el("th", { text: "" }) // delete button column
+    ])
   ]);
 
-  // Table body
-  const tbody = el('tbody');
+  const tbody = el("tbody");
 
-  /* === Populate rows === */
+  // === Populate table ===
   batch.events
-    .slice() // clone array so original isn’t modified
-    .sort((a, b) => new Date(a.date) - new Date(b.date)) // sort chronologically
-    .forEach((ev) => {
-      const tr = el('tr');
-      tr.dataset.type = ev.type; // used for CSS row coloring
+    .slice()
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .forEach(ev => {
+      const tr = el("tr", {}, []);
+      tr.dataset.type = ev.type;
 
-      tr.append(
-        // --- Date cell ---
-        el('td', { text: fmt(ev.date) }),
+      // --- Date ---
+      const dateCell = el("td", { text: fmt(ev.date) });
 
-        // --- Event Type cell ---
-        el('td', { text: ev.type }),
+      // --- Type ---
+      const typeCell = el("td", { text: ev.type });
 
-        // --- Note or SG display cell ---
-        (() => {
-          const td = el('td');
+      // --- Note / SG cell ---
+      const noteCell = (() => {
+        const td = el("td");
+        if (ev.type === "note") {
+          const textarea = el("textarea", {
+            style: `
+              width:100%;
+              min-height:28px;
+              border-radius:6px;
+              padding:4px;
+              border:1px solid var(--border);
+              background:#0f141b;
+              color:var(--text);
+              resize:vertical;
+            `,
+            value: ev.note || "",
+            oninput: e => {
+              ev.note = e.target.value;
+              saveAll(state, batch, ["events"]);
+            }
+          });
+          td.append(textarea);
+        } else if (ev.type === "added sg reading") {
+          const sgSpan = el("span", {
+            text: `SG: ${ev.sg}`,
+            title: "Double-click to edit SG reading",
+            style: "cursor:pointer;"
+          });
 
-          if (ev.type === 'note') {
-            // Editable textarea for note-type events
-            const input = el('textarea', {
-              style: 'width:100%; min-height:30px;',
-              value: ev.note || '',
-              oninput: (e) => {
-                ev.note = e.target.value; // live-update note in memory
-                saveAll(state, batch, ["events"]); // patch only notes/events
-              },
-            });
-            td.append(input);
-          } else if (ev.type === 'added sg reading') {
-            // --- Editable SG value on double-click ---
-            const sgSpan = el('span', {
-              text: `SG: ${ev.sg}`,
-              title: 'Double-click to edit SG reading',
-              style: 'cursor:pointer;'
-            });
-
-            sgSpan.addEventListener('dblclick', () => {
-              const input = el('input', {
-                type: 'number',
-                step: '0.001',
-                min: '0.800',
-                max: '1.500',
-                value: ev.sg,
-                style: 'width:80px;'
-              });
-
-              // Commit edited value
-              const commit = () => {
-                const newVal = parseFloat(input.value);
-                if (!isFinite(newVal)) return render();
-                const sgStr = newVal.toFixed(3);
-                ev.sg = sgStr;
-                ev.note = `SG: ${sgStr}`;
-
-                // --- Update linked sgReading entry (if exists) ---
-                if (ev.sgId) {
-                  const reading = batch.sgReadings.find(r => r.id === ev.sgId);
-                  if (reading) reading.sg = sgStr;
-                } else {
-                  // fallback: match by date if no sgId
-                  const reading = batch.sgReadings.find(r => r.date === ev.date);
-                  if (reading) reading.sg = sgStr;
-                }
-
-                saveAll(state, batch, ["sgReadings", "events"]);
-                render(); // refresh chart + summary
-              };
-
-              input.addEventListener('blur', commit);
-              input.addEventListener('keydown', e => {
-                if (e.key === 'Enter') input.blur();
-                if (e.key === 'Escape') render();
-              });
-
-              sgSpan.replaceWith(input);
-              input.focus();
-              input.select();
+          sgSpan.addEventListener("dblclick", () => {
+            const input = el("input", {
+              type: "number",
+              step: "0.001",
+              min: "0.800",
+              max: "1.500",
+              value: ev.sg,
+              style: `
+                width:80px;
+                border-radius:6px;
+                padding:4px;
+                border:1px solid var(--border);
+                background:#0f141b;
+                color:var(--text);
+              `
             });
 
-            td.append(sgSpan);
-          } else {
-            // Non-editable text for other event types
-            td.textContent =
-              ev.note ||
-              (ev.sg ? `SG: ${ev.sg}` : '') ||
-              ev.type;
-          }
+            const commit = () => {
+              const newVal = parseFloat(input.value);
+              if (!isFinite(newVal)) return render();
+              const sgStr = newVal.toFixed(3);
+              ev.sg = sgStr;
+              ev.note = `SG: ${sgStr}`;
 
-          return td;
-        })(),
-
-        // --- Delete button cell ---
-        el('td', {}, [
-          el('button', {
-            text: '✕',
-            class: 'btn-danger',
-            title: 'Delete event',
-            onclick: () => {
-              // Remove event from batch
-              const i = batch.events.indexOf(ev);
-              if (i >= 0) {
-                batch.events.splice(i, 1);
-
-                /* === Linked SG Cleanup === */
-                // If this event represented an SG reading, remove the matching entry
-                if (ev.type === 'added sg reading') {
-                  if (ev.sgId) {
-                    // Case 1: event has direct sgId reference (preferred)
-                    const ri = batch.sgReadings.findIndex(
-                      (r) => r.id === ev.sgId
-                    );
-                    if (ri >= 0) batch.sgReadings.splice(ri, 1);
-                  } else {
-                    // Case 2: fallback heuristic (match by date + SG number)
-                    const evSg =
-                      ev.sg ||
-                      (ev.note &&
-                        ev.note.match(/([\d.]+)/)?.[1]); // extract SG from note text
-                    const ri = batch.sgReadings.findIndex(
-                      (r) =>
-                        r.date === ev.date &&
-                        Math.abs(
-                          parseFloat(r.sg) - parseFloat(evSg)
-                        ) < 0.00051 // tolerance for float rounding
-                    );
-                    if (ri >= 0) batch.sgReadings.splice(ri, 1);
-                  }
-                }
-
-                // Save updated state and re-render UI
-                saveAll(state, batch, ["sgReadings", "events"]);
-                render();
+              // Update linked SG reading if present
+              if (ev.sgId) {
+                const r = batch.sgReadings.find(x => x.id === ev.sgId);
+                if (r) r.sg = sgStr;
+              } else {
+                const r = batch.sgReadings.find(x => x.date === ev.date);
+                if (r) r.sg = sgStr;
               }
-            },
-          }),
-        ])
-      );
 
-      // Append completed row to body
+              saveAll(state, batch, ["sgReadings", "events"]);
+              render();
+            };
+
+            input.addEventListener("blur", commit);
+            input.addEventListener("keydown", e => {
+              if (e.key === "Enter") input.blur();
+              if (e.key === "Escape") render();
+            });
+
+            sgSpan.replaceWith(input);
+            input.focus();
+            input.select();
+          });
+
+          td.append(sgSpan);
+        } else {
+          td.textContent =
+            ev.note ||
+            (ev.sg ? `SG: ${ev.sg}` : "") ||
+            ev.type;
+        }
+        return td;
+      })();
+
+      // --- Delete Button ---
+      const delCell = el("td", {}, [
+        el("button", {
+          text: "✕",
+          class: "btn-danger",
+          title: "Delete event",
+          style: "padding:2px 6px;font-size:12px;",
+          onclick: () => {
+            const i = batch.events.indexOf(ev);
+            if (i >= 0) {
+              batch.events.splice(i, 1);
+
+              // Remove linked SG reading if applicable
+              if (ev.type === "added sg reading") {
+                if (ev.sgId) {
+                  const idx = batch.sgReadings.findIndex(r => r.id === ev.sgId);
+                  if (idx >= 0) batch.sgReadings.splice(idx, 1);
+                } else {
+                  const evSg = ev.sg || (ev.note && ev.note.match(/([\d.]+)/)?.[1]);
+                  const idx = batch.sgReadings.findIndex(r =>
+                    r.date === ev.date &&
+                    Math.abs(parseFloat(r.sg) - parseFloat(evSg)) < 0.00051
+                  );
+                  if (idx >= 0) batch.sgReadings.splice(idx, 1);
+                }
+              }
+
+              saveAll(state, batch, ["sgReadings", "events"]);
+              render();
+            }
+          }
+        })
+      ]);
+
+      tr.append(dateCell, typeCell, noteCell, delCell);
       tbody.append(tr);
     });
 
-  // Assemble final table
   table.append(thead, tbody);
-  wrap.append(table);
+  card.append(table);
 
-  return wrap;
+  return card;
 }
+
 
 /**
  * Create an editable table for managing the batch's ingredient list.
@@ -1876,106 +2816,116 @@ function eventsTable(batch) {
  * @returns {HTMLElement} - A <fieldset> element containing the editable table
  */
 function ingredientsTable(batch) {
-  // --- Outer wrapper fieldset with section title ---
-  const wrap = el('fieldset', { class: 'fieldset' }, [
-    el('legend', { text: 'Ingredients' })
-  ]);
-
-  // Ensure ingredients array exists (backward compatibility)
+  // --- Ensure ingredients array exists ---
   if (!batch.ingredients) batch.ingredients = [];
 
-  // --- Build table structure ---
-  const table = el('table', { class: 'table' });
+  // === Outer container ===
+  const card = el('div', {
+    class: 'fieldset',
+    style: 'margin-top:16px;'
+  }, [
+    el('legend', {
+      text: '🍯 Ingredients',
+      style: 'font-weight:600;'
+    })
+  ]);
 
-  // Table header
+  // === Build table ===
+  const table = el('table', {
+    class: 'table',
+    style: `
+      width:100%;
+      border-collapse:collapse;
+      border:1px solid var(--border);
+      border-radius:8px;
+      overflow:hidden;
+      font-size:13px;
+    `
+  });
+
+  // --- Table header ---
   const thead = el('thead', {}, [
     el('tr', {}, [
       el('th', { text: 'Honey (kg)' }),
       el('th', { text: 'Sugar (kg)' }),
       el('th', { text: 'Water (L)' }),
       el('th', { text: 'Additives' }),
-      el('th', { text: '' }) // column for delete button
+      el('th', { text: '' })
     ])
   ]);
 
-  // Table body
   const tbody = el('tbody');
 
-  /* === Render each ingredient row === */
-  batch.ingredients.forEach((ing) => {
-    const tr = el('tr');
+  // === Render rows ===
+  batch.ingredients.forEach(ing => {
+    const tr = el('tr', {}, []);
 
-    // Each ingredient row has editable inputs for all four fields
-    ['honey', 'sugar', 'water', 'additives'].forEach((key) => {
+    ['honey', 'sugar', 'water', 'additives'].forEach(key => {
       const td = el('td');
-
       const input = el('input', {
-        // Text field for "additives", numeric for others
         type: key === 'additives' ? 'text' : 'number',
-        step: '0.1',                 // small increment for fine tuning
-        value: ing[key] ?? '',       // populate from current ingredient data
-        style: 'width:100%;',
-        oninput: (e) => {
-          // Live update the corresponding property in the ingredient object
+        step: '0.1',
+        value: ing[key] ?? '',
+        style: `
+          width:100%;
+          border-radius:6px;
+          padding:4px;
+          border:1px solid var(--border);
+          background:#0f141b;
+          color:var(--text);
+        `,
+        oninput: e => {
           ing[key] = key === 'additives'
             ? e.target.value
             : parseFloat(e.target.value) || '';
-
-          // Save immediately to localStorage
-           saveAll(state, batch, ["ingredients"]);
+          saveAll(state, batch, ['ingredients']);
         }
       });
-
       td.append(input);
       tr.append(td);
     });
 
-    /* --- Delete button for ingredient row --- */
-    tr.append(el('td', {}, [
-      el('button', {
-        text: '✕',
-        class: 'btn-danger',
-        title: 'Delete row',
-        onclick: () => {
-          // Remove this ingredient from the batch
-          const i = batch.ingredients.indexOf(ing);
-          if (i >= 0) batch.ingredients.splice(i, 1);
-           saveAll(state, batch, ["ingredients"]);
-          render(); // refresh display
-        }
-      })
-    ]));
+    // --- Delete row button ---
+    const delBtn = el('button', {
+      text: '✕',
+      class: 'btn-danger',
+      title: 'Delete ingredient row',
+      style: 'padding:2px 6px;font-size:12px;',
+      onclick: () => {
+        const i = batch.ingredients.indexOf(ing);
+        if (i >= 0) batch.ingredients.splice(i, 1);
+        saveAll(state, batch, ['ingredients']);
+        render();
+      }
+    });
 
-    // Add completed row to table body
+    tr.append(el('td', {}, [delBtn]));
     tbody.append(tr);
   });
 
-  // Assemble table
   table.append(thead, tbody);
 
-  /* --- "Add Ingredient" button --- */
+  // === Add Ingredient button ===
   const addRowBtn = el('button', {
     text: '+ Add Ingredient',
     class: 'btn-accent',
-    style: 'margin-top:8px;',
+    style: 'margin-top:10px;width:100%;',
     onclick: () => {
-      // Add a new blank row to the ingredients list
       batch.ingredients.push({
         honey: '',
         sugar: '',
         water: '',
         additives: ''
       });
-       saveAll(state, batch, ["ingredients"]);
-      render(); // refresh UI
+      saveAll(state, batch, ['ingredients']);
+      render();
     }
   });
 
-  // Add both the table and add button to the fieldset
-  wrap.append(table, addRowBtn);
-
-  return wrap;
+  card.append(table, addRowBtn);
+  return card;
 }
+
 
 /**
  * Create a form for adding a new mead batch.
@@ -1986,28 +2936,37 @@ function ingredientsTable(batch) {
  * @returns {HTMLElement} - A <fieldset> element containing the new batch form
  */
 function newBatchForm() {
-  // Default date is today (in yyyy-mm-dd format)
   const today = new Date().toISOString().slice(0, 10);
 
-  // --- Main form wrapper ---
-  const f = el('fieldset', { class: 'fieldset' }, [
-    el('legend', { text: 'Create New Batch' }),
+  // === Outer container ===
+  const card = el('div', {
+    class: 'fieldset',
+    style: 'margin-top:16px;'
+  }, [
+    el('legend', {
+      text: '✨ Create New Batch',
+      style: 'font-weight:600;'
+    })
+  ]);
 
-    /* === Basic Info Section === */
+  // === Helper for consistent input styling ===
+  const inputStyle = `
+    width:100%;
+    border-radius:6px;
+    padding:6px;
+    border:1px solid var(--border);
+    background:#0f141b;
+    color:var(--text);
+    margin-bottom:8px;
+  `;
 
+  // === Basic Info ===
+  const basicInfo = el('div', {}, [
     el('label', { text: 'Name' }),
-    el('input', {
-      id: 'bName',
-      type: 'text',
-      placeholder: 'e.g., Bochet #3' // Example batch name
-    }),
+    el('input', { id: 'bName', type: 'text', placeholder: 'e.g. Bochet #3', style: inputStyle }),
 
     el('label', { text: 'Start Date' }),
-    el('input', {
-      id: 'bDate',
-      type: 'date',
-      value: today // Auto-fill with today’s date
-    }),
+    el('input', { id: 'bDate', type: 'date', value: today, style: inputStyle }),
 
     el('label', { text: 'Original Gravity (OG)' }),
     el('input', {
@@ -2016,157 +2975,121 @@ function newBatchForm() {
       step: '0.001',
       min: '0.900',
       max: '1.500',
-      placeholder: '1.100',
-      class: 'wide'
+      placeholder: 'e.g. 1.100',
+      style: inputStyle
     }),
 
-    /* === Metadata Section === */
     el('label', { text: 'Honey Type' }),
-    el('input', {
-      id: 'bHoney',
-      type: 'text',
-      placeholder: 'e.g., Wildflower, Clover, Orange Blossom'
-    }),
+    el('input', { id: 'bHoney', type: 'text', placeholder: 'e.g. Wildflower, Clover, Orange Blossom', style: inputStyle }),
 
     el('label', { text: 'Yeast Strain' }),
-    el('input', {
-      id: 'bYeast',
-      type: 'text',
-      placeholder: 'e.g., Lalvin D47, EC-1118'
-    }),
+    el('input', { id: 'bYeast', type: 'text', placeholder: 'e.g. Lalvin D47, EC-1118', style: inputStyle }),
 
     el('label', { text: 'Volume (L)' }),
-    el('input', {
-      id: 'bVolume',
-      type: 'number',
-      step: '0.1',
-      min: '0.1',
-      placeholder: 'e.g., 5.0',
-      class: 'wide'
-    }),
+    el('input', { id: 'bVolume', type: 'number', step: '0.1', min: '0.1', placeholder: 'e.g. 5.0', style: inputStyle })
+  ]);
 
-    /* === Optional Ingredients Section === */
-    (() => {
-      // Nested fieldset for ingredient details
-      const ingSet = el('fieldset', {
-        class: 'fieldset',
-        style: 'margin-top:10px;'
-      }, [
-        el('legend', { text: 'Ingredients (optional)' }),
-        el('div', { class: 'grid' }, [
-          el('div', { class: 'col-4' }, [
-            el('label', { text: 'Honey (kg)' }),
-            el('input', {
-              id: 'bHoneyWeight',
-              type: 'number',
-              step: '0.1',
-              placeholder: 'e.g., 2.5'
-            })
-          ]),
-          el('div', { class: 'col-4' }, [
-            el('label', { text: 'Sugar (kg)' }),
-            el('input', {
-              id: 'bSugar',
-              type: 'number',
-              step: '0.1',
-              placeholder: 'optional'
-            })
-          ]),
-          el('div', { class: 'col-4' }, [
-            el('label', { text: 'Water (L)' }),
-            el('input', {
-              id: 'bWater',
-              type: 'number',
-              step: '0.1',
-              placeholder: 'e.g., 4.5'
-            })
-          ]),
-          el('div', { class: 'col-12' }, [
-            el('label', { text: 'Additives (fruit, spices)' }),
-            el('input', {
-              id: 'bAdditives',
-              type: 'text',
-              placeholder: 'e.g., orange peel, cinnamon, vanilla bean'
-            })
-          ])
-        ])
-      ]);
-      return ingSet;
-    })(),
+  // === Optional Ingredients Subsection ===
+  const ingSet = el('div', {
+    class: 'fieldset',
+    style: 'margin-top:10px;'
+  }, [
+    el('legend', { text: '🍯 Ingredients (optional)', style: 'font-weight:600;' }),
+    el('div', { class: 'grid', style: 'gap:8px;' }, [
+      el('div', { class: 'col-4' }, [
+        el('label', { text: 'Honey (kg)' }),
+        el('input', { id: 'bHoneyWeight', type: 'number', step: '0.1', placeholder: 'e.g. 2.5', style: inputStyle })
+      ]),
+      el('div', { class: 'col-4' }, [
+        el('label', { text: 'Sugar (kg)' }),
+        el('input', { id: 'bSugar', type: 'number', step: '0.1', placeholder: 'optional', style: inputStyle })
+      ]),
+      el('div', { class: 'col-4' }, [
+        el('label', { text: 'Water (L)' }),
+        el('input', { id: 'bWater', type: 'number', step: '0.1', placeholder: 'e.g. 4.5', style: inputStyle })
+      ]),
+      el('div', { class: 'col-12' }, [
+        el('label', { text: 'Additives (fruit, spices)' }),
+        el('input', { id: 'bAdditives', type: 'text', placeholder: 'e.g. orange peel, cinnamon, vanilla bean', style: inputStyle })
+      ])
+    ])
+  ]);
 
-    /* === Description Section === */
+  // === Description ===
+  const desc = el('div', { style: 'margin-top:10px;' }, [
     el('label', { text: 'Description / Notes' }),
-    el('textarea', { id: 'bDesc' }),
-
-    /* === Create Batch Button === */
-    el('button', {
-      class: 'btn-accent',
-      text: 'Create Batch',
-      onclick: () => {
-        // Retrieve user input values
-        const name = f.querySelector('#bName').value.trim();
-        const startDate = f.querySelector('#bDate').value;
-        const og = parseFloat(f.querySelector('#bOG').value);
-        const honey = f.querySelector('#bHoney').value.trim();
-        const yeast = f.querySelector('#bYeast').value.trim();
-        const volume = parseFloat(f.querySelector('#bVolume').value);
-        const description = f.querySelector('#bDesc').value.trim();
-
-        // Optional ingredients
-        const honeyWeight = parseFloat(f.querySelector('#bHoneyWeight').value);
-        const sugar = parseFloat(f.querySelector('#bSugar').value);
-        const water = parseFloat(f.querySelector('#bWater').value);
-        const additives = f.querySelector('#bAdditives').value.trim();
-
-        // Basic validation
-        if (!name || !startDate || !isFinite(og))
-          return alert('Please fill name, date, and OG.');
-
-        // Create unique ID for this batch
-        const id = crypto.randomUUID();
-
-        /* --- Construct batch object --- */
-        const batch = {
-          id,
-          name,
-          startDate,
-          og: og.toFixed(3),
-          honey,
-          yeast,
-          volume: isFinite(volume) ? volume.toFixed(1) : null,
-          description,
-          sgReadings: [],
-          events: [{ date: startDate, type: 'primary fermentation' }],
-          ingredients: []
-        };
-
-        /* --- Optional ingredients inclusion --- */
-        // Only add if any ingredient field has data
-        if (
-          isFinite(honeyWeight) ||
-          isFinite(sugar) ||
-          isFinite(water) ||
-          additives
-        ) {
-          batch.ingredients.push({
-            honey: isFinite(honeyWeight) ? honeyWeight.toFixed(1) : '',
-            sugar: isFinite(sugar) ? sugar.toFixed(1) : '',
-            water: isFinite(water) ? water.toFixed(1) : '',
-            additives
-          });
-        }
-
-        /* --- Save and render --- */
-        state.batches.push(batch);   // Add to state
-        selectedId = id;             // Auto-select new batch
-         saveAll(state);              // Persist to localStorage
-        render();                    // Re-render UI
-      }
+    el('textarea', {
+      id: 'bDesc',
+      placeholder: 'Optional notes about this batch...',
+      style: `
+        ${inputStyle}
+        min-height:80px;
+        resize:vertical;
+      `
     })
   ]);
 
-  return f;
+  // === Create Batch Button ===
+  const createBtn = el('button', {
+    class: 'btn-accent',
+    text: 'Create Batch',
+    style: 'margin-top:10px;width:100%;',
+    onclick: () => {
+      const name = card.querySelector('#bName').value.trim();
+      const startDate = card.querySelector('#bDate').value;
+      const og = parseFloat(card.querySelector('#bOG').value);
+      const honey = card.querySelector('#bHoney').value.trim();
+      const yeast = card.querySelector('#bYeast').value.trim();
+      const volume = parseFloat(card.querySelector('#bVolume').value);
+      const description = card.querySelector('#bDesc').value.trim();
+
+      const honeyWeight = parseFloat(card.querySelector('#bHoneyWeight').value);
+      const sugar = parseFloat(card.querySelector('#bSugar').value);
+      const water = parseFloat(card.querySelector('#bWater').value);
+      const additives = card.querySelector('#bAdditives').value.trim();
+
+      if (!name || !startDate || !isFinite(og)) {
+        alert('Please fill in name, date, and OG.');
+        return;
+      }
+
+      const id = crypto.randomUUID();
+      const batch = {
+        id,
+        name,
+        startDate,
+        og: og.toFixed(3),
+        honey,
+        yeast,
+        volume: isFinite(volume) ? volume.toFixed(1) : null,
+        description,
+        sgReadings: [],
+        events: [{ date: startDate, type: 'primary fermentation' }],
+        ingredients: []
+      };
+
+      // Optional ingredients
+      if (isFinite(honeyWeight) || isFinite(sugar) || isFinite(water) || additives) {
+        batch.ingredients.push({
+          honey: isFinite(honeyWeight) ? honeyWeight.toFixed(1) : '',
+          sugar: isFinite(sugar) ? sugar.toFixed(1) : '',
+          water: isFinite(water) ? water.toFixed(1) : '',
+          additives
+        });
+      }
+
+      state.batches.push(batch);
+      selectedId = id;
+      saveAll(state);
+      render();
+    }
+  });
+
+  // === Assemble final form ===
+  card.append(basicInfo, ingSet, desc, createBtn);
+  return card;
 }
+
 
 /* === Utility Functions === */
 
@@ -2199,17 +3122,27 @@ function calcABV(og, fg) {
  * days, weeks, or months (e.g., “3 weeks old”, “2 months 1 wk old”).
  */
 function formatMaturityDays(bottledDate) {
-  const days = Math.floor((Date.now() - new Date(bottledDate)) / 86400000);
-  if (days < 0) return 'Just bottled';
-  if (days < 7) return `${days} day${days !== 1 ? 's' : ''} old`;
+  const diffMs = Date.now() - new Date(bottledDate).getTime();
+  const days = Math.floor(diffMs / 86400000);
+
+  if (isNaN(days)) return 'Unknown age';
+  if (days < 0) return 'Future date';
+  if (days === 0) return 'Bottled today';
+  if (days === 1) return '1 day old';
+  if (days < 7) return `${days} days old`;
+
   const weeks = Math.floor(days / 7);
   if (weeks < 8) return `${weeks} week${weeks !== 1 ? 's' : ''} old`;
+
   const months = Math.floor(days / 30.44);
-  const remDays = Math.floor(days - months * 30.44);
-  return `${months} month${months !== 1 ? 's' : ''}${
-    remDays > 7 ? ` ${Math.floor(remDays / 7)} wk` : ''
-  } old`;
+  const remainingDays = Math.round(days - months * 30.44);
+  const extraWeeks = Math.floor(remainingDays / 7);
+
+  let result = `${months} month${months !== 1 ? 's' : ''}`;
+  if (extraWeeks >= 1) result += ` ${extraWeeks} wk`;
+  return result + ' old';
 }
+
 
 /**
  * Format fermentation duration since start date,
@@ -2217,18 +3150,27 @@ function formatMaturityDays(bottledDate) {
  * or “Fermenting for 2 months 1 wk”.
  */
 function formatFermentationDays(startDate) {
-  const days = Math.floor((Date.now() - new Date(startDate)) / 86400000);
-  if (days < 1) return 'Started today';
+  const diffMs = Date.now() - new Date(startDate).getTime();
+  const days = Math.floor(diffMs / 86400000);
+
+  if (isNaN(days)) return 'Unknown start date';
+  if (days < 0) return 'Future start date';
+  if (days === 0) return 'Started today';
   if (days === 1) return 'Fermenting for 1 day';
   if (days < 7) return `Fermenting for ${days} days`;
+
   const weeks = Math.floor(days / 7);
   if (weeks < 8) return `Fermenting for ${weeks} week${weeks !== 1 ? 's' : ''}`;
+
   const months = Math.floor(days / 30.44);
-  const remDays = Math.floor(days - months * 30.44);
-  return `Fermenting for ${months} month${months !== 1 ? 's' : ''}${
-    remDays > 7 ? ` ${Math.floor(remDays / 7)} wk` : ''
-  }`;
+  const remainingDays = Math.round(days - months * 30.44);
+  const extraWeeks = Math.floor(remainingDays / 7);
+
+  let result = `Fermenting for ${months} month${months !== 1 ? 's' : ''}`;
+  if (extraWeeks >= 1) result += ` ${extraWeeks} wk`;
+  return result;
 }
+
 
 /* === Chart Rendering === */
 
@@ -2240,13 +3182,25 @@ function formatFermentationDays(startDate) {
 function drawChart(batch) {
   const c = document.getElementById('sgChart');
   if (!c) return;
+
   const ctx = c.getContext('2d');
   const pad = { l: 45, r: 10, t: 10, b: 28 };
 
-  // sort readings and include OG
-  const readings = batch.sgReadings
-    ? batch.sgReadings.slice().sort((a, b) => new Date(a.date) - new Date(b.date))
-    : [];
+  // Retina scaling
+  const dpr = window.devicePixelRatio || 1;
+  const logicalW = 800;
+  const logicalH = 260;
+  c.width = logicalW * dpr;
+  c.height = logicalH * dpr;
+  c.style.width = logicalW + 'px';
+  c.style.height = logicalH + 'px';
+  ctx.scale(dpr, dpr);
+
+  // Prepare data
+  const readings = (batch.sgReadings || [])
+    .slice()
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
   if (!readings.length || readings[0].date !== batch.startDate)
     readings.unshift({ date: batch.startDate, sg: batch.og });
   if (!readings.length) return;
@@ -2265,21 +3219,14 @@ function drawChart(batch) {
   let minY = Math.min(...ys);
   let maxY = Math.max(...ys);
 
-  // --- include sugar break in Y-range so it always shows ---
   const sugarBreak = calcSugarBreak(batch.og);
   if (sugarBreak) {
-    if (chartMode === 'sg') {
-      const sb = parseFloat(sugarBreak);
-      if (sb < minY) minY = sb - 0.002;
-      if (sb > maxY) maxY = sb + 0.002;
-    } else {
-      const sbAbv = calcABV(batch.og, sugarBreak);
-      if (sbAbv < minY) minY = sbAbv - 0.2;
-      if (sbAbv > maxY) maxY = sbAbv + 0.2;
-    }
+    const sb = parseFloat(sugarBreak);
+    const val = chartMode === 'sg' ? sb : calcABV(batch.og, sugarBreak);
+    minY = Math.min(minY, val - 0.002);
+    maxY = Math.max(maxY, val + 0.002);
   }
 
-  // small breathing room
   if (chartMode === 'sg') {
     minY = Math.max(0.98, minY - 0.005);
     maxY = Math.min(1.15, maxY + 0.005);
@@ -2288,8 +3235,8 @@ function drawChart(batch) {
     maxY += 0.5;
   }
 
-  const W = c.width - pad.l - pad.r;
-  const H = c.height - pad.t - pad.b;
+  const W = logicalW - pad.l - pad.r;
+  const H = logicalH - pad.t - pad.b;
   const xScale = v => pad.l + (W * (v - minX)) / Math.max(1, maxX - minX);
   const yScale = v => pad.t + H - (H * (v - minY)) / Math.max(0.0001, maxY - minY);
 
@@ -2298,7 +3245,7 @@ function drawChart(batch) {
     p.yy = yScale(p.y);
   });
 
-  // --- Tooltip element setup ---
+  // Tooltip setup
   let tooltip = document.getElementById('chart-tooltip');
   if (!tooltip) {
     tooltip = document.createElement('div');
@@ -2310,7 +3257,8 @@ function drawChart(batch) {
   }
 
   const renderBase = (highlight = null) => {
-    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.clearRect(0, 0, logicalW, logicalH);
+    ctx.save();
 
     // Axes
     ctx.strokeStyle = '#2a3340';
@@ -2321,7 +3269,7 @@ function drawChart(batch) {
     ctx.lineTo(pad.l + W, pad.t + H);
     ctx.stroke();
 
-    // --- Y grid ---
+    // Y grid
     ctx.fillStyle = '#8fa3bd';
     ctx.font = '12px system-ui';
     ctx.textAlign = 'right';
@@ -2336,7 +3284,7 @@ function drawChart(batch) {
       ctx.stroke();
     }
 
-    // --- X ticks ---
+    // X ticks
     ctx.textAlign = 'center';
     const ticks = 4;
     for (let i = 0; i <= ticks; i++) {
@@ -2345,27 +3293,24 @@ function drawChart(batch) {
       ctx.fillText(new Date(x).toLocaleDateString(), xx, pad.t + H + 20);
     }
 
-    // --- Data line ---
+    // Data line
     ctx.strokeStyle = chartMode === 'sg' ? '#82cfff' : '#b5e08a';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     points.forEach((p, i) => (i ? ctx.lineTo(p.xx, p.yy) : ctx.moveTo(p.xx, p.yy)));
     ctx.stroke();
 
-    // --- Sugar break line ---
+    // Sugar break line
     if (sugarBreak) {
       const breakValue =
         chartMode === 'sg'
           ? parseFloat(sugarBreak)
           : calcABV(batch.og, sugarBreak);
-
       if (breakValue >= minY && breakValue <= maxY) {
         const yBreak = yScale(breakValue);
-
-        // check if reached
-        const latestSG = batch.sgReadings?.length
-          ? parseFloat(batch.sgReadings[batch.sgReadings.length - 1].sg)
-          : null;
+        const latestSG =
+          batch.sgReadings?.length &&
+          parseFloat(batch.sgReadings[batch.sgReadings.length - 1].sg);
         const reached = latestSG && latestSG <= parseFloat(sugarBreak);
 
         ctx.save();
@@ -2377,13 +3322,10 @@ function drawChart(batch) {
         ctx.lineTo(pad.l + W, yBreak);
         ctx.stroke();
         ctx.setLineDash([]);
-
-        // small dot at right edge
         ctx.fillStyle = reached ? '#00cc66' : '#ffaa33';
         ctx.beginPath();
         ctx.arc(pad.l + W - 8, yBreak, 4, 0, Math.PI * 2);
         ctx.fill();
-
         ctx.font = '12px system-ui';
         ctx.textAlign = 'left';
         ctx.fillText('1/3 Break', pad.l + 8, yBreak - 6);
@@ -2391,7 +3333,7 @@ function drawChart(batch) {
       }
     }
 
-    // --- Data points ---
+    // Data points
     points.forEach((p, i) => {
       ctx.beginPath();
       if (i === 0) {
@@ -2408,7 +3350,6 @@ function drawChart(batch) {
       }
     });
 
-    // --- Hover highlight ---
     if (highlight) {
       ctx.beginPath();
       ctx.strokeStyle = '#fff';
@@ -2416,25 +3357,26 @@ function drawChart(batch) {
       ctx.arc(highlight.xx, highlight.yy, 7, 0, Math.PI * 2);
       ctx.stroke();
     }
+
+    ctx.restore();
   };
 
-  // initial draw
   renderBase();
 
-  // hover handling
+  // Hover handling
   const radius = 14;
   c.onmousemove = evt => {
     const rect = c.getBoundingClientRect();
     const scaleX = c.width / rect.width;
     const scaleY = c.height / rect.height;
-    const mx = (evt.clientX - rect.left) * scaleX;
-    const my = (evt.clientY - rect.top) * scaleY;
+    const mx = (evt.clientX - rect.left) * scaleX / dpr;
+    const my = (evt.clientY - rect.top) * scaleY / dpr;
 
     let nearest = null;
     let minDist = radius;
     for (const p of points) {
-      const dx = Math.abs(p.xx - mx);
-      const dy = Math.abs(p.yy - my);
+      const dx = p.xx - mx;
+      const dy = p.yy - my;
       const dist = Math.sqrt(dx * dx + dy * dy * 0.6);
       if (dist < minDist) {
         nearest = p;
@@ -2445,62 +3387,78 @@ function drawChart(batch) {
     if (nearest) {
       renderBase(nearest);
       tooltip.style.display = 'block';
-      const left = nearest.xx / (c.width / rect.width) + 15;
-      const top = nearest.yy / (c.height / rect.height) - 10;
+
+      // DPI-safe tooltip positioning
+      const left = nearest.xx / dpr + 12;
+      const top = nearest.yy / dpr - 28;
       tooltip.style.left = `${left}px`;
       tooltip.style.top = `${top}px`;
+
+      const dateLabel = new Date(nearest.x).toLocaleDateString();
+      const valueLabel =
+        chartMode === 'sg'
+          ? `SG: ${nearest.sg?.toFixed(3) ?? '—'}`
+          : `ABV: ${nearest.y?.toFixed(1) ?? '—'}%`;
+      const sugarLabel = sugarBreak
+        ? `<div style="color:#ffaa33;">1/3 Break: ${sugarBreak}</div>`
+        : '';
+
       tooltip.innerHTML = `
-        <div><b>${new Date(nearest.x).toLocaleDateString()}</b></div>
-        <div>${chartMode === 'sg'
-          ? `SG: ${nearest.sg.toFixed(3)}`
-          : `ABV: ${nearest.y.toFixed(1)}%`}</div>
-        ${sugarBreak ? '<div style="color:#ffaa33;">1/3 Break: ' + sugarBreak + '</div>' : ''}
+        <div><b>${dateLabel}</b></div>
+        <div>${valueLabel}</div>
+        ${sugarLabel}
       `;
     } else {
       tooltip.style.display = 'none';
       renderBase();
     }
-  }; // ✅ ← closes c.onmousemove properly
+  }; // ✅ closes onmousemove
 
-  // Separate handler for leaving canvas
   c.onmouseleave = () => {
     tooltip.style.display = 'none';
     renderBase();
   };
-}
+} // ✅ closes drawChart()
+
 
 /* === UI Event Listeners === */
 
-// Create new batch
-$('#newBatchBtn').addEventListener('click', () => {
+// === New Batch button ===
+$('#newBatchBtn')?.addEventListener('click', () => {
   selectedId = null;
   render();
 });
 
-// Live search in sidebar
-$('#searchInput').addEventListener('input', renderBatchList);
+// === Sidebar live search ===
+$('#searchInput')?.addEventListener('input', () => renderBatchList());
 
-// Clear all data (reset localStorage)
-$('#clearBtn').addEventListener('click', () => {
-  if (!confirm('Delete ALL MeadTrics data?')) return;
+// === Clear all data ===
+$('#clearBtn')?.addEventListener('click', () => {
+  if (!confirm('⚠️ Delete ALL MeadTrics data? This cannot be undone.')) return;
   state = { batches: [] };
   selectedId = null;
-   saveAll(state);
+  saveAll(state);
   render();
 });
 
-// Export data as downloadable JSON file
-$('#exportBtn').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], {
-    type: 'application/json'
-  });
-  const url = URL.createObjectURL(blob);
-  const a = el('a', { href: url, download: 'mead-tracker-data.json' });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+// === Export data as JSON ===
+$('#exportBtn')?.addEventListener('click', () => {
+  try {
+    const blob = new Blob([JSON.stringify(state, null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = el('a', { href: url, download: 'meadtrics-data.json' });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Export failed:', err);
+    alert('Export failed. Check console for details.');
+  }
 });
+
 
 // Import data from JSON file
 $('#importBtn').addEventListener('click', () => $('#importFile').click());
@@ -2516,19 +3474,18 @@ $('#importFile').addEventListener('change', async (e) => {
 });
 
 function openLabelMaker(batch) {
-  const modal = $('#labelModal');
-  const preview = $('#labelPreview');
-  modal.classList.remove('hidden');
+  const existing = document.getElementById('labelModal');
+  if (existing) existing.remove(); // remove old modal if open
 
-  // Helper to safely inject text into HTML
-  const escapeHTML = (s) => String(s)
+  // Helper: escape plain text
+  const escapeHTML = s => String(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-  const date = batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '';
+  const date = batch.startDate ? new Date(batch.startDate).toLocaleDateString() : '—';
   const lastReading = (batch.sgReadings && batch.sgReadings.length)
     ? batch.sgReadings[batch.sgReadings.length - 1]
     : null;
@@ -2538,56 +3495,65 @@ function openLabelMaker(batch) {
   const abv = (isFinite(OG) && isFinite(FG))
     ? ((OG - FG) * 131.25).toFixed(1) + '%'
     : '–';
-
   const honey = batch.honey || 'Mixed Blossom';
 
-  preview.innerHTML = `
-    <h1 style="text-align:center;font-size:20pt;margin:0;">${escapeHTML(batch.name)}</h1>
-    <p style="text-align:center;margin:2mm 0;">${escapeHTML(honey)} Mead</p>
-    <hr style="border:none;border-top:1px solid #8b6b2c;margin:2mm 0;">
-    <p><b>Batch:</b> ${escapeHTML(batch.name)}</p>
-    <p><b>Start:</b> ${escapeHTML(date)}</p>
-    <p><b>ABV:</b> ${abv}</p>
-  `;
+  // === Build modal structure ===
+  const modal = el('div', { id: 'labelModal', class: 'modal-overlay' }, [
+    el('div', { class: 'modal-content card' }, [
+      el('div', { class: 'label-preview', id: 'labelPreview' }, [
+        el('h1', {
+          text: batch.name,
+          style: 'text-align:center;font-size:20pt;margin:0;'
+        }),
+        el('p', {
+          text: `${honey} Mead`,
+          style: 'text-align:center;margin:2mm 0;'
+        }),
+        el('hr', {
+          style: 'border:none;border-top:1px solid #8b6b2c;margin:2mm 0;'
+        }),
+        el('p', { text: `Batch: ${batch.name}` }),
+        el('p', { text: `Start: ${date}` }),
+        el('p', { text: `ABV: ${abv}` }),
+      ]),
+      el('div', { class: 'row', style: 'justify-content:center;gap:8px;margin-top:10px;' }, [
+        el('button', {
+          id: 'printLabel',
+          text: '🖨️ Print Label',
+          class: 'btn-accent',
+          onclick: () => window.print()
+        }),
+        el('button', {
+          id: 'closeLabel',
+          text: '✕ Close',
+          class: 'btn-danger',
+          onclick: () => modal.remove()
+        })
+      ])
+    ])
+  ]);
 
-  $('#printLabel').onclick = () => window.print();
-  $('#closeLabel').onclick = () => modal.classList.add('hidden');
-  modal.onclick = (e) => {
-  if (e.target === modal) modal.classList.add('hidden');
-};
-}
+  // === Add to document ===
+  document.body.append(modal);
 
-// === Collapsible: Brix Converter ===
-const brixCard = document.getElementById("brixConverterCard");
-if (brixCard) {
-  const legend = brixCard.querySelector("legend");
-  const content = document.getElementById("brixContent");
-  legend.addEventListener("click", () => {
-    brixCard.classList.toggle("collapsed");
-    const collapsed = brixCard.classList.contains("collapsed");
-    content.style.display = collapsed ? "none" : "block";
+  // Close on overlay click
+  modal.addEventListener('click', e => {
+    if (e.target === modal) modal.remove();
   });
-  // Start collapsed by default
-  brixCard.classList.add("collapsed");
-  content.style.display = "none";
-}
 
-// === Collapsible Cloud Sync card ===
-const syncCard = document.getElementById("syncCard");
-if (syncCard) {
-  const legend = syncCard.querySelector("legend");
-  const content = document.getElementById("syncContent");
-
-  legend.addEventListener("click", () => {
-    syncCard.classList.toggle("collapsed");
-    const isCollapsed = syncCard.classList.contains("collapsed");
-    content.style.display = isCollapsed ? "none" : "block";
+  // Close on Escape key
+  document.addEventListener('keydown', function escHandler(ev) {
+    if (ev.key === 'Escape') {
+      modal.remove();
+      document.removeEventListener('keydown', escHandler);
+    }
   });
-
-  // Start collapsed to match other sections
-  syncCard.classList.add("collapsed");
-  content.style.display = "none";
 }
+
+
+// Edited to here
+
+
 
 // === ExtendsClass JSON Storage Hybrid ===
 let EXTENDS_BIN_ID = localStorage.getItem("EXTENDS_BIN_ID") || null;
@@ -2612,7 +3578,6 @@ function updateSyncCard() {
       ? "☁️ Cloud Sync Active"
       : "💾 Local-only mode";
 }
-
 
 // === Dynamic YAN estimator) ===
 function updateYAN() {
@@ -2640,12 +3605,19 @@ function updateYAN() {
   document.getElementById('tosnaYan').value = Math.round(effYAN);
 }
 
-// update automatically when ABV, sweetness, or requirement change
-['tosnaYeastABV','tosnaSweetness','tosnaReq'].forEach(id=>{
-  const el=document.getElementById(id);
-  if(el) el.addEventListener('input',updateYAN);
-});
-updateYAN();
+function initTosnaBindings() {
+  const ids = ['tosnaYeastABV','tosnaSweetness','tosnaReq'];
+  let found = false;
+  ids.forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) {
+      found = true;
+      el.addEventListener('input', updateYAN);
+    }
+  });
+  if (found) updateYAN();
+  
+}
 
 // === Auto FG / OG Estimator ===
 function updateFGOG() {
@@ -2662,200 +3634,6 @@ function updateFGOG() {
 
   const display = document.getElementById('tosnaFGOG');
   display.innerHTML = `Estimated FG: <b>${fg.toFixed(3)}</b> → Suggested OG: <b>${og}</b>`;
-}
-
-document.getElementById('tosnaYeastABV').addEventListener('input', updateFGOG);
-document.getElementById('tosnaSweetness').addEventListener('change', updateFGOG);
-updateFGOG(); // run once at start
-
-// === Main TOSNA calculator ===
-
-function calcTOSNA() {
-  const vol = parseFloat(document.getElementById('tosnaVol').value) || 0;
-  const yeastABV = parseFloat(document.getElementById('tosnaYeastABV').value) || 14;
-  const sweetness = document.getElementById('tosnaSweetness').value;
-  const req = document.getElementById('tosnaReq').value;
-  const type = document.getElementById('tosnaType').value;
-
-  if (!vol) {
-    alert("Please enter a valid volume.");
-    return;
-  }
-
-  /* === 1️⃣ Determine effective YAN (mg N/L)=== */
-  let yan = 150;
-
-  if (yeastABV <= 12) {
-    if (sweetness === 'dry') yan = req === 'low' ? 100 : req === 'medium' ? 125 : 150;
-    else if (sweetness === 'semi') yan = req === 'low' ? 120 : req === 'medium' ? 140 : 160;
-    else yan = req === 'low' ? 130 : req === 'medium' ? 150 : 180;
-  } else if (yeastABV <= 14) {
-    if (sweetness === 'dry') yan = req === 'low' ? 120 : req === 'medium' ? 140 : 160;
-    else if (sweetness === 'semi') yan = req === 'low' ? 130 : req === 'medium' ? 150 : 180;
-    else yan = req === 'low' ? 150 : req === 'medium' ? 180 : 200;
-  } else if (yeastABV <= 16) {
-    if (sweetness === 'dry') yan = req === 'low' ? 140 : req === 'medium' ? 170 : 190;
-    else if (sweetness === 'semi') yan = req === 'low' ? 160 : req === 'medium' ? 190 : 220;
-    else yan = req === 'low' ? 170 : req === 'medium' ? 200 : 250;
-  } else {
-    yan = req === 'low' ? 180 : req === 'medium' ? 210 : 260;
-  }
-
-  document.getElementById('tosnaYan').value = Math.round(yan);
-
-  /* === 2️⃣ Calculate OG/FG estimate (for display only) === */
-  const fg = sweetness === 'dry' ? 1.000 : sweetness === 'semi' ? 1.015 : 1.030;
-  const og = (fg + yeastABV / 131.25).toFixed(3);
-
-  /* === empirical nutrient scaling (respects type) === */
-  let o = 0, k = 0, dap = 0;
-  let basePerL = 0.42;              // medium (~150 mg/L)
-  if (yan <= 140) basePerL = 0.38;  // low (~125 mg/L)
-  else if (yan >= 200) basePerL = 0.65; // high (~250 mg/L)
-
-  if (type === "O") {
-    o = basePerL * vol;
-  } else if (type === "OK") {
-    o = basePerL * vol;
-    k = o * 1.10;
-  } else if (type === "OKDAP") {
-    o = basePerL * vol;
-    k = o * 1.10;
-    dap = o * 0.43;
-  }
-
-  // round totals
-  o = Math.round(o * 10) / 10;
-  k = Math.round(k * 10) / 10;
-  dap = Math.round(dap * 10) / 10;
-
-  /* === 4️⃣ tsp conversion === */
-  const tspO = o ? Math.round((o / 3.4) * 100) / 100 : 0;
-  const tspK = k ? Math.round((k / 4.0) * 100) / 100 : 0;
-  const tspD = dap ? Math.round((dap / 4.6) * 100) / 100 : 0;
-
-  const tspOhalf = o ? Math.round(((o / 2) / 3.4) * 100) / 100 : 0;
-  const tspKhalf = k ? Math.round(((k / 2) / 4.0) * 100) / 100 : 0;
-  const tspDhalf = dap ? Math.round(((dap / 2) / 4.6) * 100) / 100 : 0;
-
-  /* === schedule === */
-  const oHalf = Math.round((o / 2) * 10) / 10;
-  const kHalf = Math.round((k / 2) * 10) / 10;
-  const dapHalf = Math.round((dap / 2) * 10) / 10;
-
-  /* === 6️⃣ Build result HTML === */
-  let result = "";
-  result += "<h6 style='margin:0;color:var(--accent);'>Nutrient Schedule</h6>";
-  result += "<div style='margin-top:4px;'>📦 For <b>" + vol + " L</b> at <b>OG " + og +
-    "</b> → FG " + fg.toFixed(3) +
-    "<br>Yeast <b>" + yeastABV + "%</b> · Sweetness <b>" + sweetness +
-    "</b> · Req <b>" + req + "</b> · YAN <b>" + yan + " mg/L</b></div><br>";
-
-  // total line
-  let nutrientLine = "";
-  if (o) nutrientLine += "<b>Fermaid O:</b> " + o.toFixed(1) + " g (" + tspO + " tsp)";
-  if (k) nutrientLine += " · <b>Fermaid K:</b> " + k.toFixed(1) + " g (" + tspK + " tsp)";
-  if (dap) nutrientLine += " · <b>DAP:</b> " + dap.toFixed(1) + " g (" + tspD + " tsp)";
-  result += nutrientLine + "<br><br>";
-
-  // schedule layout
-  result += "<b>Schedule:</b><br>";
-  if (o) {
-    result += "• 24 h → " + oHalf + " g O (" + tspOhalf + " tsp)<br>";
-    result += "• 48 h → " + oHalf + " g O (" + tspOhalf + " tsp)<br>";
-  }
-  if (k || dap) {
-    const parts72 = [];
-    if (k) parts72.push(kHalf + " g K (" + tspKhalf + " tsp)");
-    if (dap) parts72.push(dapHalf + " g DAP (" + tspDhalf + " tsp)");
-    result += "• 72 h → " + parts72.join(" + ") + "<br>";
-
-    const partsSB = [];
-    if (k) partsSB.push(kHalf + " g K (" + tspKhalf + " tsp)");
-    if (dap) partsSB.push(dapHalf + " g DAP (" + tspDhalf + " tsp)");
-    result += "• 1⁄3 Sugar Break (≤ 7 days) → " + partsSB.join(" + ");
-  }
-
-  /* === 7️⃣ Output === */
-  document.getElementById('tosnaResult').innerHTML = result;
-}
-
-document.getElementById('calcTosna').addEventListener('click', calcTOSNA);
-
-// === Collapsible TOSNA card ===
-const tosnaCard = document.getElementById("tosnaCard");
-if (tosnaCard) {
-  const legend = tosnaCard.querySelector("legend");
-  const content = document.getElementById("tosnaContent");
-
-  legend.addEventListener("click", () => {
-    tosnaCard.classList.toggle("collapsed");
-    const isCollapsed = tosnaCard.classList.contains("collapsed");
-    content.style.display = isCollapsed ? "none" : "block";
-  });
-
-  // Start collapsed (like others)
-  tosnaCard.classList.add("collapsed");
-  content.style.display = "none";
-}
-
-// === Collapsible backsweeting card ===
-const backsweetCard = document.getElementById("backsweetCard");
-if (backsweetCard) {
-  const legend = backsweetCard.querySelector("legend");
-  const content = document.getElementById("backContent");
-
-  legend.addEventListener("click", () => {
-    backsweetCard.classList.toggle("collapsed");
-    const isCollapsed = backsweetCard.classList.contains("collapsed");
-    content.style.display = isCollapsed ? "none" : "block";
-  });
-
-  // Start collapsed like other cards
-  backsweetCard.classList.add("collapsed");
-  content.style.display = "none";
-}
-
-// === Collapsible Dilution card ===
-const dilCard = document.getElementById("dilutionCard");
-if (dilCard) {
-  const legend = dilCard.querySelector("legend");
-  const content = document.getElementById("dilutionContent");
-  legend.addEventListener("click", () => {
-    dilCard.classList.toggle("collapsed");
-    const isCollapsed = dilCard.classList.contains("collapsed");
-    content.style.display = isCollapsed ? "none" : "block";
-  });
-  dilCard.classList.add("collapsed");
-  content.style.display = "none";
-}
-
-// === Collapsible Priming card ===
-const primeCard = document.getElementById("primingCard");
-if (primeCard) {
-  const legend = primeCard.querySelector("legend");
-  const content = document.getElementById("primingContent");
-  legend.addEventListener("click", () => {
-    primeCard.classList.toggle("collapsed");
-    const isCollapsed = primeCard.classList.contains("collapsed");
-    content.style.display = isCollapsed ? "none" : "block";
-  });
-  primeCard.classList.add("collapsed");
-  content.style.display = "none";
-}
-
-// === Collapsible Stabilisation card ===
-const stabCard = document.getElementById("stabilCard");
-if (stabCard) {
-  const legend = stabCard.querySelector("legend");
-  const content = document.getElementById("stabilContent");
-  legend.addEventListener("click", () => {
-    stabCard.classList.toggle("collapsed");
-    const isCollapsed = stabCard.classList.contains("collapsed");
-    content.style.display = isCollapsed ? "none" : "block";
-  });
-  stabCard.classList.add("collapsed");
-  content.style.display = "none";
 }
 
 // === Backsweetening Calculator ===
@@ -2905,8 +3683,6 @@ function calcBacksweetening() {
   `;
 }
 
-document.getElementById('calcBacksweetBtn').addEventListener('click', calcBacksweetening);
-
 // === Dilution Calculator ===
 function calcDilution() {
   const sg1 = parseFloat(document.getElementById('dil_current').value);
@@ -2922,7 +3698,6 @@ function calcDilution() {
   document.getElementById('dilResult').innerHTML =
     `Add approximately <b>${waterToAdd.toFixed(2)} L</b> of water to reduce from ${sg1.toFixed(3)} → ${sg2.toFixed(3)} SG.`;
 }
-document.getElementById('calcDilutionBtn').addEventListener('click', calcDilution);
 
 // === Priming Calculator ===
 function calcPriming() {
@@ -2955,7 +3730,6 @@ function calcPriming() {
     (Use table sugar or dextrose. Mix thoroughly before bottling.)
   `;
 }
-document.getElementById('calcPrimingBtn').addEventListener('click', calcPriming);
 
 // === Stabilisation Calculator ===
 function calcStabilisation() {
@@ -2977,17 +3751,6 @@ function calcStabilisation() {
     • Add <b>${meta.toFixed(2)} g</b> Potassium Metabisulfite<br>
   `;
 }
-document.getElementById('calcStabilBtn').addEventListener('click', calcStabilisation);
-
-
-
-// === Show/hide custom % input dynamically ===
-document.getElementById('back_type').addEventListener('change', e => {
-  const showCustom = e.target.value === 'custom';
-  document.getElementById('customPercentWrap').style.display = showCustom ? 'block' : 'none';
-});
-
-document.getElementById('calcBacksweetBtn').addEventListener('click', calcBacksweetening);
 
 // --- Brix <-> SG Converter ---
 function brixToSG(brix) {
@@ -2997,40 +3760,6 @@ function brixToSG(brix) {
 function sgToBrix(sg) {
   return (((182.4601 * sg - 775.6821) * sg + 1262.7794) * sg - 669.5622);
 }
-
-function setupBrixConverter() {
-  const brixInput = document.getElementById('brixInput');
-  const sgInput = document.getElementById('sgInput');
-  const result = document.getElementById('brixResult');
-
-  if (!brixInput || !sgInput) return; // card might not exist yet
-
-  document.getElementById('convertBrixToSG').onclick = () => {
-    const brix = parseFloat(brixInput.value);
-    if (isNaN(brix)) return result.textContent = '⚠️ Please enter a valid Brix value.';
-    const sg = brixToSG(brix);
-    sgInput.value = sg.toFixed(4);
-    result.innerHTML = `<b>${brix.toFixed(2)} °Bx</b> = SG <b>${sg.toFixed(4)}</b>`;
-  };
-
-  document.getElementById('convertSGToBrix').onclick = () => {
-    const sg = parseFloat(sgInput.value);
-    if (isNaN(sg)) return result.textContent = '⚠️ Please enter a valid SG value.';
-    const brix = sgToBrix(sg);
-    brixInput.value = brix.toFixed(2);
-    result.innerHTML = `SG <b>${sg.toFixed(4)}</b> = <b>${brix.toFixed(2)} °Bx</b>`;
-  };
-
-  document.getElementById('clearBrixFields').onclick = () => {
-    brixInput.value = '';
-    sgInput.value = '';
-    result.textContent = '';
-  };
-}
-
-// initialize after DOM load
-document.addEventListener('DOMContentLoaded', setupBrixConverter);
-
 
 /**
  * Create a new ExtendsClass bin when the user has provided a key.
@@ -3123,8 +3852,6 @@ async function cloudLoad() {
   }
 }
 
-
-
 /**
  * Save to ExtendsClass if API key provided, always save local.
  */
@@ -3204,9 +3931,6 @@ async function cloudSave(payload, patchOnly = true) {
     updateViewBinButton();
   }
 }
-
-
-
 window.addEventListener("beforeunload", () => cloudSave(state));
 
 /**
@@ -3318,8 +4042,6 @@ async function getExistingBin() {
   }
 }
 
-
-
 function updateViewBinButton() {
   const btn = document.getElementById('viewBinBtn');
   if (!btn) return;
@@ -3396,7 +4118,6 @@ function clearExtendsCredentials() {
   console.log("🧹 Cleared ExtendsClass credentials from localStorage.");
 }
 
-
 // === Migration: old MeadTrics → new system ===
 function migrateOldLocalData() {
   try {
@@ -3442,7 +4163,6 @@ function migrateOldLocalData() {
     return false;
   }
 }
-
 
 // === Startup ===
 (async () => {
@@ -3512,59 +4232,6 @@ function migrateOldLocalData() {
   updateSyncCard();
 })();
 
-
-
-// === Feedback Modal ===
-const btn = document.getElementById('feedbackBtn');
-const popup = document.getElementById('feedbackPopup');
-const cancel = document.getElementById('feedbackCancel');
-const submit = document.getElementById('feedbackSubmit');
-const textarea = document.getElementById('feedbackText');
-
-if (btn && popup && cancel && submit && textarea) {
-  btn.addEventListener('click', () => {
-    popup.classList.remove('hidden');
-    textarea.focus();
-  });
-
-  cancel.addEventListener('click', () => {
-    popup.classList.add('hidden');
-    textarea.value = '';
-  });
-
-  submit.addEventListener('click', () => {
-    const text = textarea.value.trim();
-    if (!text) return alert("Please enter some feedback first!");
-    const title = encodeURIComponent("Feedback: " + text.slice(0, 60));
-    const body = encodeURIComponent(text + "\n\n— submitted via MeadTrics feedback popup");
-    const url = `https://github.com/issypup/MeadTrics/issues/new?labels=feedback&title=${title}&body=${body}`;
-    window.open(url, '_blank');
-    popup.classList.add('hidden');
-    textarea.value = '';
-  });
-}
-
 </script>
-<!-- === Label Maker Modal === -->
-<div id="labelModal" class="hidden" style="
-  position:fixed; inset:0; background:rgba(0,0,0,0.6);
-  display:flex; align-items:center; justify-content:center;
-  z-index:1000;
-">
-  <div id="labelBox" style="
-    background:#fefaf3; color:#333; border:2px solid #8b6b2c;
-    border-radius:10px; padding:10mm; width:100mm; height:70mm;
-    font-family:'Georgia',serif; position:relative;
-  ">
-    <div id="labelPreview"></div>
-    <div style="position:absolute;bottom:6mm;right:6mm;font-size:9pt;font-style:italic;">
-      Crafted with ♥ in Meadtrics
-    </div>
-  </div>
-  <div style="position:absolute;bottom:20px;">
-    <button id="printLabel" class="btn-accent">Print Label</button>
-    <button id="closeLabel" class="btn-danger">Close</button>
-  </div>
-</div>
 </body>
 </html>
