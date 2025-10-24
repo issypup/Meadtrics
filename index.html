@@ -788,6 +788,36 @@ canvas {
   </div>
 </div>
 
+<!-- === Brix <-> SG Converter Card === -->
+<div id="brixConverterCard" class="fieldset collapsible collapsed" style="margin-top:16px;">
+  <legend style="cursor:pointer;">🧮 Brix ↔ SG Converter</legend>
+  <div id="brixContent" style="margin-top:8px;">
+    <p style="font-size:13px;color:var(--muted);">
+      Convert between <b>Brix</b> and <b>Specific Gravity</b>.
+    </p>
+
+    <label>Brix (°Bx):</label>
+    <input id="brixInput" type="number" step="0.01" placeholder="e.g. 20.5"
+           style="width:100%;margin-bottom:6px;">
+
+    <label>Specific Gravity (SG):</label>
+    <input id="sgInput" type="number" step="0.0001" placeholder="e.g. 1.083"
+           style="width:100%;margin-bottom:6px;">
+
+    <div class="row" style="margin-top:8px; gap:8px;">
+      <button id="convertBrixToSG" class="btn-accent" style="flex:1;">Brix → SG</button>
+      <button id="convertSGToBrix" class="btn-accent" style="flex:1;">SG → Brix</button>
+      <button id="clearBrixFields" class="btn-danger" style="flex:1;">Clear</button>
+    </div>
+
+    <hr style="margin:10px 0;border:none;border-top:1px solid var(--border);">
+    <div id="brixResult" style="font-size:13px;color:var(--muted);"></div>
+  </div>
+</div>
+
+
+
+
 <div class="fieldset" id="backupHeader" style="margin-top:16px; text-align:center; padding:10px 0;
      background: rgba(255,255,255,0.02); border: 1px solid var(--border);
      border-radius: var(--radius); box-shadow: var(--shadow);">
@@ -997,6 +1027,7 @@ const backsweetCard = document.getElementById('backsweetCard');
 const dilCard = document.getElementById('dilutionCard');
 const primeCard = document.getElementById('primingCard');
 const stabCard = document.getElementById('stabilCard');
+const brixCard = document.getElementById('brixConverterCard');
 const backupHeader = document.getElementById('backupHeader');
 const hadSync = syncCard && list.contains(syncCard) ? syncCard : null;
 
@@ -1196,7 +1227,7 @@ if (batchHeader) {
   list.append(makeSection('active', '🧪 Active Batches', active, 'No active batches.'));
   list.append(makeSection('archived', '🍾 Archived (Bottled)', archived, 'No bottled batches.'));
 
-// 🟢 Re-attach TOSNA, Chaptalisation, and Cloud Sync cards
+//Utility Header
 if (utilHeader) {
   list.append(utilHeader);
   utilHeader.style.display = 'block';
@@ -1227,6 +1258,13 @@ if (stabCard) {
   stabCard.style.display = 'block';
 }
 
+if (brixCard) {
+  list.append(brixCard);
+  brixCard.style.display = 'block';
+}
+
+//Backup Header
+
 if (backupHeader) {
   list.append(backupHeader);
   utilHeader.style.display = 'block';
@@ -1236,6 +1274,7 @@ if (hadSync) {
   list.append(hadSync);
   hadSync.style.display = 'block';
 }
+
 } // ✅ closes renderBatchList()
 
 /**
@@ -2518,6 +2557,21 @@ function openLabelMaker(batch) {
 };
 }
 
+// === Collapsible: Brix Converter ===
+const brixCard = document.getElementById("brixConverterCard");
+if (brixCard) {
+  const legend = brixCard.querySelector("legend");
+  const content = document.getElementById("brixContent");
+  legend.addEventListener("click", () => {
+    brixCard.classList.toggle("collapsed");
+    const collapsed = brixCard.classList.contains("collapsed");
+    content.style.display = collapsed ? "none" : "block";
+  });
+  // Start collapsed by default
+  brixCard.classList.add("collapsed");
+  content.style.display = "none";
+}
+
 // === Collapsible Cloud Sync card ===
 const syncCard = document.getElementById("syncCard");
 if (syncCard) {
@@ -2934,6 +2988,48 @@ document.getElementById('back_type').addEventListener('change', e => {
 });
 
 document.getElementById('calcBacksweetBtn').addEventListener('click', calcBacksweetening);
+
+// --- Brix <-> SG Converter ---
+function brixToSG(brix) {
+  return 1 + (brix / (258.6 - ((brix / 258.2) * 227.1)));
+}
+
+function sgToBrix(sg) {
+  return (((182.4601 * sg - 775.6821) * sg + 1262.7794) * sg - 669.5622);
+}
+
+function setupBrixConverter() {
+  const brixInput = document.getElementById('brixInput');
+  const sgInput = document.getElementById('sgInput');
+  const result = document.getElementById('brixResult');
+
+  if (!brixInput || !sgInput) return; // card might not exist yet
+
+  document.getElementById('convertBrixToSG').onclick = () => {
+    const brix = parseFloat(brixInput.value);
+    if (isNaN(brix)) return result.textContent = '⚠️ Please enter a valid Brix value.';
+    const sg = brixToSG(brix);
+    sgInput.value = sg.toFixed(4);
+    result.innerHTML = `<b>${brix.toFixed(2)} °Bx</b> = SG <b>${sg.toFixed(4)}</b>`;
+  };
+
+  document.getElementById('convertSGToBrix').onclick = () => {
+    const sg = parseFloat(sgInput.value);
+    if (isNaN(sg)) return result.textContent = '⚠️ Please enter a valid SG value.';
+    const brix = sgToBrix(sg);
+    brixInput.value = brix.toFixed(2);
+    result.innerHTML = `SG <b>${sg.toFixed(4)}</b> = <b>${brix.toFixed(2)} °Bx</b>`;
+  };
+
+  document.getElementById('clearBrixFields').onclick = () => {
+    brixInput.value = '';
+    sgInput.value = '';
+    result.textContent = '';
+  };
+}
+
+// initialize after DOM load
+document.addEventListener('DOMContentLoaded', setupBrixConverter);
 
 
 /**
