@@ -498,6 +498,97 @@ canvas {
   display: none !important;
 }
 
+/* --- Feedback Button --- */
+.icon-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: var(--accent, #3b5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: background 0.2s;
+  z-index: 9999;
+}
+.icon-btn:hover {
+  background: var(--accent-hover, #2a4);
+}
+
+/* --- Popup background --- */
+.popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+.popup.hidden {
+  display: none;
+}
+
+/* --- Popup card (dark theme to match MeadTrics) --- */
+.popup-content {
+  background: var(--panel);
+  color: var(--text);
+  padding: 20px;
+  border-radius: var(--radius);
+  width: 90%;
+  max-width: 420px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  animation: fadeIn 0.25s ease;
+}
+.popup-content h3 {
+  margin-top: 0;
+  color: var(--accent);
+}
+.popup-content textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0f141b;
+  color: var(--text);
+  resize: vertical;
+  font-family: inherit;
+}
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.popup-actions button {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.popup-actions .primary {
+  background: var(--accent);
+  color: #fff;
+}
+.popup-actions .primary:hover {
+  background: var(--accent-2);
+}
+.popup-actions .secondary {
+  background: #1a2028;
+  color: var(--text);
+}
+.popup-actions .secondary:hover {
+  background: #222a33;
+}
+
 
   </style>
 </head>
@@ -775,6 +866,22 @@ canvas {
       <div class="meta"></div>
     </div>
   </template>
+
+<button id="feedbackBtn" title="Send Feedback" class="icon-btn">
+  📝
+</button>
+
+<!-- Feedback popup -->
+<div id="feedbackPopup" class="popup hidden">
+  <div class="popup-content">
+    <h3>Send Feedback</h3>
+    <textarea id="feedbackText" placeholder="Describe your idea, bug, or suggestion..." rows="5"></textarea>
+    <div class="popup-actions">
+      <button id="feedbackSubmit" class="primary">Submit</button>
+      <button id="feedbackCancel" class="secondary">Cancel</button>
+    </div>
+  </div>
+</div>
 
   <script>
 /* === Constants and Utility Functions === */
@@ -3254,11 +3361,35 @@ if (!hasValidBin && !manuallyDisabled && !localStorage.getItem("EXTENDS_NOTICE_S
 })();
 
 
+// === Feedback Modal ===
+const btn = document.getElementById('feedbackBtn');
+const popup = document.getElementById('feedbackPopup');
+const cancel = document.getElementById('feedbackCancel');
+const submit = document.getElementById('feedbackSubmit');
+const textarea = document.getElementById('feedbackText');
 
+if (btn && popup && cancel && submit && textarea) {
+  btn.addEventListener('click', () => {
+    popup.classList.remove('hidden');
+    textarea.focus();
+  });
 
+  cancel.addEventListener('click', () => {
+    popup.classList.add('hidden');
+    textarea.value = '';
+  });
 
-
-
+  submit.addEventListener('click', () => {
+    const text = textarea.value.trim();
+    if (!text) return alert("Please enter some feedback first!");
+    const title = encodeURIComponent("Feedback: " + text.slice(0, 60));
+    const body = encodeURIComponent(text + "\n\n— submitted via MeadTrics feedback popup");
+    const url = `https://github.com/issypup/MeadTrics/issues/new?labels=feedback&title=${title}&body=${body}`;
+    window.open(url, '_blank');
+    popup.classList.add('hidden');
+    textarea.value = '';
+  });
+}
 
 </script>
 <!-- === Label Maker Modal === -->
