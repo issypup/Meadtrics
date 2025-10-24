@@ -2995,22 +2995,24 @@ async function cloudLoad() {
     const raw = await res.json();
     updateViewBinButton();
 
-    // 🧩 Normalize ExtendsClass format
     let data = null;
 
-    if (raw.data) {
-      // If data is stored as a JSON string, parse it
-      try {
-        data = typeof raw.data === "string" ? JSON.parse(raw.data) : raw.data;
-      } catch (e) {
-        console.warn("⚠️ Failed to parse nested data, using raw:", e);
-        data = raw.data;
-      }
-    } else {
-      // Fallback: older bins (no wrapper)
+    // 🧩 Handle different possible structures safely
+    if (raw.data && typeof raw.data === "object") {
+      // modern format { data: {...} }
+      data = raw.data;
+    } else if (Array.isArray(raw.batches)) {
+      // older format { batches: [...] }
       data = raw;
+    } else if (raw.data && raw.data.data) {
+      // double-wrapped legacy (rare)
+      data = raw.data.data;
+    } else {
+      console.warn("⚠️ Unexpected cloud structure:", raw);
+      return null;
     }
 
+    // 🧠 Final validation
     if (data && Array.isArray(data.batches) && data.batches.length > 0) {
       console.log("☁️ Loaded cloud data successfully.");
       return data;
@@ -3034,22 +3036,43 @@ async function cloudLoad() {
  * Save to ExtendsClass if API key provided, always save local.
  * Uses PATCH (merge) when possible instead of full PUT overwrite.
  */
+/**
+ * Save to ExtendsClass if API key provided, always save local.
+ * Uses PATCH (merge) when possible instead of full PUT overwrite.
+ * Also auto-migrates legacy (non-wrapped) bins into { data: ... } format.
+ */
 async function cloudSave(payload, patchOnly = true) {
   try {
-    // 🔧 Always start from full state
+    // Always begin with a full clone of current app state
     let merged = structuredClone(state);
 
-    // If payload is partial, merge it into the existing state before sending
+    // If a partial payload was provided, merge it into the clone
     if (payload && payload.batches) {
       for (const patchBatch of payload.batches) {
         const idx = merged.batches.findIndex(b => b.id === patchBatch.id);
         if (idx !== -1) {
           Object.assign(merged.batches[idx], patchBatch);
         } else {
-          // new batch
           merged.batches.push(patchBatch);
         }
       }
+    }
+
+    // Before saving, check the current bin structure — migrate if needed
+    let shouldMigrate = false;
+    try {
+      const checkRes = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
+        headers: { "Security-key": EXTENDS_KEY }
+      });
+      if (checkRes.ok) {
+        const checkJson = await checkRes.json();
+        if (Array.isArray(checkJson.batches) && !checkJson.data) {
+          console.log("🧩 Legacy bin detected (root-level batches) — will migrate to {data:...} format.");
+          shouldMigrate = true;
+        }
+      }
+    } catch (e) {
+      console.warn("⚠️ Could not inspect bin before save:", e);
     }
 
     const method = patchOnly ? "PATCH" : "PUT";
@@ -3060,11 +3083,14 @@ async function cloudSave(payload, patchOnly = true) {
       "Security-key": EXTENDS_KEY
     };
 
+    // Always store in wrapped form { data: merged }
+	if (merged.data && merged.batches) delete merged.batches; // 🧹 clean
+    const body = JSON.stringify({ data: merged });
+
     const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
       method,
       headers,
-      // ✅ send merged full dataset
-      body: JSON.stringify({ data: merged })
+      body
     });
 
     if (!res.ok) {
@@ -3075,13 +3101,14 @@ async function cloudSave(payload, patchOnly = true) {
       throw new Error(`HTTP ${res.status}`);
     }
 
-    console.log(`☁️ ${method} sync successful`);
+    console.log(`☁️ ${method} sync successful${shouldMigrate ? " — bin migrated to new format" : ""}`);
     updateViewBinButton();
   } catch (err) {
     console.warn("⚠️ ExtendsClass sync failed", err);
     updateViewBinButton();
   }
 }
+
 
 
 window.addEventListener("beforeunload", () => cloudSave(state));
@@ -3116,20 +3143,38 @@ if (saveApiKeyBtn) {
 
     // Create a new bin if one doesn’t exist yet
     if (!EXTENDS_BIN_ID) {
-  // 🧩 Check if a bin already exists for this API key
-  const existingBin = await getExistingBin();
-  if (existingBin) {
-    EXTENDS_BIN_ID = existingBin;
-    localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
-    console.log(`☁️ Using existing bin: ${EXTENDS_BIN_ID}`);
-  } else {
-    await createBin();
-  }
-}
+      // 🧩 Check if a bin already exists for this API key
+      const existingBin = await getExistingBin();
+      if (existingBin) {
+        EXTENDS_BIN_ID = existingBin;
+        localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
+        console.log(`☁️ Using existing bin: ${EXTENDS_BIN_ID}`);
+      } else {
+        await createBin();
+      }
+    }
 
     updateSyncCard();
     updateViewBinButton();
-    alert("✅ API key saved — cloud sync enabled.");
+
+    // 🟢 NEW: Immediately fetch or push cloud data
+    try {
+      const cloudData = await cloudLoad();
+      if (cloudData && cloudData.batches && cloudData.batches.length > 0) {
+        console.log("☁️ Loaded cloud data after key entry:", cloudData);
+        state = cloudData;
+        save(state);
+        render();
+        alert("✅ API key saved — cloud data loaded successfully.");
+      } else {
+        console.log("☁️ No cloud data found — uploading local state.");
+        await cloudSave(state);
+        alert("✅ API key saved — local data uploaded to cloud.");
+      }
+    } catch (err) {
+      console.warn("⚠️ Failed to load cloud data after key entry:", err);
+      alert("⚠️ API key saved, but failed to fetch cloud data. Using local data for now.");
+    }
   });
 }
 
@@ -3313,17 +3358,17 @@ function migrateOldLocalData() {
 
   // If no bin, politely remind the user once
   // Only show the local-only alert if the user hasn’t manually disabled cloud sync
-const manuallyDisabled = localStorage.getItem("EXTENDS_MANUAL_DISABLE") === "1";
+  const manuallyDisabled = localStorage.getItem("EXTENDS_MANUAL_DISABLE") === "1";
   
-if (!hasValidBin && !manuallyDisabled && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
-  alert(
-    "💾 MeadTrics is saving locally for now.\n\n" +
-    "To enable free cloud backup, create an account at:\n" +
-    "https://extendsclass.com/json-storage.html\n" +
-    "and paste your API key into the Cloud Sync panel."
-  );
-  localStorage.setItem("EXTENDS_NOTICE_SHOWN", "true");
-}
+  if (!hasValidBin && !manuallyDisabled && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
+    alert(
+      "💾 MeadTrics is saving locally for now.\n\n" +
+      "To enable free cloud backup, create an account at:\n" +
+      "https://extendsclass.com/json-storage.html\n" +
+      "and paste your API key into the Cloud Sync panel."
+    );
+    localStorage.setItem("EXTENDS_NOTICE_SHOWN", "true");
+  }
 
   // --- normal startup ---
   migrateOldLocalData();
@@ -3332,6 +3377,17 @@ if (!hasValidBin && !manuallyDisabled && !localStorage.getItem("EXTENDS_NOTICE_S
   state = load();
   render();
   updateSyncCard();
+
+  // 🟢 NEW: If we have a valid bin but no local batches, pull cloud data first
+  if (hasValidBin && (!state.batches || !state.batches.length)) {
+    const cloud = await cloudLoad();
+    if (cloud && cloud.batches?.length) {
+      console.log("☁️ Loaded cloud data on startup (local was empty).");
+      state = cloud;
+      save(state);
+      render();
+    }
+  }
 
   // Step 2: cloud logic only if bin exists
   if (hasValidBin) {
@@ -3359,6 +3415,7 @@ if (!hasValidBin && !manuallyDisabled && !localStorage.getItem("EXTENDS_NOTICE_S
 
   updateSyncCard();
 })();
+
 
 
 // === Feedback Modal ===
