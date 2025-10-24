@@ -1766,7 +1766,7 @@ function backupHeaderCard() {
 function syncCard() {
   let collapsed = true;
 
-  // --- Elements ---
+  // --- Info text ---
   const infoPara = el("p", {
     style: "font-size:13px;color:var(--muted);"
   }, [
@@ -1787,10 +1787,12 @@ function syncCard() {
     document.createTextNode("• Paste it below to enable cloud sync.")
   ]);
 
+  // --- API key input ---
   const apiInput = el("input", {
     id: "apiKeyInput",
     type: "text",
     placeholder: "Paste your ExtendsClass API key here",
+    value: localStorage.getItem("EXTENDS_API_KEY") || "",
     style: `
       width:100%;margin:6px 0;padding:6px;
       border-radius:8px;border:1px solid var(--border);
@@ -1798,6 +1800,7 @@ function syncCard() {
     `
   });
 
+  // --- Save button ---
   const saveBtn = el("button", {
     id: "saveApiKeyBtn",
     class: "btn-accent",
@@ -1809,19 +1812,84 @@ function syncCard() {
         syncStatus.textContent = "⚠️ Please enter a valid API key.";
         return;
       }
-      localStorage.setItem("EXTENDS_KEY", key);
-      syncStatus.textContent = "☁️ Cloud sync key saved.";
-      console.log("☁️ Cloud sync key saved:", key);
+      localStorage.setItem("EXTENDS_API_KEY", key);
+      syncStatus.textContent = "☁️ Cloud API key saved.";
+      console.log("☁️ Cloud API key saved:", key);
+      updateViewBinButton();
     }
   });
 
-  const viewBtn = el("button", {
-    id: "viewBinBtn",
-    class: "btn-accent",
-    text: "🔗 View Bin",
-    style: "display:none;width:100%;"
-  });
+  // --- View Bin button ---
+// --- View Bin button ---
+const viewBtn = el("button", {
+  id: "viewBinBtn",
+  class: "btn-accent",
+  text: "🔗 View Bin",
+  style: "display:none;width:100%;margin-top:6px;",
+  onclick: async (e) => {
+    e.stopPropagation(); // prevent any parent event handlers
+    const bin = localStorage.getItem("EXTENDS_BIN_ID");
+    if (!bin) return alert("⚠️ No bin ID found yet.");
 
+    try {
+      const data = await cloudLoad(); // secure fetch with Security-key
+      if (!data) return alert("⚠️ Could not load bin data.");
+
+      // Open a single stylized popup window
+      const popup = window.open("", "binPopup", "width=700,height=600,resizable,scrollbars=yes");
+      if (!popup) return alert("⚠️ Popup blocked. Please allow popups for this site.");
+
+      // Write the stylized HTML shell
+      popup.document.write(`
+        <html>
+          <head>
+            <title>MeadTrics Cloud Bin – ${bin}</title>
+            <style>
+              body {
+                background-color: #0f141b;
+                color: #e4e9f0;
+                font-family: monospace;
+                padding: 16px;
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+              }
+              h2 {
+                font-family: system-ui, sans-serif;
+                font-size: 16px;
+                margin-top: 0;
+                color: #ffd86b;
+              }
+              code {
+                background: #1a2028;
+                padding: 8px;
+                display: block;
+                border-radius: 8px;
+                border: 1px solid #2a3340;
+              }
+            </style>
+          </head>
+          <body>
+            <h2>Cloud Bin: ${bin}</h2>
+            <code id="jsonArea">Loading...</code>
+          </body>
+        </html>
+      `);
+      popup.document.close();
+
+      // Inject JSON safely after the popup document exists
+      const jsonString = JSON.stringify(data, null, 2);
+      popup.document.getElementById("jsonArea").textContent = jsonString;
+
+      console.log("✅ Cloud bin opened in popup");
+    } catch (err) {
+      console.error("Failed to load bin:", err);
+      alert("⚠️ Failed to open bin.\n" + err.message);
+    }
+  }
+});
+
+
+  // --- Status + info ---
   const syncStatus = el("div", {
     id: "syncStatus",
     style: "margin-top:6px;color:var(--muted);font-size:13px;",
@@ -1829,7 +1897,7 @@ function syncCard() {
   });
 
   const syncUrl = el("span", { id: "syncUrl", text: "Local only" });
-  const syncKey = el("span", { id: "syncKey", text: "MeadTrics" });
+  const syncKey = el("span", { id: "syncKey", text: "meadtracker" }); // fixed key label
 
   const syncInfo = el("div", {
     id: "syncInfo",
@@ -1854,8 +1922,6 @@ function syncCard() {
     infoPara,
     apiInput,
     saveBtn,
-    el("br"),
-    el("br"),
     viewBtn,
     syncStatus,
     el("hr", { style: "margin:10px 0;border:none;border-top:1px solid var(--border);" }),
@@ -1863,7 +1929,7 @@ function syncCard() {
     keyInfo
   ]);
 
-  // --- Collapsible Legend ---
+  // --- Legend (collapsible header) ---
   const legend = el("legend", {
     text: "☁️ Cloud Sync",
     style: "cursor:pointer;",
@@ -1881,11 +1947,27 @@ function syncCard() {
     style: "margin-top:16px;"
   }, [legend, body]);
 
-  collapsed = true;
-  body.style.display = "none";
+  // --- Initial open/closed state ---
+  const hasAPI = localStorage.getItem("EXTENDS_API_KEY");
+  const hasBIN = localStorage.getItem("EXTENDS_BIN_ID");
+  if (hasAPI && hasBIN) {
+    collapsed = false;
+    body.style.display = "block";
+    legend.textContent = "▼ ☁️ Cloud Sync";
+  } else {
+    collapsed = true;
+    body.style.display = "none";
+    legend.textContent = "▶ ☁️ Cloud Sync";
+  }
+
+  // --- Update View Bin visibility ---
+  setTimeout(updateViewBinButton, 0);
 
   return card;
 }
+
+
+
 
 // === Feedback button + popup (dynamic) ===
 function initFeedbackPopup() {
@@ -3551,10 +3633,6 @@ function openLabelMaker(batch) {
 }
 
 
-// Edited to here
-
-
-
 // === ExtendsClass JSON Storage Hybrid ===
 let EXTENDS_BIN_ID = localStorage.getItem("EXTENDS_BIN_ID") || null;
 let EXTENDS_API_KEY = localStorage.getItem("EXTENDS_API_KEY") || "";
@@ -3767,6 +3845,11 @@ function sgToBrix(sg) {
 
 async function createBin() {
   try {
+    const EXTENDS_API_KEY = localStorage.getItem("EXTENDS_API_KEY");
+    const EXTENDS_KEY = localStorage.getItem("EXTENDS_KEY");
+    if (!EXTENDS_API_KEY || !EXTENDS_KEY)
+      throw new Error("Missing API or Security key");
+
     console.log("Api-key:", `"${EXTENDS_API_KEY}"`);
     console.log("Security-key:", `"${EXTENDS_KEY}"`);
 
@@ -3774,23 +3857,23 @@ async function createBin() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Api-key": EXTENDS_API_KEY,     // your account API key
-        "Security-key": EXTENDS_KEY,    // your chosen per-bin security key
-        "Private": "true"               // optional, keeps the bin private
+        "Api-key": EXTENDS_API_KEY,
+        "Security-key": EXTENDS_KEY,
+        "Private": "true"
       },
-      body: JSON.stringify({ batches: [] })
+      body: JSON.stringify({ data: { batches: [] } })
     });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     EXTENDS_BIN_ID = data.id;
     localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
-updateViewBinButton();
-updateSyncCard();
+    updateViewBinButton();
+    updateSyncCard();
     alert(`✅ Created JSON bin:\n${EXTENDS_BIN_ID}`);
   } catch (err) {
     console.error("Failed to create bin:", err);
-    alert("⚠️ Could not create JSON bin.");
+    alert("⚠️ Could not create JSON bin.\n" + err.message);
   }
 }
 
@@ -3798,57 +3881,29 @@ updateSyncCard();
  * Load from ExtendsClass if API key present; otherwise from local storage.
  */
 async function cloudLoad() {
-  if (!EXTENDS_BIN_ID || !EXTENDS_KEY) {
-    console.log("☁️ No ExtendsClass credentials — using local data only.");
-    return load();
-  }
-
   try {
-    const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
-      headers: { "Security-key": EXTENDS_KEY }
+    const EXTENDS_API_KEY = localStorage.getItem("EXTENDS_API_KEY");
+    const EXTENDS_KEY = localStorage.getItem("EXTENDS_KEY");
+    const EXTENDS_BIN_ID = localStorage.getItem("EXTENDS_BIN_ID");
+    if (!EXTENDS_API_KEY || !EXTENDS_KEY || !EXTENDS_BIN_ID)
+      throw new Error("Missing API key, Security key, or bin ID");
+
+    const url = `${EXTENDS_API}/${EXTENDS_BIN_ID}`;
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Api-key": EXTENDS_API_KEY,
+        "Security-key": EXTENDS_KEY
+      }
     });
 
-    if (res.status === 404) {
-      console.log("☁️ No cloud data yet, starting fresh.");
-      await cloudSave({ batches: [] });
-      updateViewBinButton();
-      return null;
-    }
-
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-    const raw = await res.json();
-    updateViewBinButton();
-
-    let data = null;
-
-    // 🧩 Handle different possible structures safely
-    if (raw.data && typeof raw.data === "object") {
-      // modern format { data: {...} }
-      data = raw.data;
-    } else if (Array.isArray(raw.batches)) {
-      // older format { batches: [...] }
-      data = raw;
-    } else if (raw.data && raw.data.data) {
-      // double-wrapped legacy (rare)
-      data = raw.data.data;
-    } else {
-      console.warn("⚠️ Unexpected cloud structure:", raw);
-      return null;
-    }
-
-    // 🧠 Final validation
-    if (data && Array.isArray(data.batches) && data.batches.length > 0) {
-      console.log("☁️ Loaded cloud data successfully.");
-      return data;
-    } else {
-      console.log("☁️ Cloud is empty — keeping local data.");
-      return null;
-    }
+    const data = await res.json();
+    console.log("☁️ Cloud data loaded:", data);
+    return data;
   } catch (err) {
-    console.warn("⚠️ Cloud load failed, using local copy:", err);
-    updateViewBinButton();
-    return null;
+    console.error("Failed to load bin:", err);
+    alert("⚠️ Failed to load cloud data.\n" + err.message);
   }
 }
 
@@ -3974,7 +4029,7 @@ if (saveApiKeyBtn) {
       }
     }
 
-    updateSyncCard();
+    async ()();
     updateViewBinButton();
 
     // 🟢 NEW: Immediately fetch or push cloud data
@@ -4043,35 +4098,80 @@ async function getExistingBin() {
 }
 
 function updateViewBinButton() {
-  const btn = document.getElementById('viewBinBtn');
+  const btn = document.getElementById("viewBinBtn");
   if (!btn) return;
 
   if (EXTENDS_BIN_ID && EXTENDS_API_KEY) {
-    btn.style.display = 'inline-block';
-    btn.onclick = async () => {
+    btn.style.display = "inline-block";
+    btn.onclick = async (e) => {
+      e.stopPropagation();
       try {
         const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
-          headers: { 'Security-key': EXTENDS_KEY }
+          headers: {
+            "Api-key": EXTENDS_API_KEY,
+            "Security-key": EXTENDS_KEY
+          }
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
-        // 🟢 open a pretty viewer window
-        const popup = window.open('', '_blank', 'width=600,height=600');
-        popup.document.write(
-          `<pre style="font-family:monospace;white-space:pre-wrap;">${
-            JSON.stringify(data, null, 2)
-          }</pre>`
-        );
-        popup.document.title = 'ExtendsClass Bin Viewer';
+        // ✅ open popup safely (prevent Chrome cross-origin issue)
+        const popup = window.open("about:blank", "binPopup", "width=700,height=600,resizable,scrollbars=yes");
+        if (!popup) return alert("⚠️ Popup blocked. Please allow popups for this site.");
+
+        // build the shell first
+        popup.document.write(`
+          <html>
+            <head>
+              <title>MeadTrics Cloud Bin – ${EXTENDS_BIN_ID}</title>
+              <style>
+                body {
+                  background-color: #0f141b;
+                  color: #e4e9f0;
+                  font-family: monospace;
+                  padding: 16px;
+                  white-space: pre-wrap;
+                  overflow-wrap: anywhere;
+                }
+                h2 {
+                  font-family: system-ui, sans-serif;
+                  font-size: 16px;
+                  margin-top: 0;
+                  color: #ffd86b;
+                }
+                code {
+                  background: #1a2028;
+                  padding: 8px;
+                  display: block;
+                  border-radius: 8px;
+                  border: 1px solid #2a3340;
+                }
+              </style>
+            </head>
+            <body>
+              <h2>Cloud Bin: ${EXTENDS_BIN_ID}</h2>
+              <code id="jsonArea">Loading...</code>
+            </body>
+          </html>
+        `);
+        popup.document.close();
+
+        // ✅ delay JSON injection to avoid race condition
+        popup.onload = () => {
+          const area = popup.document.getElementById("jsonArea");
+          if (area) area.textContent = JSON.stringify(data, null, 2);
+        };
+
       } catch (err) {
-        alert('Failed to load bin: ' + err.message);
+        console.error("Failed to load bin:", err);
+        alert("⚠️ Failed to load bin:\n" + err.message);
       }
     };
   } else {
-    btn.style.display = 'none';
+    btn.style.display = "none";
   }
 }
+
 
 async function saveAll(state, changedBatch = null, changedFields = null) {
   save(state); // always save local first
@@ -4081,7 +4181,7 @@ async function saveAll(state, changedBatch = null, changedFields = null) {
     console.log("💾 Local-only save (no ExtendsClass key).");
     return;
   }
-
+async ()
   // Build minimal patch payload if we know what changed
   let payload;
   if (changedBatch && Array.isArray(changedFields) && changedFields.length) {
@@ -4193,6 +4293,7 @@ function migrateOldLocalData() {
   state = load();
   render();
   updateSyncCard();
+  updateViewBinButton();
 
   // 🟢 NEW: If we have a valid bin but no local batches, pull cloud data first
   if (hasValidBin && (!state.batches || !state.batches.length)) {
