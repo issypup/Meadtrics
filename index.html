@@ -500,6 +500,15 @@ html {
   }
 }
 
+.tag {
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.tag:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
   </style>
 </head>
 <body>
@@ -523,6 +532,11 @@ const EVENTS = [
   'bottled'
 ];
 
+const TAGS = [
+  "Bochet", "Braggot", "Capsicumel", "Cyser", "Historical",
+  "Hydromel", "Melomel", "Metheglin", "Pyment", "Sack",
+  "Sour", "Wild", "Traditional", "Experiential"
+];
 
 const $ = sel => document.querySelector(sel);
 
@@ -2230,15 +2244,46 @@ function renderBatchList() {
         if (target) sugarBreakText = `🍯 1/3 Sugar Break: ${target}`;
       }
 
-      const metaText =
-        `${fmt(b.startDate)} · OG ${b.og}` +
-        (latestSG ? ` · FG ${latestSG}` : '') +
-        (abv ? ` · ~${abv.toFixed(1)}% ABV` : '') +
-        (fermentText ? `\n${fermentText}` : '') +
-        (sugarBreakText ? `\n${sugarBreakText}` : '') +
-        (maturityText ? `\n${maturityText}` : '');
+const metaText =
+  `${fmt(b.startDate)} · OG ${b.og}` +
+  (latestSG ? ` · FG ${latestSG}` : '') +
+  (abv ? ` · ~${abv.toFixed(1)}% ABV` : '') +
+  (fermentText ? `\n${fermentText}` : '') +
+  (sugarBreakText ? `\n${sugarBreakText}` : '') +
+  (maturityText ? `\n${maturityText}` : '');
 
-      item.append(headerRow, el('div', { class: 'meta', text: metaText }));
+const metaDiv = el('div', { class: 'meta', text: metaText });
+
+// === 🏷️ Tag display under batch ===
+const tagsRow = el('div', {
+  class: 'row',
+  style: 'flex-wrap:wrap;gap:4px;margin-top:4px;'
+});
+
+if (Array.isArray(b.tags) && b.tags.length > 0) {
+  b.tags.forEach(tag => {
+    const tagEl = el('span', {
+      class: 'tag',
+      text: tag,
+      style: `
+        font-size:11px;
+        padding:2px 6px;
+        border-color:#2f3b4b;
+        background:#1a2028;
+        color:var(--accent);
+      `
+    });
+    tagsRow.append(tagEl);
+  });
+} else {
+  tagsRow.append(el('span', {
+    class: 'tag',
+    text: 'No tags',
+    style: 'opacity:0.5;font-size:11px;'
+  }));
+}
+
+item.append(headerRow, metaDiv, tagsRow);
       item.classList.toggle('active', b.id === selectedId);
 
       item.addEventListener('click', () => {
@@ -2281,6 +2326,116 @@ function renderBatchList() {
   initTosnaBindings();
 }
 
+function renderTagsSection(batch) {
+  if (!Array.isArray(batch.tags)) batch.tags = [];
+
+  const wrap = el("div", {
+    class: "fieldset",
+    style: "margin-top:16px;"
+  }, [
+    el("legend", { text: "🏷️ Tags", style: "font-weight:600;" })
+  ]);
+
+  const tagContainer = el("div", {
+    class: "row",
+    style: `
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    `
+  });
+
+  // Render current tags
+  const renderTags = () => {
+    tagContainer.innerHTML = "";
+    if (batch.tags.length === 0) {
+      tagContainer.append(el("span", {
+        class: "tag",
+        text: "No tags selected",
+        style: "opacity:0.6;"
+      }));
+    } else {
+      batch.tags.forEach(tag => {
+        const t = el("span", {
+          class: "tag",
+          text: `❌ ${tag}`,
+          style: `
+            cursor:pointer;
+            background:#1a2028;
+            color:var(--accent);
+            border-color:#2f3b4b;
+          `,
+          onclick: () => {
+            batch.tags = batch.tags.filter(x => x !== tag);
+            saveAll(state, batch, ["tags"]);
+            render();
+          }
+        });
+        tagContainer.append(t);
+      });
+    }
+
+    // Add button to add new tags
+    const addBtn = el("button", {
+      class: "btn-accent",
+      text: "+ Add Tag",
+      style: "padding:3px 10px;font-size:12px;",
+      onclick: openTagSelector
+    });
+    tagContainer.append(addBtn);
+  };
+
+  // Popup tag selector
+  const openTagSelector = () => {
+    const overlay = el("div", {
+      class: "popup",
+      style: "z-index:9999;"
+    }, [
+      el("div", { class: "popup-content" }, [
+        el("h3", { text: "Select Tags" }),
+        el("div", {
+          style: `
+            display:flex;
+            flex-wrap:wrap;
+            gap:6px;
+            margin-bottom:10px;
+          `
+        }, TAGS.map(tag =>
+          el("span", {
+            class: "tag",
+            text: tag,
+            style: `
+              cursor:pointer;
+              background:${batch.tags.includes(tag) ? 'var(--accent)' : '#1a2028'};
+              color:${batch.tags.includes(tag) ? '#fff' : 'var(--text)'};
+            `,
+            onclick: () => {
+              if (batch.tags.includes(tag)) {
+                batch.tags = batch.tags.filter(t => t !== tag);
+              } else {
+                batch.tags.push(tag);
+              }
+              saveAll(state, batch, ["tags"]);
+              render();
+            }
+          })
+        )),
+        el("div", { class: "popup-actions" }, [
+          el("button", {
+            class: "secondary",
+            text: "Close",
+            onclick: () => overlay.remove()
+          })
+        ])
+      ])
+    ]);
+    document.body.append(overlay);
+  };
+
+  wrap.append(tagContainer);
+  renderTags();
+  return wrap;
+}
 
 function renderDetail() {
   const root = document.getElementById('detail');
@@ -2414,13 +2569,14 @@ function renderDetail() {
     return el('div', {}, [metaLine, honeyLine]);
   })();
 
-  const components = [
-    chartCard(batch),
-    sgFormCard(batch),
-    eventFormCard(batch),
-    ingredientsTable(batch),
-    eventsTable(batch)
-  ];
+const components = [
+  chartCard(batch),
+  sgFormCard(batch),
+  eventFormCard(batch),
+  ingredientsTable(batch),
+  renderTagsSection(batch),
+  eventsTable(batch)
+];
 
   const container = el('div', {}, [titleRow, summarySection, ...components]);
   root.append(container);
