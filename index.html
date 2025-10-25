@@ -1831,31 +1831,17 @@ function renderSidebarHeader() {
 
 
   const btnLabel = state.cloudEnabled ? "+ Cloud Batch" : "+ New";
-  const newBtn = el("button", {
-    id: "newBatchBtn",
-    class: "btn btn-accent",
-    text: btnLabel,
-    title: "Create a new mead batch",
-    onclick: () => {
-      const newBatch = {
-        id: crypto.randomUUID(),
-        name: "New Batch",
-        startDate: new Date().toISOString().slice(0, 10),
-        og: "",
-        fg: "",
-        honey: "",
-        yeast: "",
-        volume: "",
-        description: "",
-        sgReadings: [],
-        events: []
-      };
-      state.batches.unshift(newBatch);
-      selectedId = newBatch.id;
-      saveAll(state);
-      render();
-    }
-  });
+const newBtn = el("button", {
+  id: "newBatchBtn",
+  class: "btn btn-accent",
+  text: btnLabel,
+  title: "Create a new mead batch",
+  onclick: () => {
+    // Instead of creating a blank batch, just show the new batch form
+    selectedId = null;
+    render(); // will trigger newBatchForm() in the detail panel
+  }
+});
 
 
   header.append(title, newBtn);
@@ -2296,41 +2282,19 @@ function renderBatchList() {
 }
 
 
-
-
 function renderDetail() {
   const root = document.getElementById('detail');
   if (!root) return;
 
   const batch = state.batches.find(b => b.id === selectedId);
 
-
   if (!batch) {
     root.innerHTML = '';
-
-    if (!state.batches.length) {
-      const messages = [
-        '🐝 Nothing brewing yet!',
-        '🍯 Create your first batch to get started.',
-        '📦 Your meads are waiting...',
-        '✨ No batch selected — pick one on the left.'
-      ];
-      root.append(
-        el('div', {
-          class: 'empty',
-          text: messages[Math.floor(Math.random() * messages.length)]
-        })
-      );
-    } else {
-
-      root.append(newBatchForm());
-    }
+    root.append(newBatchForm());
     return;
   }
 
-
   root.innerHTML = '';
-
 
   const titleRow = (() => {
     const row = el('div', {
@@ -2377,7 +2341,6 @@ function renderDetail() {
       input.select();
     });
 
-
     const dupBtn = el('button', {
       text: '🔁 Duplicate',
       class: 'btn-accent',
@@ -2408,7 +2371,6 @@ function renderDetail() {
       }
     });
 
-
     const labelBtn = el('button', {
       text: '🖨️ Label Maker',
       class: 'btn-accent',
@@ -2420,7 +2382,6 @@ function renderDetail() {
     row.append(title, dupBtn, labelBtn);
     return row;
   })();
-
 
   const summarySection = (() => {
     const sugarBreak = calcSugarBreak(batch.og);
@@ -2453,7 +2414,6 @@ function renderDetail() {
     return el('div', {}, [metaLine, honeyLine]);
   })();
 
-
   const components = [
     chartCard(batch),
     sgFormCard(batch),
@@ -2462,13 +2422,14 @@ function renderDetail() {
     eventsTable(batch)
   ];
 
-
   const container = el('div', {}, [titleRow, summarySection, ...components]);
   root.append(container);
 
-
   drawChart(batch);
 }
+
+
+
 
 function chartCard(batch) {
   return el('div', {
