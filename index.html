@@ -5,224 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MeadTrics</title>
   <style>
+/* ===============================
+   🎨 MeadTrics Stylesheet
+   Cleaned & Optimized
+   =============================== */
+
+/* === Theme Variables === */
 :root {
-  /* ==== Theme Variables ==== */
-  /* Background color for the app (main page background) */
   --bg: #0f1216;
-  /* Panel background color (cards, sidebars, etc.) */
   --panel: #161a20;
-  /* Muted text color for secondary information */
   --muted: #aab2c0;
-  /* Main text color for normal content */
   --text: #e8edf5;
-  /* Primary accent color (used for highlights, buttons, and lines) */
   --accent: #82cfff;
-  /* Secondary accent color (used for hover or complementary effects) */
   --accent-2: #b5e08a;
-  /* Error or warning color (used for delete buttons, alerts, etc.) */
   --danger: #ff6b6b;
-  /* Border color for panels, inputs, and dividers */
   --border: #2a2f39;
-  /* Box shadow for raised UI elements (cards, modals, etc.) */
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  /* Default border radius for rounded corners */
   --radius: 14px;
 }
-	
-/* Apply universal box-sizing to make layout calculations consistent */
-* {
-  box-sizing: border-box;
-}
 
-/* Ensure the document and body take up the full viewport height */
-html, body {
-  height: 100%;
-}
-
-/* Base body styles */
+/* === Global Reset === */
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
 body {
-  margin: 0; /* Remove default browser margin */
-  
-  /* Use a modern, system-based sans-serif font stack for readability */
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
     Helvetica, Arial, Noto Sans, "Apple Color Emoji", "Segoe UI Emoji";
-
-  /* Subtle radial gradient background, darker at center edges */
-  background: radial-gradient(
-    1200px 800px at 100% -10%,  /* Gradient size and position */
-    #16202e 0,                 /* Lighter blue-gray center tone */
-    #0f1216 50%                /* Dark background base tone */
-  );
-
-  /* Default text color for the entire page (from theme variable) */
+  background: radial-gradient(1200px 800px at 100% -10%, #16202e 0, #0f1216 50%);
   color: var(--text);
 }
 
-/* Style for all numeric input fields */
-input[type="number"] {
-  font-size: 16px; /* Slightly larger text for readability */
-}
+/* === Input Styles === */
+input[type="number"] { font-size: 16px; }
+input[type="number"].wide { width: 100%; min-width: 150px; }
 
-/* Wide variant of numeric inputs (used in forms where full width is desired) */
-input[type="number"].wide {
-  width: 100%;       /* Expand to fill available container width */
-  min-width: 150px;  /* Prevent input from becoming too narrow */
-}
-
-
-/* Main application layout container */
-/* Uses a two-column grid: sidebar (fixed width) + main content (flexible) */
-.app {
-  display: grid;                         /* establish grid layout */
-  grid-template-columns: 320px 1fr;      /* sidebar = 320px, main content = remaining space */
-  gap: 16px;                             /* space between columns */
-  height: 100%;                          /* fill full viewport height */
-  padding: 16px;                         /* outer spacing around the app */
-}
-
-/* === Layout & Card Structure === */
-
-/* Shared card style used for panels and sections */
-.card {
-  background: var(--panel);                 /* panel background color */
-  border: 1px solid var(--border);          /* subtle border outline */
-  border-radius: var(--radius);             /* consistent rounded corners */
-  box-shadow: var(--shadow);                /* soft depth shadow */
-}
-
-/* Sidebar container — vertical layout for batch list and controls */
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden; /* prevent scrollbars on inner overflow */
-}
-
-/* Sidebar header — title bar + New button */
-.sidebar header {
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px; /* small gap between title and button */
-}
-
-/* Sidebar title text */
-.sidebar header h1 {
-  font-size: 18px;
-  margin: 0;
-}
-
-/* Search bar container fills sidebar width */
-.search {
-  width: 100%;
-}
-
-/* Search input field styling */
-.search input {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: #0f141b;     /* darker input background */
-  color: var(--text);
-}
-
-/* Batch list container — scrollable grid */
-.list {
-  overflow: auto;
-  padding: 8px;
-  display: grid;
-  gap: 8px;
-}
-
-/* === Batch List Items === */
-
-/* Individual batch entry card */
-.batch {
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: border-color .2s, background .2s; /* smooth hover feedback */
-}
-
-/* Hover highlight for batches */
-.batch:hover {
-  border-color: #3a4150;
-  background: #111821;
-}
-
-/* Active batch (currently selected) */
-.batch.active {
-  outline: 2px solid var(--accent);
-  background: #101722;
-}
-
-/* Batch name — bolded */
-.batch .name {
-  font-weight: 600;
-}
-
-/* Batch metadata (date, OG/FG, etc.) */
-.batch .meta {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-/* === Main Content Area === */
-
-/* Main section layout: detail panel + footer */
-.content {
-  display: grid;
-  grid-template-rows: 1fr auto; /* main area + footer */
-  gap: 16px;
-}
-
-/* Detail panel that shows batch info */
-.detail {
-  padding: 16px;
-  overflow: auto; /* allow scroll inside */
-}
-
-/* Detail title spacing */
-.detail h2 {
-  margin: 0 0 8px 0;
-}
-
-/* Generic grid utility for forms (12-column) */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 12px;
-}
-.grid .col-6 { grid-column: span 6; }
-.grid .col-12 { grid-column: span 12; }
-
-/* === Fieldsets (section boxes) === */
-
-.fieldset {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
-}
-.fieldset legend {
-  padding: 0 6px;
-  color: var(--muted);
-}
-
-/* === Form Controls === */
-
-/* Label text for inputs */
-label {
-  display: block;
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-
-/* Shared input / select / textarea appearance */
 input[type="text"],
 input[type="date"],
 input[type="number"],
@@ -235,108 +50,79 @@ select {
   background: #0f141b;
   color: var(--text);
 }
+textarea { resize: vertical; min-height: 80px; }
 
-/* Textareas can resize vertically but not horizontally */
-textarea {
-  resize: vertical;
-  min-height: 80px;
+/* === Layout === */
+.app {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  height: 100%;
+  padding: 16px;
+}
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sidebar header h1 { font-size: 18px; margin: 0; }
+
+.search { width: 100%; }
+.search input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0f141b;
+  color: var(--text);
 }
 
-/* === Buttons === */
+.content {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 16px;
+}
+.detail {
+  padding: 16px;
+  overflow: auto;
+}
+.detail h2 { margin: 0 0 8px 0; }
 
-button {
-  appearance: none;
+/* === Cards & Panels === */
+.card {
+  background: var(--panel);
   border: 1px solid var(--border);
-  background: #121923;
-  color: var(--text);
-  padding: 10px 14px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+/* === Lists === */
+.list {
+  overflow: auto;
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+}
+.batch {
+  padding: 12px;
+  border: 1px solid var(--border);
   border-radius: 12px;
   cursor: pointer;
-  transition: transform .04s ease, background .2s, border-color .2s;
-  font-weight: 600;
+  transition: border-color .2s, background .2s;
 }
-
-/* Hover and active feedback */
-button:hover {
-  background: #182233;
-  border-color: #304055;
-}
-button:active {
-  transform: translateY(1px);
-}
-
-/* Accent (primary action) button */
-.btn-accent {
-  background: #0f2133;
-  border-color: #21425d;
-}
-
-/* Danger (delete) button */
-.btn-danger {
-  background: #2a1416;
-  border-color: #4e2326;
-  color: #ffd6d6;
-}
-
-/* === Small UI Elements === */
-
-/* Tag badges used in footer info */
-.tag {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  border: 1px solid var(--border);
-  color: var(--muted);
-}
-
-/* Footer layout — info left, buttons right */
-.footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-}
-
-/* === Tables === */
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.table th,
-.table td {
-  border-bottom: 1px solid var(--border);
-  padding: 8px 6px;
-  text-align: left;
-  font-size: 14px;
-}
-
-/* Empty message placeholder */
-.empty {
-  color: var(--muted);
-  font-style: italic;
-  padding: 12px 0;
-}
-
-/* === Chart Canvas === */
-
-canvas {
-  width: 100%;
-  height: 220px;
-  background: #0c1218;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-
-/* === Responsive Adjustments === */
-
-@media (max-width: 980px) {
-  .app { grid-template-columns: 1fr; }     /* stack sidebar & content */
-  .content { grid-template-rows: auto auto; }
-}
-
-/* === Compact delete button inside batch items === */
+.batch:hover { border-color: #3a4150; background: #111821; }
+.batch.active { outline: 2px solid var(--accent); background: #101722; }
+.batch .name { font-weight: 600; }
+.batch .name:hover { text-decoration: underline; cursor: pointer; }
+.batch .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
 .batch .btn-danger {
   padding: 2px 6px;
   font-size: 12px;
@@ -348,48 +134,123 @@ canvas {
   color: #ffb5b5;
 }
 
-/* === Meta info formatting === */
-.meta {
-  white-space: pre-line; /* preserve newlines from JS formatting */
+/* === Form Layout === */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 12px;
 }
-.meta::first-line {
-  font-weight: 500; /* emphasize the first line (often date or title) */
-}
-.meta:has(> span) {
-  display: flex;
-  flex-direction: column;
+.grid .col-6 { grid-column: span 6; }
+.grid .col-12 { grid-column: span 12; }
+
+label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
 }
 
-/* === Batch Name Hover === */
-.batch .name:hover {
-  text-decoration: underline;
-  cursor: pointer;
+/* === Fieldsets === */
+.fieldset {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
 }
-
-/* === Collapsible fieldsets and row legends === */
-.fieldset .row legend {
+.fieldset legend {
   font-weight: 600;
   color: var(--accent);
+  cursor: default;
 }
-.fieldset .row:hover legend {
-  color: var(--accent-2);
+.fieldset legend:hover { color: var(--accent-2); }
+.fieldset + .fieldset {
+  margin-top: 14px;
+  border-color: #252b34;
+  background: rgba(255, 255, 255, 0.02);
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
-.fieldset .row span {
-  transition: transform .2s ease;
+.fieldset:nth-of-type(n+2) {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+  border-radius: 10px;
+}
+.fieldset.collapsible legend::after { content: " ▼"; }
+.fieldset.collapsible.collapsed legend::after { content: " ▶"; }
+
+/* === Buttons === */
+button {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: #121923;
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform .04s ease, background .2s, border-color .2s;
+  font-weight: 600;
+}
+button:hover { background: #182233; border-color: #304055; }
+button:active { transform: translateY(1px); }
+
+.btn-accent {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btn-accent:hover { background: var(--accent-2); }
+
+.btn-danger {
+  background: #2a1416;
+  border-color: #4e2326;
+  color: #ffd6d6;
 }
 
-/* Reusable row layout helper */
-.row {
+/* === Footer === */
+.footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
   display: flex;
+  gap: 8px;
   justify-content: space-between;
-  align-items: center;
-  gap: 6px;
+}
+.tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
 }
 
-/* === Chart Tooltip === */
+/* === Tables === */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th, .table td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 6px;
+  text-align: left;
+  font-size: 14px;
+}
+.table tr[data-type="bottled"] td { background: rgba(255,255,255,0.02); color: #b5e08a; }
+.table tr[data-type="feeding"] td { background: rgba(255,200,0,0.04); color: #ffe680; }
+.table tr[data-type="racked"] td { color: #b0c0ff; }
+.table tr[data-type="note"] td textarea { background: #111822; color: #d8dee9; }
+.empty { color: var(--muted); font-style: italic; padding: 12px 0; }
+
+/* === Chart === */
+canvas {
+  width: 100%;
+  height: 220px;
+  background: #0c1218;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
 .chart-tooltip {
   position: absolute;
-  pointer-events: none; /* allow hover to pass through */
+  pointer-events: none;
   background: #0f141b;
   color: #e8edf5;
   border: 1px solid #2a2f39;
@@ -401,125 +262,42 @@ canvas {
   z-index: 10;
 }
 
-/* === Event Row Coloring === */
-.table tr[data-type="bottled"] td { background: rgba(255,255,255,0.02); color: #b5e08a; }
-.table tr[data-type="feeding"] td { background: rgba(255,200,0,0.04); color: #ffe680; }
-.table tr[data-type="racked"] td { color: #b0c0ff; }
-.table tr[data-type="note"] td textarea { background: #111822; color: #d8dee9; }
+/* === Utility === */
+.row { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.meta { white-space: pre-line; }
+.meta::first-line { font-weight: 500; }
+.meta:has(> span) { display: flex; flex-direction: column; }
+.hidden { display: none !important; }
 
-/* === Alternating Fieldset Backgrounds === */
-.fieldset:nth-of-type(1) { background: rgba(255,255,255,0.02); }
-.fieldset:nth-of-type(2) { background: rgba(255,255,255,0.01); }
-
-/* === Scrollbar Styling === */
+/* === Scrollbars === */
 .list::-webkit-scrollbar,
-.detail::-webkit-scrollbar {
-  width: 8px;
-}
+.detail::-webkit-scrollbar { width: 8px; }
 .list::-webkit-scrollbar-thumb,
 .detail::-webkit-scrollbar-thumb {
   background: #202833;
   border-radius: 6px;
 }
 .list::-webkit-scrollbar-thumb:hover,
-.detail::-webkit-scrollbar-thumb:hover {
-  background: #2e3a4b;
-}
+.detail::-webkit-scrollbar-thumb:hover { background: #2e3a4b; }
 
-/* === Collapsible fieldset indicator icons === */
-.fieldset.collapsible legend::after { content: " ▼"; }
-.fieldset.collapsible.collapsed legend::after { content: " ▶"; }
-
-/* === Ingredient Section Visual Tweaks === */
-.fieldset legend {
-  font-weight: 600;
-  color: var(--accent);
-}
-.fieldset legend:hover {
-  color: var(--accent-2);
-}
-.fieldset + .fieldset {
-  margin-top: 14px;
-  border-color: #252b34;
-  background: rgba(255, 255, 255, 0.02);
-  padding-top: 10px;
-  padding-bottom: 10px;
-}
-.fieldset .grid .col-4 input,
-.fieldset .grid .col-12 input {
-  background: #0f141b;
-  border: 1px solid var(--border);
-  color: var(--text);
-}
-.fieldset label {
-  margin-top: 4px;
-  margin-bottom: 4px;
-  display: block;
-  color: var(--muted);
-  font-size: 13px;
-}
-.fieldset:nth-of-type(n+2) {
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
-  border-radius: 10px;
-}
-
-/* === Buttons (accent variant refined) === */
-.btn-accent {
-  background: var(--accent);
-  border: none;
-  color: #fff;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-.btn-accent:hover {
-  background: var(--accent-2);
-}
-
-/* === Print-only styling for Label Maker === */
-@media print {
-  /* Hide everything on the page by default when printing */
-  body * { visibility: hidden; }
-
-  /* Make only the label box (and its contents) visible */
-  #labelBox, #labelBox * { visibility: visible; }
-
-  /* Position the label box in the top-left corner of the printed page */
-  #labelBox {
-    position: absolute;
-    left: 0;
-    top: 0;
-    margin: 0;
-  }
-}
-
-/* Utility class used to hide elements in normal (screen) mode */
-.hidden {
-  display: none !important;
-}
-
-/* --- Feedback Button --- */
+/* === Feedback Button === */
 .icon-btn {
   position: fixed;
-  top: 16px;
+  bottom: 16px;
   right: 16px;
-  background: var(--accent, #3b5);
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   font-size: 20px;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  transition: background 0.2s;
-  z-index: 9999;
-}
-.icon-btn:hover {
-  background: var(--accent-hover, #2a4);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  z-index: 1000;
 }
 
-/* --- Popup background --- */
+/* === Popup / Feedback Modal === */
 .popup {
   position: fixed;
   inset: 0;
@@ -529,11 +307,8 @@ canvas {
   align-items: center;
   z-index: 10000;
 }
-.popup.hidden {
-  display: none;
-}
+.popup.hidden { display: none; }
 
-/* --- Popup card (dark theme to match MeadTrics) --- */
 .popup-content {
   background: var(--panel);
   color: var(--text);
@@ -545,10 +320,7 @@ canvas {
   border: 1px solid var(--border);
   animation: fadeIn 0.25s ease;
 }
-.popup-content h3 {
-  margin-top: 0;
-  color: var(--accent);
-}
+.popup-content h3 { margin-top: 0; color: var(--accent); }
 .popup-content textarea {
   width: 100%;
   box-sizing: border-box;
@@ -578,151 +350,41 @@ canvas {
   background: var(--accent);
   color: #fff;
 }
-.popup-actions .primary:hover {
-  background: var(--accent-2);
-}
+.popup-actions .primary:hover { background: var(--accent-2); }
 .popup-actions .secondary {
   background: #1a2028;
   color: var(--text);
 }
-.popup-actions .secondary:hover {
-  background: #222a33;
+.popup-actions .secondary:hover { background: #222a33; }
+
+/* === Print Labels === */
+@media print {
+  body * { visibility: hidden; }
+  #labelBox, #labelBox * { visibility: visible; }
+  #labelBox {
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+  }
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(10, 15, 20, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
+/* === Responsive === */
+@media (max-width: 980px) {
+  .app { grid-template-columns: 1fr; }
+  .content { grid-template-rows: auto auto; }
 }
-
-.modal-content {
-  background: #0f141b;
-  color: var(--text);
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
-  max-width: 320px;
-  text-align: left;
-}
-
-.icon-btn {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 46px;
-  height: 46px;
-  font-size: 20px;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-  z-index: 1000;
-}
-
-.popup {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.6);
-  z-index: 999;
-}
-
-.popup.hidden { display: none; }
-
-.popup-content {
-  background: #0f141b;
-  color: var(--text);
-  padding: 16px;
-  border-radius: 8px;
-  width: 300px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.5);
-}
-
-.popup-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-
   </style>
-  
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar card">
-      <header>
-        <h1>MeadTrics</h1>
-        <button id="newBatchBtn" class="btn btn-accent">+ New</button>
-      </header>
-      <div class="search" style="padding: 12px;">
-        <input id="searchInput" type="text" placeholder="Search batches… (name or notes)" />
-      </div>
-<div id="batchList" class="list">
-</div>
-</aside>
-    </aside>
-	
-    <section class="content">
-      <div id="detail" class="detail card"></div>
-      <div class="footer card">
-        <div class="row">
-          <span class="tag">Local-only (saved to your browser)</span>
-          <span class="tag">ABV uses (OG − FG) × 131.25</span>
-        </div>
-        <div class="row">
-          <button id="exportBtn">Export</button>
-          <input id="importFile" type="file" accept="application/json" style="display:none" />
-          <button id="importBtn">Import</button>
-          <button id="clearBtn" class="btn-danger">Clear All</button>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <template id="batchItemTmpl">
-    <div class="batch">
-      <div class="name"></div>
-      <div class="meta"></div>
-    </div>
-  </template>
-
-<button id="feedbackBtn" title="Send Feedback" class="icon-btn">
-  📝
-</button>
-
-<!-- Feedback popup -->
-<div id="feedbackPopup" class="popup hidden">
-  <div class="popup-content">
-    <h3>Send Feedback</h3>
-    <textarea id="feedbackText" placeholder="Describe your idea, bug, or suggestion..." rows="5"></textarea>
-    <div class="popup-actions">
-      <button id="feedbackSubmit" class="primary">Submit</button>
-      <button id="feedbackCancel" class="secondary">Cancel</button>
-    </div>
-  </div>
-</div>
-
+<div class="app"></div>
+</body>
 
   <script>
-/* === Constants and Utility Functions === */
 
-/* LocalStorage key used to persist app data */
 const LS_KEY = 'mead-tracker:v2';
 
-/* List of all standard event types available in the app */
+
 const EVENTS = [
   'primary fermentation',
   'secondary fermentation',
@@ -735,57 +397,46 @@ const EVENTS = [
   'bottled'
 ];
 
-/* Shortcut helper for document.querySelector */
+
 const $ = sel => document.querySelector(sel);
 
-/**
- * Element creation utility
- * Simplifies DOM creation by allowing attributes and children in one call.
- *
- * Example:
- *   el('button', { class: 'btn', text: 'Save', onclick: handleSave })
- */
+
 const el = (tag, attrs = {}, children = []) => {
   const n = document.createElement(tag);
 
-  /* Apply all provided attributes */
+
   Object.entries(attrs).forEach(([k, v]) => {
-    if (k === 'class') n.className = v;                            // set CSS class
-    else if (k === 'text') n.textContent = v;                      // set text content
-    else if (k.startsWith('on') && typeof v === 'function')        // add event listener (e.g., onclick)
+    if (k === 'class') n.className = v;                            
+    else if (k === 'text') n.textContent = v;                     
+    else if (k.startsWith('on') && typeof v === 'function')       
       n.addEventListener(k.slice(2), v);
-    else n.setAttribute(k, v);                                     // set generic attribute
+    else n.setAttribute(k, v);                                     
   });
 
-  /* Append any child elements or text nodes */
   children.forEach(c => n.append(c));
 
   return n;
 };
 
-/**
- * Format date values for display
- * @param {string|Date} d - A date string or Date object
- * @returns {string} - Localized date string (or empty if invalid)
- */
+
 const fmt = (d) => d ? new Date(d).toLocaleDateString() : '';
 
 
-/* === Application State Variables === */
 
-// Current saved data (list of mead batches)
-let state = { batches: [] }; // placeholder until loaded
 
-// ID of the currently selected batch (or null if none selected)
+
+let state = { batches: [] }; 
+
+
 let selectedId = state.batches[0]?.id || null;
 
-// Current chart display mode: 'sg' = Specific Gravity, 'abv' = Alcohol by Volume
-let chartMode = 'sg'; // default chart mode
 
-// Collapsed state tracking for sidebar sections
+let chartMode = 'sg'; 
+
+
 let sidebarCollapse = { active: false, archived: false };
 
-// === Core Persistence Helpers (local only) ===
+
 function load() {
   try {
     const data = localStorage.getItem(LS_KEY);
@@ -804,10 +455,7 @@ function save(state) {
   }
 }
 
-/**
- * Create the "⚙️ Batches" header card dynamically
- * using the `el()` utility.
- */
+
 function batchHeaderCard() {
   return el('div', {
     class: 'fieldset',
@@ -834,10 +482,7 @@ function batchHeaderCard() {
   ]);
 }
 
-/**
- * Create the "⚙️ Utilities" header card dynamically
- * using the `el()` utility.
- */
+
 function utilitiesHeaderCard() {
   return el('div', {
     class: 'fieldset',
@@ -864,10 +509,7 @@ function utilitiesHeaderCard() {
   ]);
 }
 
-/**
- * 🍯 TOSNA calculator logic (global)
- * Calculates nutrient additions based on batch volume, YAN, yeast, and protocol
- */
+
 function calcTosna() {
   const vol = parseFloat(document.getElementById("tosnaVol")?.value || 0);
   const yan = parseFloat(document.getElementById("tosnaYan")?.value || 0);
@@ -880,8 +522,8 @@ function calcTosna() {
     return;
   }
 
-  // === Base ratios ===
-  const reqMap = { low: 125, medium: 150, high: 200 }; // mg N/L targets
+  
+  const reqMap = { low: 125, medium: 150, high: 200 }; 
   const targetYan = reqMap[req] || 150;
 
   const yanNeeded = targetYan - yan;
@@ -890,7 +532,7 @@ function calcTosna() {
     return;
   }
 
-  // Approximate yields (mg N per g/L)
+  
   const fermaidO_YAN = 20;
   const fermaidK_YAN = 25;
   const dap_YAN = 60;
@@ -923,15 +565,12 @@ function calcTosna() {
 }
 
 
-/**
- * 🍯 Create the TOSNA Calculator card dynamically using `el()`
- * Returns a collapsible fieldset with all inputs and logic
- */
+
 function tosnaCard() {
-  // --- Collapsed state ---
+ 
   let collapsed = true;
 
-  // === Core DOM structure ===
+  
   const volInput = el('input', {
     id: 'tosnaVol',
     type: 'number',
@@ -1015,7 +654,6 @@ const calcBtn = el('button', {
   onclick: () => calcTosna()
 });
 
-  // --- Content body ---
   const body = el('div', {
     id: 'tosnaContent',
     style: 'margin-top:8px;'
@@ -1043,8 +681,7 @@ const calcBtn = el('button', {
     }),
     result
   ]);
-
-  // --- Legend (collapsible toggle) ---
+ 
   const legend = el('legend', {
     text: '🍯 TOSNA Calculator',
     style: 'cursor:pointer;',
@@ -1055,24 +692,21 @@ const calcBtn = el('button', {
     }
   });
 
-  // --- Outer card ---
+  
   const card = el('div', {
     id: 'tosnaCard',
     class: 'fieldset collapsible',
     style: 'margin-top:16px;'
   }, [legend, body]);
 
-  // Initialize collapsed
+  
   collapsed = true;
   body.style.display = 'none';
 
   return card;
 }
 
-/**
- * 🍯 Create the Backsweetening Additions card dynamically using `el()`
- * Returns a collapsible fieldset with all inputs and calculation logic
- */
+
 function backsweetCard() {
   let collapsed = true;
 
@@ -1138,7 +772,7 @@ function backsweetCard() {
     style: 'font-size:13px;color:var(--muted);'
   });
 
-  // === Core Logic ===
+  
   const calcBacksweet = () => {
     const sg1 = parseFloat(currentSG.value);
     const sg2 = parseFloat(desiredSG.value);
@@ -1149,10 +783,10 @@ function backsweetCard() {
     if (isNaN(sg1) || isNaN(sg2) || isNaN(vol) || sg2 <= sg1)
       return (resultDiv.textContent = '⚠️ Please enter valid SG and volume values.');
 
-    const delta = (sg2 - sg1) * 1000; // "points" difference
-    let sugarGrams = delta * vol * 1.53; // ~1.53g/L/point empirical factor
+    const delta = (sg2 - sg1) * 1000;
+    let sugarGrams = delta * vol * 1.53; 
 
-    // Adjust by sugar content
+    
     let label = '';
     if (type === 'honey') {
       sugarGrams /= 0.82;
@@ -1169,7 +803,7 @@ function backsweetCard() {
     resultDiv.innerHTML = `Add approximately <b>${kg.toFixed(3)} kg</b> of ${label}.`;
   };
 
-  // === Button ===
+  
   const calcBtn = el('button', {
     id: 'calcBacksweetBtn',
     class: 'btn-accent',
@@ -1178,7 +812,7 @@ function backsweetCard() {
     onclick: calcBacksweet
   });
 
-  // === Body ===
+  
   const body = el('div', {
     id: 'backContent',
     style: 'margin-top:8px;'
@@ -1205,7 +839,7 @@ function backsweetCard() {
     resultDiv
   ]);
 
-  // === Legend / Collapsible ===
+  
   const legend = el('legend', {
     text: '🍯 Backsweetening Additions',
     style: 'cursor:pointer;',
@@ -1216,18 +850,18 @@ function backsweetCard() {
     }
   });
 
-  // === Wrapper ===
+  
   const card = el('div', {
     id: 'backsweetCard',
     class: 'fieldset collapsible',
     style: 'margin-top:16px;'
   }, [legend, body]);
 
-  // Initialize collapsed
+  
   collapsed = true;
   body.style.display = 'none';
 
-  // === Behavior for custom percent toggle ===
+  
   typeSel.addEventListener('change', () => {
     customWrap.style.display = typeSel.value === 'custom' ? 'block' : 'none';
   });
@@ -1237,14 +871,11 @@ function backsweetCard() {
   
 }
 
-/**
- * 💧 Create the Dilution Calculator card dynamically using `el()`
- * Returns a collapsible fieldset with inputs and logic
- */
+
 function dilutionCard() {
   let collapsed = true;
 
-  // === Inputs ===
+  
   const sg1Input = el('input', {
     id: 'dil_sg1',
     type: 'number',
@@ -1274,7 +905,7 @@ function dilutionCard() {
     style: 'font-size:13px;color:var(--muted);'
   });
 
-  // === Logic ===
+  
   const calcDilution = () => {
     const sg1 = parseFloat(sg1Input.value);
     const sg2 = parseFloat(sg2Input.value);
@@ -1285,11 +916,11 @@ function dilutionCard() {
       return;
     }
 
-    // “points” difference per SG
+    
     const points1 = (sg1 - 1) * 1000;
     const points2 = (sg2 - 1) * 1000;
 
-    // V1 * P1 = (V1 + Vx) * P2 → solve for Vx
+   
     const addWater = (vol * (points1 - points2)) / points2;
 
     resultDiv.innerHTML =
@@ -1297,7 +928,7 @@ function dilutionCard() {
       `to ${sg2.toFixed(3)} SG, add approximately <b>${addWater.toFixed(2)} L</b> of water.`;
   };
 
-  // === Button ===
+ 
   const calcBtn = el('button', {
     id: 'calcDilution',
     class: 'btn-accent',
@@ -1306,7 +937,7 @@ function dilutionCard() {
     onclick: calcDilution
   });
 
-  // === Body ===
+  
   const body = el('div', {
     id: 'dilContent',
     style: 'margin-top:8px;'
@@ -1328,7 +959,7 @@ function dilutionCard() {
     resultDiv
   ]);
 
-  // === Legend / Collapsible ===
+  
   const legend = el('legend', {
     text: '💧 Dilution Calculator',
     style: 'cursor:pointer;',
@@ -1339,7 +970,7 @@ function dilutionCard() {
     }
   });
 
-  // === Wrapper ===
+  
   const card = el('div', {
     id: 'dilutionCard',
     class: 'fieldset collapsible',
@@ -1352,14 +983,11 @@ function dilutionCard() {
   return card;
 }
 
-/**
- * 🧪 Create the Priming Calculator card dynamically using `el()`
- * Returns a collapsible fieldset that estimates sugar needed for carbonation.
- */
+
 function primingCard() {
   let collapsed = true;
 
-  // === Inputs ===
+  
   const volInput = el('input', {
     id: 'prime_volume',
     type: 'number',
@@ -1398,7 +1026,7 @@ function primingCard() {
     style: 'font-size:13px;color:var(--muted);'
   });
 
-  // === Core Logic ===
+  
   const calcPriming = () => {
     const vol = parseFloat(volInput.value);
     const temp = parseFloat(tempInput.value);
@@ -1410,23 +1038,23 @@ function primingCard() {
       return;
     }
 
-    // CO₂ already in solution based on temp (empirical)
+    
     const residualCO2 = 3.0378 - 0.050062 * temp + 0.00026555 * temp ** 2;
 
-    // Difference to reach target
+    
     const neededCO2 = co2 - residualCO2;
     if (neededCO2 <= 0) {
       resultDiv.textContent = 'No priming sugar needed — CO₂ already at or above target.';
       return;
     }
 
-    // grams/L CO₂ factor depending on sugar type
-    let factor = 4.01; // g/L per CO₂ volume for dextrose
+    
+    let factor = 4.01; 
     if (sugarType === 'sucrose') factor = 3.83;
     if (sugarType === 'honey') factor = 4.52;
 
     const grams = neededCO2 * vol * factor;
-    const tsp = grams / 4.2; // rough tsp conversion
+    const tsp = grams / 4.2; 
 
     resultDiv.innerHTML =
       `To reach <b>${co2.toFixed(2)} volumes CO₂</b> at ${temp.toFixed(1)}°C ` +
@@ -1434,7 +1062,7 @@ function primingCard() {
       `<b>${grams.toFixed(1)} g</b> (${tsp.toFixed(1)} tsp) of ${sugarType}.`;
   };
 
-  // === Button ===
+  
   const calcBtn = el('button', {
     id: 'calcPriming',
     class: 'btn-accent',
@@ -1443,7 +1071,7 @@ function primingCard() {
     onclick: calcPriming
   });
 
-  // === Body ===
+ 
   const body = el('div', {
     id: 'primeContent',
     style: 'margin-top:8px;'
@@ -1465,7 +1093,7 @@ function primingCard() {
     resultDiv
   ]);
 
-  // === Collapsible Legend ===
+  
   const legend = el('legend', {
     text: '🧪 Priming Calculator (Experimental)',
     style: 'cursor:pointer;',
@@ -1476,7 +1104,7 @@ function primingCard() {
     }
   });
 
-  // === Wrapper ===
+  
   const card = el('div', {
     id: 'primingCard',
     class: 'fieldset collapsible',
@@ -1489,14 +1117,11 @@ function primingCard() {
   return card;
 }
 
-/**
- * ⚗️ Create the Stabilisation Calculator card dynamically using `el()`
- * Helps estimate sorbate/sulfite additions to stabilize mead before backsweetening.
- */
+
 function stabilCard() {
   let collapsed = true;
 
-  // === Inputs ===
+  
   const volInput = el('input', {
     id: 'stab_volume',
     type: 'number',
@@ -1526,7 +1151,6 @@ function stabilCard() {
     style: 'font-size:13px;color:var(--muted);'
   });
 
-  // === Logic ===
   const calcStabil = () => {
     const vol = parseFloat(volInput.value);
     const campden = parseFloat(campdenInput.value);
@@ -1537,7 +1161,7 @@ function stabilCard() {
       return;
     }
 
-    // Campden tablets: each ≈ 0.44g K-meta → 50 mg SO₂ per L for 5 L per tablet
+   
     const campdenTotal = (vol * campden) / 5;
     const sorbateTotal = (vol * sorbate) / 5;
 
@@ -1550,7 +1174,7 @@ function stabilCard() {
       `<i>Ensure fermentation has completely stopped before stabilising.</i>`;
   };
 
-  // === Button ===
+
   const calcBtn = el('button', {
     id: 'calcStabil',
     class: 'btn-accent',
@@ -1559,7 +1183,7 @@ function stabilCard() {
     onclick: calcStabil
   });
 
-  // === Body ===
+
   const body = el('div', {
     id: 'stabContent',
     style: 'margin-top:8px;'
@@ -1579,7 +1203,7 @@ function stabilCard() {
     resultDiv
   ]);
 
-  // === Collapsible Legend ===
+
   const legend = el('legend', {
     text: '⚗️ Stabilisation Calculator',
     style: 'cursor:pointer;',
@@ -1591,7 +1215,7 @@ function stabilCard() {
     }
   });
 
-  // === Wrapper ===
+
   const card = el('div', {
     id: 'stabilCard',
     class: 'fieldset collapsible',
@@ -1604,20 +1228,17 @@ function stabilCard() {
   return card;
 }
 
-/**
- * 🧮 Create the Brix ↔ SG Converter card dynamically using `el()`
- * Converts between Brix (°Bx) and Specific Gravity (SG)
- */
+
 function brixCard() {
   let collapsed = true;
 
-  // --- Conversion formulas ---
+
   const brixToSG = (brix) =>
     1 + (brix / (258.6 - ((brix / 258.2) * 227.1)));
   const sgToBrix = (sg) =>
     (((182.4601 * sg - 775.6821) * sg + 1262.7794) * sg - 669.5622);
 
-  // --- Inputs ---
+
   const brixInput = el("input", {
     id: "brixInput",
     type: "number",
@@ -1639,7 +1260,7 @@ function brixCard() {
     style: "font-size:13px;color:var(--muted);"
   });
 
-  // --- Conversion logic ---
+
   const convertBrixToSG = () => {
     const brix = parseFloat(brixInput.value);
     if (isNaN(brix)) return (resultDiv.textContent = "⚠️ Enter a valid Brix value.");
@@ -1662,7 +1283,7 @@ function brixCard() {
     resultDiv.textContent = "";
   };
 
-  // --- Buttons ---
+
   const btnBrixToSG = el("button", {
     class: "btn-accent",
     text: "Brix → SG",
@@ -1687,7 +1308,7 @@ function brixCard() {
     style: "margin-top:8px;gap:8px;"
   }, [btnBrixToSG, btnSGToBrix, btnClear]);
 
-  // --- Body ---
+
   const body = el("div", {
     id: "brixContent",
     style: "margin-top:8px;"
@@ -1705,7 +1326,7 @@ function brixCard() {
     resultDiv
   ]);
 
-  // --- Collapsible Legend ---
+
   const legend = el("legend", {
     text: "🧮 Brix ↔ SG Converter",
     style: "cursor:pointer;",
@@ -1716,7 +1337,7 @@ function brixCard() {
     }
   });
 
-  // --- Wrapper ---
+
   const card = el("div", {
     id: "brixConverterCard",
     class: "fieldset collapsible",
@@ -1729,10 +1350,7 @@ function brixCard() {
   return card;
 }
 
-/**
- * 💾 Create the Backup & Restore header dynamically using `el()`
- * Provides a consistent styled header above cloud sync / backup section.
- */
+
 function backupHeaderCard() {
   return el("div", {
     class: "fieldset",
@@ -1759,14 +1377,11 @@ function backupHeaderCard() {
   ]);
 }
 
-/**
- * ☁️ Create the Cloud Sync card dynamically using `el()`
- * Handles ExtendsClass JSON Storage cloud backup configuration.
- */
+
 function syncCard() {
   let collapsed = true;
 
-  // --- Info text ---
+
   const infoPara = el("p", {
     style: "font-size:13px;color:var(--muted);"
   }, [
@@ -1787,7 +1402,7 @@ function syncCard() {
     document.createTextNode("• Paste it below to enable cloud sync.")
   ]);
 
-  // --- API key input ---
+
   const apiInput = el("input", {
     id: "apiKeyInput",
     type: "text",
@@ -1800,46 +1415,96 @@ function syncCard() {
     `
   });
 
-  // --- Save button ---
-  const saveBtn = el("button", {
-    id: "saveApiKeyBtn",
-    class: "btn-accent",
-    text: "Save API Key",
-    style: "width:100%;",
-    onclick: () => {
-      const key = apiInput.value.trim();
-      if (!key) {
-        syncStatus.textContent = "⚠️ Please enter a valid API key.";
-        return;
-      }
-      localStorage.setItem("EXTENDS_API_KEY", key);
-      syncStatus.textContent = "☁️ Cloud API key saved.";
-      console.log("☁️ Cloud API key saved:", key);
-      updateViewBinButton();
-    }
-  });
 
-  // --- View Bin button ---
-// --- View Bin button ---
+const saveBtn = el("button", {
+  id: "saveApiKeyBtn",
+  class: "btn-accent",
+  text: "Save API Key",
+  style: "width:100%;",
+onclick: async () => {
+  const key = apiInput.value.trim();
+
+  // 🧹 Blank key disables cloud mode
+  if (!key) {
+    clearExtendsCredentials();
+    EXTENDS_API_KEY = "";
+    EXTENDS_BIN_ID = "";
+    state.cloudEnabled = false;
+    updateSyncCard();
+    updateViewBinButton();
+    syncStatus.textContent = "💾 Cloud sync disabled — now saving locally only.";
+    console.log("💾 Cloud sync disabled — reverted to local-only mode.");
+    alert("💾 Cloud sync disabled — now saving locally only.");
+    return;
+  }
+
+  // ✅ Save key & enable cloud mode
+  EXTENDS_API_KEY = key;
+  localStorage.setItem("EXTENDS_API_KEY", EXTENDS_API_KEY);
+  localStorage.setItem("EXTENDS_KEY", EXTENDS_KEY);
+  state.cloudEnabled = true;
+  syncStatus.textContent = "☁️ Cloud API key saved.";
+  console.log("☁️ Cloud API key saved:", key);
+
+  // 🪣 Ensure bin exists
+  if (!EXTENDS_BIN_ID) {
+    const existingBin = await getExistingBin();
+    if (existingBin) {
+      EXTENDS_BIN_ID = existingBin;
+      localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
+      console.log(`☁️ Using existing bin: ${EXTENDS_BIN_ID}`);
+    } else {
+      await createBin();
+    }
+  }
+
+  updateViewBinButton();
+  updateSyncCard();
+
+  // ☁️ Try to load cloud data
+  try {
+    let cloudData = await cloudLoad();
+    if (cloudData?.data?.batches) cloudData = cloudData.data;
+
+    if (cloudData && cloudData.batches?.length) {
+      console.log("☁️ Loaded cloud data after saving key:", cloudData);
+      state = cloudData;
+      save(state);
+      render();
+      alert("✅ API key saved — cloud data loaded successfully.");
+    } else {
+      console.log("☁️ Cloud empty — uploading local data to cloud.");
+      await cloudSave(state);
+      alert("✅ API key saved — local data uploaded to cloud.");
+    }
+  } catch (err) {
+    console.warn("⚠️ Failed to load cloud data:", err);
+    alert("⚠️ API key saved, but cloud load failed. Using local data for now.");
+  }
+}
+
+});
+
+
 const viewBtn = el("button", {
   id: "viewBinBtn",
   class: "btn-accent",
   text: "🔗 View Bin",
   style: "display:none;width:100%;margin-top:6px;",
   onclick: async (e) => {
-    e.stopPropagation(); // prevent any parent event handlers
+    e.stopPropagation();
     const bin = localStorage.getItem("EXTENDS_BIN_ID");
     if (!bin) return alert("⚠️ No bin ID found yet.");
 
     try {
-      const data = await cloudLoad(); // secure fetch with Security-key
+      const data = await cloudLoad();
       if (!data) return alert("⚠️ Could not load bin data.");
 
-      // Open a single stylized popup window
+
       const popup = window.open("", "binPopup", "width=700,height=600,resizable,scrollbars=yes");
       if (!popup) return alert("⚠️ Popup blocked. Please allow popups for this site.");
 
-      // Write the stylized HTML shell
+
       popup.document.write(`
         <html>
           <head>
@@ -1876,7 +1541,7 @@ const viewBtn = el("button", {
       `);
       popup.document.close();
 
-      // Inject JSON safely after the popup document exists
+
       const jsonString = JSON.stringify(data, null, 2);
       popup.document.getElementById("jsonArea").textContent = jsonString;
 
@@ -1889,7 +1554,7 @@ const viewBtn = el("button", {
 });
 
 
-  // --- Status + info ---
+
   const syncStatus = el("div", {
     id: "syncStatus",
     style: "margin-top:6px;color:var(--muted);font-size:13px;",
@@ -1897,7 +1562,7 @@ const viewBtn = el("button", {
   });
 
   const syncUrl = el("span", { id: "syncUrl", text: "Local only" });
-  const syncKey = el("span", { id: "syncKey", text: "meadtracker" }); // fixed key label
+  const syncKey = el("span", { id: "syncKey", text: "meadtracker" }); 
 
   const syncInfo = el("div", {
     id: "syncInfo",
@@ -1914,7 +1579,7 @@ const viewBtn = el("button", {
     el("b", { text: "Security Key:" }), document.createTextNode(" "), syncKey
   ]);
 
-  // --- Body ---
+
   const body = el("div", {
     id: "syncContent",
     style: "margin-top:8px;"
@@ -1929,7 +1594,7 @@ const viewBtn = el("button", {
     keyInfo
   ]);
 
-  // --- Legend (collapsible header) ---
+
   const legend = el("legend", {
     text: "☁️ Cloud Sync",
     style: "cursor:pointer;",
@@ -1940,14 +1605,14 @@ const viewBtn = el("button", {
     }
   });
 
-  // --- Wrapper ---
+
   const card = el("div", {
     id: "syncCard",
     class: "fieldset collapsible",
     style: "margin-top:16px;"
   }, [legend, body]);
 
-  // --- Initial open/closed state ---
+
   const hasAPI = localStorage.getItem("EXTENDS_API_KEY");
   const hasBIN = localStorage.getItem("EXTENDS_BIN_ID");
   if (hasAPI && hasBIN) {
@@ -1960,22 +1625,234 @@ const viewBtn = el("button", {
     legend.textContent = "▶ ☁️ Cloud Sync";
   }
 
-  // --- Update View Bin visibility ---
+
   setTimeout(updateViewBinButton, 0);
 
   return card;
 }
 
+function renderApp() {
+  const app = document.querySelector('.app');
+  if (!app) {
+    console.error('❌ No .app container found.');
+    return;
+  }
+
+  app.innerHTML = '';
 
 
+  const sidebar = el('aside', { class: 'sidebar card' });
+  const content = el('section', { class: 'content' });
+  app.append(sidebar, content);
 
-// === Feedback button + popup (dynamic) ===
+
+  const header = el('header', { id: 'sidebarHeader' });
+  const searchBox = el('div', { id: 'searchBox', class: 'search', style: 'padding: 12px;' });
+  const batchList = el('div', { id: 'batchList', class: 'list' });
+  sidebar.append(header, searchBox, batchList);
+
+
+  const detail = el('div', { id: 'detail', class: 'detail card' });
+  const footer = el('div', { class: 'footer card' });
+  content.append(detail, footer);
+
+
+  try {
+    renderSidebarHeader();
+    renderSearchBox();
+    renderBatchList();
+    renderDetail();
+    renderFooterButtons();
+  } catch (err) {
+    console.error('⚠️ RenderApp sub-render error:', err);
+  }
+}
+
+
+function renderContent() {
+  const content = document.querySelector('.content');
+  if (!content) return;
+
+
+  content.innerHTML = '';
+
+
+  const detail = el('div', { id: 'detail', class: 'detail card' });
+  const footer = el('div', { class: 'footer card' });
+
+  content.append(detail, footer);
+
+
+  renderDetail();
+  renderFooterButtons();
+}
+
+function renderSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+  sidebar.innerHTML = ''; 
+
+
+  const header = el('header', { id: 'sidebarHeader' });
+  const searchBox = el('div', { id: 'searchBox', class: 'search', style: 'padding: 12px;' });
+  const batchList = el('div', { id: 'batchList', class: 'list' });
+
+
+  sidebar.append(header, searchBox, batchList);
+
+
+  renderSidebarHeader();
+  renderSearchBox();
+  renderBatchList();
+}
+
+
+function renderSidebarHeader() {
+  const header = document.getElementById("sidebarHeader");
+  if (!header) return;
+  header.innerHTML = "";
+
+
+  const title = el("h1", { text: "MeadTrics" });
+
+
+  const btnLabel = state.cloudEnabled ? "+ Cloud Batch" : "+ New";
+  const newBtn = el("button", {
+    id: "newBatchBtn",
+    class: "btn btn-accent",
+    text: btnLabel,
+    title: "Create a new mead batch",
+    onclick: () => {
+      const newBatch = {
+        id: crypto.randomUUID(),
+        name: "New Batch",
+        startDate: new Date().toISOString().slice(0, 10),
+        og: "",
+        fg: "",
+        honey: "",
+        yeast: "",
+        volume: "",
+        description: "",
+        sgReadings: [],
+        events: []
+      };
+      state.batches.unshift(newBatch);
+      selectedId = newBatch.id;
+      saveAll(state);
+      render();
+    }
+  });
+
+
+  header.append(title, newBtn);
+}
+
+function renderFooterButtons() {
+  const footer = document.querySelector('.footer');
+  if (!footer) return;
+
+  footer.innerHTML = '';
+
+
+  const tagRow = el('div', { class: 'row' });
+
+  const modeText = state.cloudEnabled
+    ? '☁️ Cloud Sync Active'
+    : '💾 Local-only (saved to your browser)';
+  const abvFormula = state.abvFormula || '(OG − FG) × 131.25';
+  const abvText = `ABV uses ${abvFormula}`;
+
+  const modeTag = el('span', { class: 'tag', text: modeText });
+  const abvTag = el('span', { class: 'tag', text: abvText });
+
+  tagRow.append(modeTag, abvTag);
+
+
+  const btnRow = el('div', { class: 'row', id: 'footerActions' });
+
+  const hasData = state.batches && state.batches.length > 0;
+
+
+  const exportBtn = el('button', {
+    id: 'exportBtn',
+    text: state.cloudEnabled ? 'Sync' : 'Export',
+    title: state.cloudEnabled
+      ? 'Sync your data with the cloud'
+      : 'Export local backup',
+    onclick: () => {
+      if (state.cloudEnabled) {
+        cloudSave(state);
+      } else {
+        exportData();
+      }
+    },
+  });
+
+
+  const importBtn = el('button', {
+    id: 'importBtn',
+    text: state.cloudEnabled ? 'Cloud Load' : 'Import',
+    title: state.cloudEnabled
+      ? 'Load from cloud storage'
+      : 'Import a saved JSON file',
+    onclick: () => importFile.click(),
+  });
+
+
+  let importFile = document.getElementById('importFile');
+  if (!importFile) {
+    importFile = el('input', {
+      id: 'importFile',
+      type: 'file',
+      accept: 'application/json',
+      style: 'display:none',
+    });
+    importFile.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        state = data;
+        selectedId = state.batches[0]?.id || null;
+        saveAll(state);
+        render();
+      } catch (err) {
+        console.error('❌ Import failed:', err);
+        alert('Import failed: ' + err.message);
+      }
+    });
+    footer.insertBefore(importFile, footer.firstChild);
+  }
+
+
+  const clearBtn = el('button', {
+    id: 'clearBtn',
+    class: 'btn-danger',
+    text: 'Clear All',
+    title: 'Delete all saved batches',
+    onclick: () => {
+      if (confirm('⚠️ Clear all saved data? This cannot be undone.')) {
+        clearAll();
+      }
+    },
+  });
+
+  exportBtn.disabled = !hasData;
+  clearBtn.disabled = !hasData;
+
+  btnRow.append(exportBtn, importBtn, clearBtn);
+
+
+  footer.append(tagRow, btnRow);
+}
+
+
 function initFeedbackPopup() {
-  // Remove any existing elements
+
   document.getElementById('feedbackBtn')?.remove();
   document.getElementById('feedbackPopup')?.remove();
 
-  // Create floating feedback button
   const btn = el('button', {
     id: 'feedbackBtn',
     title: 'Send Feedback',
@@ -1984,7 +1861,7 @@ function initFeedbackPopup() {
     onclick: () => popup.classList.remove('hidden')
   });
 
-  // Create popup
+
   const popup = el('div', { id: 'feedbackPopup', class: 'popup hidden' }, [
     el('div', { class: 'popup-content' }, [
       el('h3', { text: 'Send Feedback' }),
@@ -2017,36 +1894,98 @@ function initFeedbackPopup() {
     ])
   ]);
 
-  // Append to body
+
   document.body.append(btn, popup);
 }
 
-// Initialize after render
+
 initFeedbackPopup();
 
 
-/**
- * Render the entire UI
- * Calls both the sidebar (batch list) and the detail panel
- */
-function render() {
-  renderBatchList();
-  renderDetail();
+function exportData() {
+  try {
+    const dataStr = JSON.stringify(state, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'meadtrics_backup.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+    console.log('✅ Exported MeadTrics data.');
+  } catch (err) {
+    console.error('❌ Export failed:', err);
+    alert('Export failed: ' + err.message);
+  }
 }
 
-/**
- * Render the sidebar batch list
- * Divides batches into Active and Archived sections,
- * supports search filtering, inline renaming, and deletion.
- */
+
+function renderSearchBox() {
+  const container = document.getElementById('searchBox');
+  if (!container) return;
+
+  container.innerHTML = ''; 
+
+const placeholder = 'Search batches… (name or notes)';
+
+
+  const input = el('input', {
+    id: 'searchInput',
+    type: 'text',
+    placeholder,
+    style: `
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: #0f141b;
+      color: var(--text);
+    `
+  });
+
+
+  input.addEventListener('input', () => {
+    renderBatchList();
+  });
+
+
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Escape') {
+      input.value = '';
+      renderBatchList();
+    }
+  });
+
+  container.append(input);
+}
+
+
+function render(highlightId = null) {
+
+  const app = document.querySelector('.app');
+  if (!app.children.length) renderApp();
+
+
+  renderSidebarHeader();
+  renderSearchBox();
+  renderBatchList();
+  renderDetail(highlightId);
+  renderFooterButtons();
+}
+
+
 function renderBatchList() {
   const list = document.getElementById('batchList');
   if (!list) return;
 
-  // --- Clear old content ---
+
   list.innerHTML = '';
 
-  // --- Filter + sort batches ---
+
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
 
   const sorted = [...state.batches]
@@ -2060,14 +1999,12 @@ function renderBatchList() {
   const active = sorted.filter(b => !b.events.some(e => e.type === 'bottled'));
   const archived = sorted.filter(b => b.events.some(e => e.type === 'bottled'));
 
-  /**
-   * Helper: collapsible batch section
-   */
+
   const makeSection = (key, title, batches, emptyText) => {
     const isCollapsed = sidebarCollapse[key];
     const section = el('div', { class: 'fieldset', style: 'margin-bottom:12px;' });
 
-    // --- Section header ---
+
     const header = el(
       'div',
       {
@@ -2082,7 +2019,7 @@ function renderBatchList() {
         `,
         onclick: () => {
           sidebarCollapse[key] = !sidebarCollapse[key];
-          renderBatchList(); // re-render sidebar only
+          renderBatchList();
         }
       },
       [
@@ -2098,17 +2035,17 @@ function renderBatchList() {
 
     if (isCollapsed) return section;
 
-    // --- Empty message ---
+
     if (!batches.length) {
       section.append(el('div', { class: 'empty', text: emptyText }));
       return section;
     }
 
-    // --- Each batch item ---
+
     batches.forEach(b => {
       const item = el('div', { class: 'batch' });
 
-      // --- Inline rename ---
+
       const nameEl = (() => {
         const nameDiv = el('div', {
           class: 'name',
@@ -2150,7 +2087,7 @@ function renderBatchList() {
         return nameDiv;
       })();
 
-      // --- Delete button ---
+
       const delBtn = el('button', {
         text: '✕',
         class: 'btn-danger',
@@ -2173,7 +2110,7 @@ function renderBatchList() {
         style: 'justify-content:space-between;align-items:center;'
       }, [nameEl, delBtn]);
 
-      // --- Metadata ---
+
       const latestSG = b.sgReadings?.length
         ? b.sgReadings[b.sgReadings.length - 1].sg
         : null;
@@ -2216,52 +2153,78 @@ function renderBatchList() {
     return section;
   };
 
-  // --- Sidebar Build Order ---
-  list.append(batchHeaderCard());
-  list.append(makeSection('active', '🧪 Active Batches', active, 'No active batches.'));
-  list.append(makeSection('archived', '🍾 Archived (Bottled)', archived, 'No bottled batches.'));
-  list.append(utilitiesHeaderCard());
-  list.append(tosnaCard());
-  list.append(backsweetCard());
-  list.append(dilutionCard());
-  list.append(primingCard());
-  list.append(stabilCard());
-  list.append(brixCard());
-  list.append(backupHeaderCard());
-  list.append(syncCard());
 
-  // --- Re-attach listeners after render ---
+  const sidebarSections = [
+    batchHeaderCard,
+    () => makeSection('active', '🧪 Active Batches', active, 'No active batches.'),
+    () => makeSection('archived', '🍾 Archived (Bottled)', archived, 'No bottled batches.'),
+    utilitiesHeaderCard,
+    tosnaCard,
+    backsweetCard,
+    dilutionCard,
+    primingCard,
+    stabilCard,
+    brixCard,
+    backupHeaderCard,
+    syncCard
+  ];
+
+
+  for (const create of sidebarSections) {
+    try {
+      const node = create();
+      if (node) list.append(node);
+    } catch (err) {
+      console.error('Sidebar section error:', err);
+    }
+  }
+
   initTosnaBindings();
 }
 
 
-/**
- * Render the main batch detail view.
- * Displays selected batch info, metadata, chart, and related forms.
- * If no batch is selected, shows the "New Batch" creation form instead.
- */
-function renderDetail() {
-  const root = document.getElementById('detail'); // main detail panel
-  const batch = state.batches.find(b => b.id === selectedId); // selected batch
 
-  // --- Empty state ---
+
+function renderDetail() {
+  const root = document.getElementById('detail');
+  if (!root) return;
+
+  const batch = state.batches.find(b => b.id === selectedId);
+
+
   if (!batch) {
     root.innerHTML = '';
-    root.append(newBatchForm());
+
+    if (!state.batches.length) {
+      const messages = [
+        '🐝 Nothing brewing yet!',
+        '🍯 Create your first batch to get started.',
+        '📦 Your meads are waiting...',
+        '✨ No batch selected — pick one on the left.'
+      ];
+      root.append(
+        el('div', {
+          class: 'empty',
+          text: messages[Math.floor(Math.random() * messages.length)]
+        })
+      );
+    } else {
+
+      root.append(newBatchForm());
+    }
     return;
   }
 
-  // --- Clear previous content ---
+
   root.innerHTML = '';
 
-  // === TITLE ROW ===
+
   const titleRow = (() => {
     const row = el('div', {
       class: 'row',
       style: 'justify-content: space-between; align-items: center;'
     });
 
-    // --- Click-to-rename batch title ---
     const title = el('h2', {
       text: batch.name,
       title: 'Click to rename batch'
@@ -2282,23 +2245,26 @@ function renderDetail() {
           padding:6px 10px;
         `
       });
+
       const commit = () => {
         const newName = input.value.trim();
         if (newName) batch.name = newName;
         saveAll(state, batch, ['name']);
         render();
       };
+
       input.addEventListener('blur', commit);
       input.addEventListener('keydown', e => {
         if (e.key === 'Enter') input.blur();
         if (e.key === 'Escape') render();
       });
+
       title.replaceWith(input);
       input.focus();
       input.select();
     });
 
-    // --- Duplicate batch button ---
+
     const dupBtn = el('button', {
       text: '🔁 Duplicate',
       class: 'btn-accent',
@@ -2329,7 +2295,7 @@ function renderDetail() {
       }
     });
 
-    // --- Label Maker button ---
+
     const labelBtn = el('button', {
       text: '🖨️ Label Maker',
       class: 'btn-accent',
@@ -2342,7 +2308,7 @@ function renderDetail() {
     return row;
   })();
 
-  // === METADATA & SUMMARY ===
+
   const summarySection = (() => {
     const sugarBreak = calcSugarBreak(batch.og);
 
@@ -2355,13 +2321,14 @@ function renderDetail() {
     const abv = calcABV(batch.og, currentSG);
     console.log('Current SG reading for', batch.name, ':', currentSG, batch.sgReadings);
 
-    const text =
-      `Started ${fmt(batch.startDate)} · OG ${batch.og}` +
-      (currentSG ? ` · SG ${currentSG}` : '') +
-      (abv ? ` · ABV ${abv.toFixed(1)}%` : '') +
-      (sugarBreak ? ` · 1/3 Break: ${sugarBreak}` : '');
+    const textParts = [];
+    if (batch.startDate) textParts.push(`Started ${fmt(batch.startDate)}`);
+    if (batch.og) textParts.push(`OG ${batch.og}`);
+    if (currentSG) textParts.push(`SG ${currentSG}`);
+    if (abv) textParts.push(`ABV ${abv.toFixed(1)}%`);
+    if (sugarBreak) textParts.push(`1/3 Break: ${sugarBreak}`);
 
-    const metaLine = el('div', { text });
+    const metaLine = el('div', { text: textParts.join(' · ') });
     const honeyLine = el('div', {
       class: 'meta',
       text:
@@ -2373,7 +2340,7 @@ function renderDetail() {
     return el('div', {}, [metaLine, honeyLine]);
   })();
 
-  // === MAIN INTERACTIVE COMPONENTS ===
+
   const components = [
     chartCard(batch),
     sgFormCard(batch),
@@ -2382,35 +2349,25 @@ function renderDetail() {
     eventsTable(batch)
   ];
 
-  // === Build and render full detail view ===
+
   const container = el('div', {}, [titleRow, summarySection, ...components]);
   root.append(container);
 
-  // === Render chart ===
+
   drawChart(batch);
 }
 
-
-/**
- * Create the chart fieldset for displaying fermentation data.
- * Shows a graph of Specific Gravity (SG) or ABV (%) over time,
- * with a toggle button to switch between the two views.
- *
- * @param {Object} batch - The current batch object being displayed
- * @returns {HTMLElement} - A <fieldset> element containing the chart UI
- */
 function chartCard(batch) {
   return el('div', {
     class: 'fieldset',
     style: 'margin-top:16px;'
   }, [
-    // --- Collapsible legend / title ---
+
     el('legend', {
       text: '📈 Gravity & ABV Over Time',
       style: 'font-weight:600;'
     }),
 
-    // --- Header row with chart mode + toggle ---
     el('div', {
       class: 'row',
       style: `
@@ -2433,12 +2390,11 @@ function chartCard(batch) {
         style: 'padding:3px 10px;font-size:12px;',
         onclick: () => {
           chartMode = chartMode === 'sg' ? 'abv' : 'sg';
-          render(); // re-render full detail view to refresh chart
+          render();
         }
       })
     ]),
 
-    // --- Canvas container ---
     el('canvas', {
       id: 'sgChart',
       width: 800,
@@ -2454,15 +2410,9 @@ function chartCard(batch) {
   ]);
 }
 
-/**
- * Create a fieldset form for adding new Specific Gravity (SG) readings.
- * Each reading updates both the batch’s sgReadings array and event log.
- *
- * @param {Object} batch - The batch object to which the reading belongs
- * @returns {HTMLElement} - A <fieldset> element containing the SG input form
- */
+
 function sgFormCard(batch) {
-  // === Outer container ===
+
   const card = el('div', {
     class: 'fieldset',
     style: 'margin-top:16px;'
@@ -2473,12 +2423,12 @@ function sgFormCard(batch) {
     })
   ]);
 
-  // === Form layout ===
+
   const form = el('div', {
     class: 'grid',
     style: 'gap:8px;'
   }, [
-    // --- Date column ---
+
     el('div', { class: 'col-6' }, [
       el('label', { text: 'Date' }),
       el('input', {
@@ -2496,7 +2446,7 @@ function sgFormCard(batch) {
       })
     ]),
 
-    // --- SG column ---
+
     el('div', { class: 'col-6' }, [
       el('label', { text: 'Specific Gravity (SG)' }),
       el('input', {
@@ -2518,7 +2468,7 @@ function sgFormCard(batch) {
     ])
   ]);
 
-  // === Button ===
+
   const addBtn = el('button', {
     class: 'btn-accent',
     text: 'Add Reading',
@@ -2535,11 +2485,11 @@ function sgFormCard(batch) {
       const sgStr = sgNum.toFixed(3);
       const sgId = crypto.randomUUID();
 
-      // --- Add reading ---
+
       batch.sgReadings.push({ id: sgId, date, sg: sgStr });
       batch.sgReadings.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      // --- Add event for reading ---
+
       batch.events.push({
         date,
         type: 'added sg reading',
@@ -2548,30 +2498,22 @@ function sgFormCard(batch) {
         note: `SG: ${sgStr}`
       });
 
-      // --- Save and re-render ---
       saveAll(state, batch, ['sgReadings', 'events']);
       render();
     }
   });
 
-  // === Assemble card ===
+
   card.append(form, addBtn);
   return card;
 }
 
 
-/**
- * Create a fieldset form for adding general events or notes to a batch.
- * Supports predefined event types (fermentation stages, racking, etc.)
- * and a custom "note" type with free-text input.
- *
- * @param {Object} batch - The current batch to which the event will be added
- * @returns {HTMLElement} - A <fieldset> element containing the event form
- */
+
 function eventFormCard(batch) {
   const today = new Date().toISOString().slice(0, 10);
 
-  // === Outer container ===
+
   const card = el('div', {
     class: 'fieldset',
     style: 'margin-top:16px;'
@@ -2582,13 +2524,11 @@ function eventFormCard(batch) {
     })
   ]);
 
-  // === Main grid layout ===
   const grid = el('div', {
     class: 'grid',
     style: 'gap:8px;'
   });
 
-  // --- Date input ---
   const dateInput = el('input', {
     id: 'evDate',
     type: 'date',
@@ -2607,7 +2547,6 @@ function eventFormCard(batch) {
     dateInput
   ]);
 
-  // --- Event type selector ---
   const typeSelect = (() => {
     const sel = el('select', {
       id: 'evType',
@@ -2631,7 +2570,6 @@ function eventFormCard(batch) {
     typeSelect
   ]);
 
-  // --- Note textarea (hidden unless type === 'note') ---
   const noteWrap = el('div', {
     class: 'col-12',
     id: 'noteWrap',
@@ -2654,7 +2592,7 @@ function eventFormCard(batch) {
     })
   ]);
 
-  // --- Add Event button ---
+
   const addBtn = el('button', {
     class: 'btn-accent',
     text: 'Add Event',
@@ -2676,20 +2614,20 @@ function eventFormCard(batch) {
       saveAll(state, batch, ['events']);
       render();
 
-      // Optional: notify when bottled
+
       if (ev.type === 'bottled') {
-        // alert(`Batch “${batch.name}” marked as bottled and moved to Archived.`);
+
       }
     }
   });
 
   const btnRow = el('div', { class: 'col-12' }, [addBtn]);
 
-  // --- Assemble grid ---
+
   grid.append(dateCol, typeCol, noteWrap, btnRow);
   card.append(grid);
 
-  // --- Dynamic note visibility ---
+
   typeSelect.addEventListener('change', () => {
     noteWrap.style.display = typeSelect.value === 'note' ? 'block' : 'none';
   });
@@ -2698,16 +2636,8 @@ function eventFormCard(batch) {
 }
 
 
-/**
- * Create a table displaying all events and notes for a batch.
- * Includes editable note fields, event deletion, and logic to
- * remove linked SG readings when their associated event is deleted.
- *
- * @param {Object} batch - The batch whose events should be displayed
- * @returns {HTMLElement} - A <fieldset> element containing the events table
- */
 function eventsTable(batch) {
-  // === Outer container ===
+
   const card = el("div", {
     class: "fieldset",
     style: "margin-top:16px;"
@@ -2718,7 +2648,7 @@ function eventsTable(batch) {
     })
   ]);
 
-  // === Table ===
+
   const table = el("table", {
     class: "table",
     style: `
@@ -2731,19 +2661,19 @@ function eventsTable(batch) {
     `
   });
 
-  // === Table header ===
+
   const thead = el("thead", {}, [
     el("tr", {}, [
       el("th", { text: "Date" }),
       el("th", { text: "Event Type" }),
       el("th", { text: "Note / SG" }),
-      el("th", { text: "" }) // delete button column
+      el("th", { text: "" }) 
     ])
   ]);
 
   const tbody = el("tbody");
 
-  // === Populate table ===
+
   batch.events
     .slice()
     .sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -2751,13 +2681,13 @@ function eventsTable(batch) {
       const tr = el("tr", {}, []);
       tr.dataset.type = ev.type;
 
-      // --- Date ---
+
       const dateCell = el("td", { text: fmt(ev.date) });
 
-      // --- Type ---
+
       const typeCell = el("td", { text: ev.type });
 
-      // --- Note / SG cell ---
+
       const noteCell = (() => {
         const td = el("td");
         if (ev.type === "note") {
@@ -2810,7 +2740,7 @@ function eventsTable(batch) {
               ev.sg = sgStr;
               ev.note = `SG: ${sgStr}`;
 
-              // Update linked SG reading if present
+
               if (ev.sgId) {
                 const r = batch.sgReadings.find(x => x.id === ev.sgId);
                 if (r) r.sg = sgStr;
@@ -2844,7 +2774,7 @@ function eventsTable(batch) {
         return td;
       })();
 
-      // --- Delete Button ---
+
       const delCell = el("td", {}, [
         el("button", {
           text: "✕",
@@ -2856,7 +2786,7 @@ function eventsTable(batch) {
             if (i >= 0) {
               batch.events.splice(i, 1);
 
-              // Remove linked SG reading if applicable
+
               if (ev.type === "added sg reading") {
                 if (ev.sgId) {
                   const idx = batch.sgReadings.findIndex(r => r.id === ev.sgId);
@@ -2889,19 +2819,11 @@ function eventsTable(batch) {
 }
 
 
-/**
- * Create an editable table for managing the batch's ingredient list.
- * Allows live editing of honey, sugar, water, and additives,
- * as well as adding or removing ingredient rows dynamically.
- *
- * @param {Object} batch - The batch object whose ingredients are displayed
- * @returns {HTMLElement} - A <fieldset> element containing the editable table
- */
 function ingredientsTable(batch) {
-  // --- Ensure ingredients array exists ---
+
   if (!batch.ingredients) batch.ingredients = [];
 
-  // === Outer container ===
+
   const card = el('div', {
     class: 'fieldset',
     style: 'margin-top:16px;'
@@ -2912,7 +2834,7 @@ function ingredientsTable(batch) {
     })
   ]);
 
-  // === Build table ===
+
   const table = el('table', {
     class: 'table',
     style: `
@@ -2925,7 +2847,7 @@ function ingredientsTable(batch) {
     `
   });
 
-  // --- Table header ---
+
   const thead = el('thead', {}, [
     el('tr', {}, [
       el('th', { text: 'Honey (kg)' }),
@@ -2938,7 +2860,7 @@ function ingredientsTable(batch) {
 
   const tbody = el('tbody');
 
-  // === Render rows ===
+
   batch.ingredients.forEach(ing => {
     const tr = el('tr', {}, []);
 
@@ -2967,7 +2889,7 @@ function ingredientsTable(batch) {
       tr.append(td);
     });
 
-    // --- Delete row button ---
+
     const delBtn = el('button', {
       text: '✕',
       class: 'btn-danger',
@@ -2987,7 +2909,7 @@ function ingredientsTable(batch) {
 
   table.append(thead, tbody);
 
-  // === Add Ingredient button ===
+
   const addRowBtn = el('button', {
     text: '+ Add Ingredient',
     class: 'btn-accent',
@@ -3008,19 +2930,10 @@ function ingredientsTable(batch) {
   return card;
 }
 
-
-/**
- * Create a form for adding a new mead batch.
- * Captures basic batch info (name, OG, yeast, volume, etc.),
- * optional ingredients, and creates an initialized batch record
- * with a default "primary fermentation" event.
- *
- * @returns {HTMLElement} - A <fieldset> element containing the new batch form
- */
 function newBatchForm() {
   const today = new Date().toISOString().slice(0, 10);
 
-  // === Outer container ===
+
   const card = el('div', {
     class: 'fieldset',
     style: 'margin-top:16px;'
@@ -3031,7 +2944,6 @@ function newBatchForm() {
     })
   ]);
 
-  // === Helper for consistent input styling ===
   const inputStyle = `
     width:100%;
     border-radius:6px;
@@ -3042,7 +2954,7 @@ function newBatchForm() {
     margin-bottom:8px;
   `;
 
-  // === Basic Info ===
+
   const basicInfo = el('div', {}, [
     el('label', { text: 'Name' }),
     el('input', { id: 'bName', type: 'text', placeholder: 'e.g. Bochet #3', style: inputStyle }),
@@ -3071,7 +2983,7 @@ function newBatchForm() {
     el('input', { id: 'bVolume', type: 'number', step: '0.1', min: '0.1', placeholder: 'e.g. 5.0', style: inputStyle })
   ]);
 
-  // === Optional Ingredients Subsection ===
+
   const ingSet = el('div', {
     class: 'fieldset',
     style: 'margin-top:10px;'
@@ -3097,7 +3009,7 @@ function newBatchForm() {
     ])
   ]);
 
-  // === Description ===
+
   const desc = el('div', { style: 'margin-top:10px;' }, [
     el('label', { text: 'Description / Notes' }),
     el('textarea', {
@@ -3111,7 +3023,7 @@ function newBatchForm() {
     })
   ]);
 
-  // === Create Batch Button ===
+
   const createBtn = el('button', {
     class: 'btn-accent',
     text: 'Create Batch',
@@ -3150,7 +3062,7 @@ function newBatchForm() {
         ingredients: []
       };
 
-      // Optional ingredients
+
       if (isFinite(honeyWeight) || isFinite(sugar) || isFinite(water) || additives) {
         batch.ingredients.push({
           honey: isFinite(honeyWeight) ? honeyWeight.toFixed(1) : '',
@@ -3167,19 +3079,11 @@ function newBatchForm() {
     }
   });
 
-  // === Assemble final form ===
   card.append(basicInfo, ingSet, desc, createBtn);
   return card;
 }
 
 
-/* === Utility Functions === */
-
-/**
- * Calculate the 1/3 sugar break gravity.
- * Formula: 1 + (OG - 1) / 3
- * Returns a 3-decimal formatted string.
- */
 function calcSugarBreak(og) {
   const ogNum = parseFloat(og);
   if (!isFinite(ogNum) || ogNum < 0.9 || ogNum > 1.5) return null;
@@ -3187,11 +3091,7 @@ function calcSugarBreak(og) {
   return sgBreak.toFixed(3);
 }
 
-/**
- * Calculate Alcohol by Volume (ABV) based on original and final gravity.
- * Formula: (OG − FG) × 131.25
- * Returns null if either value is missing or invalid.
- */
+
 function calcABV(og, fg) {
   if (!og || !fg) return null;
   const OG = parseFloat(og), FG = parseFloat(fg);
@@ -3199,10 +3099,6 @@ function calcABV(og, fg) {
   return (OG - FG) * 131.25;
 }
 
-/**
- * Format how long ago a batch was bottled, expressed as
- * days, weeks, or months (e.g., “3 weeks old”, “2 months 1 wk old”).
- */
 function formatMaturityDays(bottledDate) {
   const diffMs = Date.now() - new Date(bottledDate).getTime();
   const days = Math.floor(diffMs / 86400000);
@@ -3225,12 +3121,6 @@ function formatMaturityDays(bottledDate) {
   return result + ' old';
 }
 
-
-/**
- * Format fermentation duration since start date,
- * returning readable strings like “Fermenting for 3 days”
- * or “Fermenting for 2 months 1 wk”.
- */
 function formatFermentationDays(startDate) {
   const diffMs = Date.now() - new Date(startDate).getTime();
   const days = Math.floor(diffMs / 86400000);
@@ -3253,14 +3143,6 @@ function formatFermentationDays(startDate) {
   return result;
 }
 
-
-/* === Chart Rendering === */
-
-/**
- * Draw a line chart showing either Specific Gravity (SG)
- * or ABV (%) progression over time for the selected batch.
- */
-
 function drawChart(batch) {
   const c = document.getElementById('sgChart');
   if (!c) return;
@@ -3268,7 +3150,6 @@ function drawChart(batch) {
   const ctx = c.getContext('2d');
   const pad = { l: 45, r: 10, t: 10, b: 28 };
 
-  // Retina scaling
   const dpr = window.devicePixelRatio || 1;
   const logicalW = 800;
   const logicalH = 260;
@@ -3278,7 +3159,6 @@ function drawChart(batch) {
   c.style.height = logicalH + 'px';
   ctx.scale(dpr, dpr);
 
-  // Prepare data
   const readings = (batch.sgReadings || [])
     .slice()
     .sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -3327,7 +3207,6 @@ function drawChart(batch) {
     p.yy = yScale(p.y);
   });
 
-  // Tooltip setup
   let tooltip = document.getElementById('chart-tooltip');
   if (!tooltip) {
     tooltip = document.createElement('div');
@@ -3342,7 +3221,7 @@ function drawChart(batch) {
     ctx.clearRect(0, 0, logicalW, logicalH);
     ctx.save();
 
-    // Axes
+
     ctx.strokeStyle = '#2a3340';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -3351,7 +3230,7 @@ function drawChart(batch) {
     ctx.lineTo(pad.l + W, pad.t + H);
     ctx.stroke();
 
-    // Y grid
+
     ctx.fillStyle = '#8fa3bd';
     ctx.font = '12px system-ui';
     ctx.textAlign = 'right';
@@ -3366,7 +3245,7 @@ function drawChart(batch) {
       ctx.stroke();
     }
 
-    // X ticks
+
     ctx.textAlign = 'center';
     const ticks = 4;
     for (let i = 0; i <= ticks; i++) {
@@ -3375,14 +3254,14 @@ function drawChart(batch) {
       ctx.fillText(new Date(x).toLocaleDateString(), xx, pad.t + H + 20);
     }
 
-    // Data line
+
     ctx.strokeStyle = chartMode === 'sg' ? '#82cfff' : '#b5e08a';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     points.forEach((p, i) => (i ? ctx.lineTo(p.xx, p.yy) : ctx.moveTo(p.xx, p.yy)));
     ctx.stroke();
 
-    // Sugar break line
+
     if (sugarBreak) {
       const breakValue =
         chartMode === 'sg'
@@ -3415,7 +3294,7 @@ function drawChart(batch) {
       }
     }
 
-    // Data points
+
     points.forEach((p, i) => {
       ctx.beginPath();
       if (i === 0) {
@@ -3445,7 +3324,7 @@ function drawChart(batch) {
 
   renderBase();
 
-  // Hover handling
+
   const radius = 14;
   c.onmousemove = evt => {
     const rect = c.getBoundingClientRect();
@@ -3470,7 +3349,7 @@ function drawChart(batch) {
       renderBase(nearest);
       tooltip.style.display = 'block';
 
-      // DPI-safe tooltip positioning
+
       const left = nearest.xx / dpr + 12;
       const top = nearest.yy / dpr - 28;
       tooltip.style.left = `${left}px`;
@@ -3494,27 +3373,27 @@ function drawChart(batch) {
       tooltip.style.display = 'none';
       renderBase();
     }
-  }; // ✅ closes onmousemove
+  };
 
   c.onmouseleave = () => {
     tooltip.style.display = 'none';
     renderBase();
   };
-} // ✅ closes drawChart()
+} 
 
 
-/* === UI Event Listeners === */
 
-// === New Batch button ===
+
+
 $('#newBatchBtn')?.addEventListener('click', () => {
   selectedId = null;
   render();
 });
 
-// === Sidebar live search ===
+
 $('#searchInput')?.addEventListener('input', () => renderBatchList());
 
-// === Clear all data ===
+
 $('#clearBtn')?.addEventListener('click', () => {
   if (!confirm('⚠️ Delete ALL MeadTrics data? This cannot be undone.')) return;
   state = { batches: [] };
@@ -3523,7 +3402,7 @@ $('#clearBtn')?.addEventListener('click', () => {
   render();
 });
 
-// === Export data as JSON ===
+
 $('#exportBtn')?.addEventListener('click', () => {
   try {
     const blob = new Blob([JSON.stringify(state, null, 2)], {
@@ -3542,24 +3421,11 @@ $('#exportBtn')?.addEventListener('click', () => {
 });
 
 
-// Import data from JSON file
-$('#importBtn').addEventListener('click', () => $('#importFile').click());
-$('#importFile').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const text = await file.text();
-  const data = JSON.parse(text);
-  state = data;
-  selectedId = state.batches[0]?.id || null;
-   saveAll(state);
-  render();
-});
-
 function openLabelMaker(batch) {
   const existing = document.getElementById('labelModal');
-  if (existing) existing.remove(); // remove old modal if open
+  if (existing) existing.remove(); 
 
-  // Helper: escape plain text
+
   const escapeHTML = s => String(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -3579,7 +3445,7 @@ function openLabelMaker(batch) {
     : '–';
   const honey = batch.honey || 'Mixed Blossom';
 
-  // === Build modal structure ===
+
   const modal = el('div', { id: 'labelModal', class: 'modal-overlay' }, [
     el('div', { class: 'modal-content card' }, [
       el('div', { class: 'label-preview', id: 'labelPreview' }, [
@@ -3615,15 +3481,15 @@ function openLabelMaker(batch) {
     ])
   ]);
 
-  // === Add to document ===
+
   document.body.append(modal);
 
-  // Close on overlay click
+
   modal.addEventListener('click', e => {
     if (e.target === modal) modal.remove();
   });
 
-  // Close on Escape key
+
   document.addEventListener('keydown', function escHandler(ev) {
     if (ev.key === 'Escape') {
       modal.remove();
@@ -3633,7 +3499,7 @@ function openLabelMaker(batch) {
 }
 
 
-// === ExtendsClass JSON Storage Hybrid ===
+
 let EXTENDS_BIN_ID = localStorage.getItem("EXTENDS_BIN_ID") || null;
 let EXTENDS_API_KEY = localStorage.getItem("EXTENDS_API_KEY") || "";
 const EXTENDS_API = "https://json.extendsclass.com/bin";
@@ -3657,7 +3523,7 @@ function updateSyncCard() {
       : "💾 Local-only mode";
 }
 
-// === Dynamic YAN estimator) ===
+
 function updateYAN() {
   const yeastABV = parseFloat(document.getElementById('tosnaYeastABV').value) || 14;
   const sweetness = document.getElementById('tosnaSweetness').value;
@@ -3697,7 +3563,7 @@ function initTosnaBindings() {
   
 }
 
-// === Auto FG / OG Estimator ===
+
 function updateFGOG() {
   const yeastABV = parseFloat(document.getElementById('tosnaYeastABV').value) || 14;
   const sweetness = document.getElementById('tosnaSweetness').value;
@@ -3707,14 +3573,14 @@ function updateFGOG() {
   else if (sweetness === 'semi') fg = 1.015;
   else if (sweetness === 'sweet') fg = 1.030;
 
-  // Estimate OG needed to reach ABV goal
+
   const og = (fg + (yeastABV / 131.25)).toFixed(3);
 
   const display = document.getElementById('tosnaFGOG');
   display.innerHTML = `Estimated FG: <b>${fg.toFixed(3)}</b> → Suggested OG: <b>${og}</b>`;
 }
 
-// === Backsweetening Calculator ===
+
 function calcBacksweetening() {
   const sg1 = parseFloat(document.getElementById('back_currentSG').value);
   const sg2 = parseFloat(document.getElementById('back_desiredSG').value);
@@ -3727,16 +3593,16 @@ function calcBacksweetening() {
     return;
   }
 
-  // Convert SG to sugar g/L
+
   const sgToGpl = sg => (182.4601 * sg ** 3) - (775.6821 * sg ** 2) + (1262.7794 * sg) - 669.5622;
   const sugarCurrent = sgToGpl(sg1);
   const sugarDesired = sgToGpl(sg2);
   const sugarDiff = sugarDesired - sugarCurrent;
 
-  const sugarKg = (sugarDiff * vol) / 1000; // g/L × L → g → kg
+  const sugarKg = (sugarDiff * vol) / 1000; 
 
-  // Convert to equivalent total weight based on type
-  let factor = 1; // default 100% sugar
+
+  let factor = 1;
   let label = "sugar";
 
   if (type === "honey") {
@@ -3761,7 +3627,6 @@ function calcBacksweetening() {
   `;
 }
 
-// === Dilution Calculator ===
 function calcDilution() {
   const sg1 = parseFloat(document.getElementById('dil_current').value);
   const sg2 = parseFloat(document.getElementById('dil_target').value);
@@ -3777,7 +3642,7 @@ function calcDilution() {
     `Add approximately <b>${waterToAdd.toFixed(2)} L</b> of water to reduce from ${sg1.toFixed(3)} → ${sg2.toFixed(3)} SG.`;
 }
 
-// === Priming Calculator ===
+
 function calcPriming() {
   const vol = parseFloat(document.getElementById('prime_volume').value);
   const co2 = parseFloat(document.getElementById('prime_co2').value);
@@ -3795,7 +3660,7 @@ function calcPriming() {
     return;
   }
 
-  // Simple rule: 1 CO₂ volume ≈ 4 g sugar per litre
+
   const sugarPerL = co2 * 4;
   const totalSugarG = vol * sugarPerL;
   const totalSugarKg = totalSugarG / 1000;
@@ -3809,7 +3674,7 @@ function calcPriming() {
   `;
 }
 
-// === Stabilisation Calculator ===
+
 function calcStabilisation() {
   const vol = parseFloat(document.getElementById('stab_volume').value);
   if (isNaN(vol) || vol <= 0) {
@@ -3817,9 +3682,7 @@ function calcStabilisation() {
     return;
   }
 
-  // Standard “rule of thumb” stabilisation:
-  // 0.2 g/L Potassium Sorbate
-  // 0.15 g/L Potassium Metabisulfite
+
   const sorbate = vol * 0.2;
   const meta = vol * 0.15;
 
@@ -3830,7 +3693,7 @@ function calcStabilisation() {
   `;
 }
 
-// --- Brix <-> SG Converter ---
+
 function brixToSG(brix) {
   return 1 + (brix / (258.6 - ((brix / 258.2) * 227.1)));
 }
@@ -3838,10 +3701,6 @@ function brixToSG(brix) {
 function sgToBrix(sg) {
   return (((182.4601 * sg - 775.6821) * sg + 1262.7794) * sg - 669.5622);
 }
-
-/**
- * Create a new ExtendsClass bin when the user has provided a key.
- */
 
 async function createBin() {
   try {
@@ -3877,9 +3736,6 @@ async function createBin() {
   }
 }
 
-/**
- * Load from ExtendsClass if API key present; otherwise from local storage.
- */
 async function cloudLoad() {
   try {
     const EXTENDS_API_KEY = localStorage.getItem("EXTENDS_API_KEY");
@@ -3898,7 +3754,10 @@ async function cloudLoad() {
     });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    let data = await res.json();
+
+    // 🧩 unwrap legacy/new bin formats
+    if (data.data && data.data.batches) data = data.data;
     console.log("☁️ Cloud data loaded:", data);
     return data;
   } catch (err) {
@@ -3907,24 +3766,13 @@ async function cloudLoad() {
   }
 }
 
-/**
- * Save to ExtendsClass if API key provided, always save local.
- */
-/**
- * Save to ExtendsClass if API key provided, always save local.
- * Uses PATCH (merge) when possible instead of full PUT overwrite.
- */
-/**
- * Save to ExtendsClass if API key provided, always save local.
- * Uses PATCH (merge) when possible instead of full PUT overwrite.
- * Also auto-migrates legacy (non-wrapped) bins into { data: ... } format.
- */
+
 async function cloudSave(payload, patchOnly = true) {
   try {
-    // Always begin with a full clone of current app state
+
     let merged = structuredClone(state);
 
-    // If a partial payload was provided, merge it into the clone
+
     if (payload && payload.batches) {
       for (const patchBatch of payload.batches) {
         const idx = merged.batches.findIndex(b => b.id === patchBatch.id);
@@ -3936,7 +3784,7 @@ async function cloudSave(payload, patchOnly = true) {
       }
     }
 
-    // Before saving, check the current bin structure — migrate if needed
+
     let shouldMigrate = false;
     try {
       const checkRes = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
@@ -3961,8 +3809,8 @@ async function cloudSave(payload, patchOnly = true) {
       "Security-key": EXTENDS_KEY
     };
 
-    // Always store in wrapped form { data: merged }
-	if (merged.data && merged.batches) delete merged.batches; // 🧹 clean
+
+	if (merged.data && merged.batches) delete merged.batches; 
     const body = JSON.stringify({ data: merged });
 
     const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
@@ -3988,20 +3836,19 @@ async function cloudSave(payload, patchOnly = true) {
 }
 window.addEventListener("beforeunload", () => cloudSave(state));
 
-/**
- * Handle API-key input in the side panel.
- */
+
 const saveApiKeyBtn = document.getElementById("saveApiKeyBtn");
 if (saveApiKeyBtn) {
   saveApiKeyBtn.addEventListener("click", async () => {
     const keyInput = document.getElementById("apiKeyInput");
     const newKey = keyInput.value.trim();
 
-    // 🧹 If the field is blank, clear all ExtendsClass info
+    // 🧹 If blank — disable cloud mode completely
     if (!newKey) {
       clearExtendsCredentials();
       EXTENDS_API_KEY = "";
       EXTENDS_BIN_ID = "";
+      state.cloudEnabled = false;
       updateSyncCard();
       updateViewBinButton();
       console.log("💾 Cloud sync disabled — reverted to local-only mode.");
@@ -4009,16 +3856,16 @@ if (saveApiKeyBtn) {
       return;
     }
 
-    // Otherwise, save normally
+    // ✅ Save new key and enable cloud mode
     EXTENDS_API_KEY = newKey;
     localStorage.setItem("EXTENDS_API_KEY", EXTENDS_API_KEY);
     localStorage.setItem("EXTENDS_KEY", EXTENDS_KEY);
+    state.cloudEnabled = true;
 
     console.log("🔑 ExtendsClass API key saved:", EXTENDS_API_KEY);
 
-    // Create a new bin if one doesn’t exist yet
+    // 🪣 Create or reuse bin
     if (!EXTENDS_BIN_ID) {
-      // 🧩 Check if a bin already exists for this API key
       const existingBin = await getExistingBin();
       if (existingBin) {
         EXTENDS_BIN_ID = existingBin;
@@ -4029,15 +3876,20 @@ if (saveApiKeyBtn) {
       }
     }
 
-    async ()();
     updateViewBinButton();
+    updateSyncCard();
 
-    // 🟢 NEW: Immediately fetch or push cloud data
+    // ☁️ Attempt to load cloud data, or upload local if empty
     try {
       const cloudData = await cloudLoad();
-      if (cloudData && cloudData.batches && cloudData.batches.length > 0) {
-        console.log("☁️ Loaded cloud data after key entry:", cloudData);
-        state = cloudData;
+      const dataToUse =
+        cloudData && (cloudData.batches?.length || cloudData.data?.batches?.length)
+          ? (cloudData.data?.batches ? cloudData.data : cloudData)
+          : null;
+
+      if (dataToUse) {
+        console.log("☁️ Loaded cloud data after key entry:", dataToUse);
+        state = dataToUse;
         save(state);
         render();
         alert("✅ API key saved — cloud data loaded successfully.");
@@ -4053,11 +3905,6 @@ if (saveApiKeyBtn) {
   });
 }
 
-/**
- * Try to find an existing ExtendsClass bin for this API key.
- * Uses GET https://json.extendsclass.com/bins with header "Api-key".
- * Returns the first bin ID if found, or null if none.
- */
 async function getExistingBin() {
   if (!EXTENDS_API_KEY) {
     console.log("⚠️ No ExtendsClass API key — skipping bin lookup.");
@@ -4085,7 +3932,6 @@ async function getExistingBin() {
     const bins = await res.json();
     if (Array.isArray(bins) && bins.length > 0) {
       console.log(`☁️ Found existing bins: ${bins.join(", ")}`);
-      // reuse the first bin
       return bins[0];
     }
 
@@ -4115,11 +3961,11 @@ function updateViewBinButton() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
-        // ✅ open popup safely (prevent Chrome cross-origin issue)
+
         const popup = window.open("about:blank", "binPopup", "width=700,height=600,resizable,scrollbars=yes");
         if (!popup) return alert("⚠️ Popup blocked. Please allow popups for this site.");
 
-        // build the shell first
+
         popup.document.write(`
           <html>
             <head>
@@ -4156,7 +4002,6 @@ function updateViewBinButton() {
         `);
         popup.document.close();
 
-        // ✅ delay JSON injection to avoid race condition
         popup.onload = () => {
           const area = popup.document.getElementById("jsonArea");
           if (area) area.textContent = JSON.stringify(data, null, 2);
@@ -4174,21 +4019,21 @@ function updateViewBinButton() {
 
 
 async function saveAll(state, changedBatch = null, changedFields = null) {
-  save(state); // always save local first
+  save(state); 
 
-  // No cloud connection configured
+
   if (!EXTENDS_BIN_ID || !EXTENDS_KEY) {
     console.log("💾 Local-only save (no ExtendsClass key).");
     return;
   }
 async ()
-  // Build minimal patch payload if we know what changed
+
   let payload;
   if (changedBatch && Array.isArray(changedFields) && changedFields.length) {
     const partial = { batches: [] };
     const patch = { id: changedBatch.id };
     for (const f of changedFields) {
-      // Copy only requested properties
+
       if (changedBatch[f] !== undefined)
         patch[f] = structuredClone(changedBatch[f]);
     }
@@ -4200,7 +4045,7 @@ async ()
     console.log("☁️ Sending full PATCH (no diff info).");
   }
 
-  // Send to cloud
+
   await cloudSave(state, true);
 }
 
@@ -4212,41 +4057,41 @@ function clearExtendsCredentials() {
   ];
   for (const k of keys) localStorage.removeItem(k);
 
-  // 🧠 Mark that user intentionally disabled cloud sync
+
   localStorage.setItem("EXTENDS_MANUAL_DISABLE", "1");
 
   console.log("🧹 Cleared ExtendsClass credentials from localStorage.");
 }
 
-// === Migration: old MeadTrics → new system ===
+
 function migrateOldLocalData() {
   try {
     const oldKeyNames = [
       "mead-tracker:v1",
       "meadTrackerState",
       "batches",
-      "meadTracker" // catch older keys
+      "meadTracker" 
     ];
 
-    // find first matching old key
+
     const foundKey = oldKeyNames.find((k) => localStorage.getItem(k));
-    if (!foundKey) return false; // nothing to migrate
+    if (!foundKey) return false; 
 
     const oldData = JSON.parse(localStorage.getItem(foundKey));
     if (!oldData || localStorage.getItem("MIGRATION_DONE")) return false;
 
     console.log(`🧩 Found old MeadTrics data in '${foundKey}' → migrating...`);
 
-    // Build new state format
+
     const newState = oldData.batches
       ? oldData
       : { batches: Array.isArray(oldData) ? oldData : [oldData] };
 
-    // Save under new format
+
     save(newState);
     localStorage.setItem("MIGRATION_DONE", "true");
 
-    // If user already has cloud enabled, push immediately
+
     if (EXTENDS_API_KEY && EXTENDS_BIN_ID) {
       cloudSave(newState).then(() =>
         console.log("☁️ Migrated data uploaded to cloud.")
@@ -4264,16 +4109,15 @@ function migrateOldLocalData() {
   }
 }
 
-// === Startup ===
+
 (async () => {
-  // === detect if we have a valid ExtendsClass bin ===
+
   const hasValidBin =
     typeof EXTENDS_BIN_ID !== "undefined" &&
     EXTENDS_BIN_ID &&
     EXTENDS_BIN_ID.trim() !== "";
 
-  // If no bin, politely remind the user once
-  // Only show the local-only alert if the user hasn’t manually disabled cloud sync
+
   const manuallyDisabled = localStorage.getItem("EXTENDS_MANUAL_DISABLE") === "1";
   
   if (!hasValidBin && !manuallyDisabled && !localStorage.getItem("EXTENDS_NOTICE_SHOWN")) {
@@ -4286,27 +4130,34 @@ function migrateOldLocalData() {
     localStorage.setItem("EXTENDS_NOTICE_SHOWN", "true");
   }
 
-  // --- normal startup ---
+
   migrateOldLocalData();
 
-  // Step 1: local render
+
+  renderApp();
+
+
   state = load();
   render();
   updateSyncCard();
   updateViewBinButton();
 
-  // 🟢 NEW: If we have a valid bin but no local batches, pull cloud data first
+
   if (hasValidBin && (!state.batches || !state.batches.length)) {
-    const cloud = await cloudLoad();
-    if (cloud && cloud.batches?.length) {
-      console.log("☁️ Loaded cloud data on startup (local was empty).");
-      state = cloud;
-      save(state);
-      render();
+    try {
+      const cloud = await cloudLoad();
+      if (cloud && cloud.batches?.length) {
+        console.log("☁️ Loaded cloud data on startup (local was empty).");
+        state = cloud;
+        save(state);
+        render();
+      }
+    } catch (err) {
+      console.warn("⚠️ Initial cloud load failed:", err);
     }
   }
 
-  // Step 2: cloud logic only if bin exists
+
   if (hasValidBin) {
     try {
       const cloud = await cloudLoad();
@@ -4332,6 +4183,7 @@ function migrateOldLocalData() {
 
   updateSyncCard();
 })();
+
 
 </script>
 </body>
