@@ -420,18 +420,11 @@ const el = (tag, attrs = {}, children = []) => {
 
 const fmt = (d) => d ? new Date(d).toLocaleDateString() : '';
 
-
-
-
-
 let state = { batches: [] }; 
-
 
 let selectedId = state.batches[0]?.id || null;
 
-
 let chartMode = 'sg'; 
-
 
 let sidebarCollapse = { active: false, archived: false };
 
@@ -1963,7 +1956,6 @@ function render(highlightId = null) {
   const app = document.querySelector('.app');
   if (!app.children.length) renderApp();
 
-
   renderSidebarHeader();
   renderSearchBox();
   renderBatchList();
@@ -2685,24 +2677,24 @@ function eventsTable(batch) {
       const noteCell = (() => {
         const td = el("td");
         if (ev.type === "note") {
-          const textarea = el("textarea", {
-            style: `
-              width:100%;
-              min-height:28px;
-              border-radius:6px;
-              padding:4px;
-              border:1px solid var(--border);
-              background:#0f141b;
-              color:var(--text);
-              resize:vertical;
-            `,
-            value: ev.note || "",
-            oninput: e => {
-              ev.note = e.target.value;
-              saveAll(state, batch, ["events"]);
-            }
-          });
-          td.append(textarea);
+const textarea = el("textarea", {
+  style: `
+    width:100%;
+    min-height:28px;
+    border-radius:6px;
+    padding:4px;
+    border:1px solid var(--border);
+    background:#0f141b;
+    color:var(--text);
+    resize:vertical;
+  `,
+  oninput: e => {
+    ev.note = e.target.value;
+    saveAll(state, batch, ["events"]);
+  }
+});
+textarea.value = ev.note || "";
+td.append(textarea);
         } else if (ev.type === "added sg reading") {
           const sgSpan = el("span", {
             text: `SG: ${ev.sg}`,
