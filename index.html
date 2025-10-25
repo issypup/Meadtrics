@@ -2677,24 +2677,24 @@ function eventsTable(batch) {
       const noteCell = (() => {
         const td = el("td");
         if (ev.type === "note") {
-const textarea = el("textarea", {
-  style: `
-    width:100%;
-    min-height:28px;
-    border-radius:6px;
-    padding:4px;
-    border:1px solid var(--border);
-    background:#0f141b;
-    color:var(--text);
-    resize:vertical;
-  `,
-  oninput: e => {
-    ev.note = e.target.value;
-    saveAll(state, batch, ["events"]);
-  }
-});
-textarea.value = ev.note || "";
-td.append(textarea);
+			const textarea = el("textarea", {
+			  style: `
+				width:100%;
+				min-height:28px;
+				border-radius:6px;
+				padding:4px;
+				border:1px solid var(--border);
+				background:#0f141b;
+				color:var(--text);
+				resize:vertical;
+			  `,
+			  oninput: e => {
+				ev.note = e.target.value;
+				saveAll(state, batch, ["events"]);
+			  }
+			});
+			textarea.value = ev.note || "";
+			td.append(textarea);
         } else if (ev.type === "added sg reading") {
           const sgSpan = el("span", {
             text: `SG: ${ev.sg}`,
