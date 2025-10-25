@@ -6,8 +6,7 @@
   <title>MeadTrics</title>
   <style>
 /* ===============================
-   🎨 MeadTrics Stylesheet
-   Cleaned & Optimized
+   MeadTrics Stylesheet
    =============================== */
 
 /* === Theme Variables === */
@@ -1424,7 +1423,6 @@ const saveBtn = el("button", {
 onclick: async () => {
   const key = apiInput.value.trim();
 
-  // 🧹 Blank key disables cloud mode
   if (!key) {
     clearExtendsCredentials();
     EXTENDS_API_KEY = "";
@@ -1438,7 +1436,6 @@ onclick: async () => {
     return;
   }
 
-  // ✅ Save key & enable cloud mode
   EXTENDS_API_KEY = key;
   localStorage.setItem("EXTENDS_API_KEY", EXTENDS_API_KEY);
   localStorage.setItem("EXTENDS_KEY", EXTENDS_KEY);
@@ -1446,7 +1443,6 @@ onclick: async () => {
   syncStatus.textContent = "☁️ Cloud API key saved.";
   console.log("☁️ Cloud API key saved:", key);
 
-  // 🪣 Ensure bin exists
   if (!EXTENDS_BIN_ID) {
     const existingBin = await getExistingBin();
     if (existingBin) {
@@ -1461,7 +1457,6 @@ onclick: async () => {
   updateViewBinButton();
   updateSyncCard();
 
-  // ☁️ Try to load cloud data
   try {
     let cloudData = await cloudLoad();
     if (cloudData?.data?.batches) cloudData = cloudData.data;
@@ -1482,7 +1477,6 @@ onclick: async () => {
     alert("⚠️ API key saved, but cloud load failed. Using local data for now.");
   }
 }
-
 });
 
 
