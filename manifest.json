@@ -10,18 +10,36 @@
   "background_color": "#0f1216",
   "theme_color": "#735700",
   "prefer_related_applications": false,
+
   "icons": [
     {
       "src": "icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    }
+  ],
+
+  "screenshots": [
+    {
+      "src": "screenshots/desktop-preview.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop view of MeadTrics showing active batch tracking and gravity chart"
+    },
+    {
+      "src": "screenshots/mobile-preview.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile view of MeadTrics batch manager and readings chart"
     }
   ]
 }
