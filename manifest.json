@@ -1,9 +1,10 @@
 {
   "name": "MeadTrics",
   "short_name": "MeadTrics",
+  "id": "/MeadTrics/index.html",
   "description": "Plan, track, and manage your meads — even offline.",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/MeadTrics/",
+  "scope": "/MeadTrics/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f1216",
