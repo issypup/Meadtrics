@@ -1,10 +1,10 @@
 {
   "name": "MeadTrics",
   "short_name": "MeadTrics",
-  "id": "/MeadTrics/index.html",
+  "id": "/Meadtrics/index.html",
   "description": "Plan, track, and manage your meads — even offline.",
-  "start_url": "/MeadTrics/",
-  "scope": "/MeadTrics/",
+  "start_url": "/Meadtrics/",
+  "scope": "/Meadtrics/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f1216",
@@ -26,27 +26,26 @@
     }
   ],
 
-"screenshots": [
-  {
-    "src": "screenshots/desktop-preview.png",
-    "sizes": "1280x720",
-    "type": "image/png",
-    "form_factor": "wide",
-    "label": "Desktop view of MeadTrics showing active batch tracking and gravity chart"
-  },
-  {
-    "src": "screenshots/mobile-preview.png",
-    "sizes": "720x1280",
-    "type": "image/png",
-    "form_factor": "narrow",
-    "label": "Mobile view of MeadTrics batch manager and readings chart"
-  },
-  {
-    "src": "screenshots/universal-preview.png",
-    "sizes": "1080x1080",
-    "type": "image/png",
-    "label": "Universal MeadTrics layout overview"
-  }
-]
-
+  "screenshots": [
+    {
+      "src": "screenshots/desktop-preview.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Desktop view of MeadTrics showing active batch tracking and gravity chart"
+    },
+    {
+      "src": "screenshots/mobile-preview.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile view of MeadTrics batch manager and readings chart"
+    },
+    {
+      "src": "screenshots/universal-preview.png",
+      "sizes": "1080x1080",
+      "type": "image/png",
+      "label": "Universal MeadTrics layout overview"
+    }
+  ]
 }
