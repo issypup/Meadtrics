@@ -3289,7 +3289,8 @@ function newBatchForm() {
         description,
         sgReadings: [],
         events: [{ date: startDate, type: 'primary fermentation' }],
-        ingredients: []
+        ingredients: [],
+		tags: [] // ✅ add this line
       };
 
 
@@ -4256,7 +4257,6 @@ async function saveAll(state, changedBatch = null, changedFields = null) {
     console.log("💾 Local-only save (no ExtendsClass key).");
     return;
   }
-async ()
 
   let payload;
   if (changedBatch && Array.isArray(changedFields) && changedFields.length) {
