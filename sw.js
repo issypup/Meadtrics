@@ -35,15 +35,27 @@ self.addEventListener('activate', e => {
 // Fetch handler (offline-first)
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(res =>
-      res ||
-      fetch(e.request).then(networkRes => {
-        // cache new resource silently
-        caches.open(CACHE_NAME).then(c => c.put(e.request, networkRes.clone()));
+    caches.match(e.request).then(cachedRes => {
+      if (cachedRes) return cachedRes;
+
+      return fetch(e.request).then(networkRes => {
+        // Only cache successful, basic GET responses
+        if (
+          !networkRes ||
+          networkRes.status !== 200 ||
+          networkRes.type !== 'basic'
+        ) {
+          return networkRes;
+        }
+
+        const responseClone = networkRes.clone(); // ✅ clone immediately
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(e.request, responseClone);
+        });
+
         return networkRes;
-      }).catch(() =>
-        caches.match('./index.html')
-      )
-    )
+      }).catch(() => caches.match('./index.html'));
+    })
   );
 });
+
