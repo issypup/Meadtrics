@@ -1,4 +1,5 @@
-const CACHE_NAME = 'meadtrics-cache-v1';
+const CACHE_NAME = 'meadtrics-cache-v2';
+
 const ASSETS = [
   './',
   './index.html',
