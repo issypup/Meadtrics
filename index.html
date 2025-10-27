@@ -510,6 +510,8 @@ html {
 }
 
   </style>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f1216">
 </head>
 <body>
 <div class="app"></div>
@@ -4034,25 +4036,51 @@ return data;
   }
 }
 
+let offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+
+window.addEventListener('online', async () => {
+  console.log('🌐 Back online — syncing queued updates...');
+  for (const queued of offlineQueue) {
+    try {
+      await cloudSave(queued, true);
+      console.log('☁️ Synced queued payload:', queued);
+    } catch (err) {
+      console.warn('⚠️ Failed to sync queued payload:', err);
+    }
+  }
+  offlineQueue = [];
+  localStorage.removeItem('offlineQueue');
+});
 
 async function cloudSave(payload, patchOnly = true) {
   try {
+    // 🧩 Offline queue support (for PWA)
+    if (!navigator.onLine) {
+      console.log("📦 Offline — queuing save for later sync.");
+      const offlineQueue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
+      offlineQueue.push(payload);
+      localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
+      save(state); // always keep local up to date
+      return;
+    }
 
+    // --- Safety guards ---
+    if (!EXTENDS_BIN_ID || !EXTENDS_KEY) {
+      console.warn("⚠️ No ExtendsClass bin/key — skipping cloud save.");
+      return;
+    }
+
+    // --- Merge state with patch payload ---
     let merged = structuredClone(state);
-
-
     if (payload && payload.batches) {
       for (const patchBatch of payload.batches) {
         const idx = merged.batches.findIndex(b => b.id === patchBatch.id);
-        if (idx !== -1) {
-          Object.assign(merged.batches[idx], patchBatch);
-        } else {
-          merged.batches.push(patchBatch);
-        }
+        if (idx !== -1) Object.assign(merged.batches[idx], patchBatch);
+        else merged.batches.push(patchBatch);
       }
     }
 
-
+    // --- Detect legacy bin format ---
     let shouldMigrate = false;
     try {
       const checkRes = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
@@ -4061,7 +4089,7 @@ async function cloudSave(payload, patchOnly = true) {
       if (checkRes.ok) {
         const checkJson = await checkRes.json();
         if (Array.isArray(checkJson.batches) && !checkJson.data) {
-          console.log("🧩 Legacy bin detected (root-level batches) — will migrate to {data:...} format.");
+          console.log("🧩 Legacy bin detected — migrating to {data:...} format.");
           shouldMigrate = true;
         }
       }
@@ -4069,17 +4097,33 @@ async function cloudSave(payload, patchOnly = true) {
       console.warn("⚠️ Could not inspect bin before save:", e);
     }
 
+    // --- Compress payload before upload ---
+    let compressedData;
+    try {
+      if (typeof LZString !== "undefined") {
+        const json = JSON.stringify(merged);
+        const compressed = LZString.compressToBase64(json);
+        compressedData = { __compressed: true, data: compressed };
+      } else {
+        console.warn("⚠️ LZString not loaded — saving uncompressed.");
+        compressedData = merged;
+      }
+    } catch (err) {
+      console.warn("⚠️ Compression failed — fallback to plain JSON:", err);
+      compressedData = merged;
+    }
+
+    // --- Prepare request ---
     const method = patchOnly ? "PATCH" : "PUT";
     const headers = {
-      "Content-Type": patchOnly
-        ? "application/merge-patch+json"
-        : "application/json",
+      "Content-Type": patchOnly ? "application/merge-patch+json" : "application/json",
       "Security-key": EXTENDS_KEY
     };
 
+    // remove redundant nesting if needed
+    if (merged.data && merged.batches) delete merged.batches;
 
-	if (merged.data && merged.batches) delete merged.batches; 
-    const body = JSON.stringify({ data: compressPayload(merged) });
+    const body = JSON.stringify({ data: compressedData });
 
     const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
       method,
@@ -4098,10 +4142,36 @@ async function cloudSave(payload, patchOnly = true) {
     console.log(`☁️ ${method} sync successful${shouldMigrate ? " — bin migrated to new format" : ""}`);
     updateViewBinButton();
   } catch (err) {
-    console.warn("⚠️ ExtendsClass sync failed", err);
+    console.warn("⚠️ ExtendsClass sync failed:", err);
+
+    // Fallback: if offline or failed mid-way, queue for later
+    if (!navigator.onLine) {
+      const offlineQueue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
+      offlineQueue.push(payload);
+      localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
+      console.log("📦 Queued cloud save due to network issue.");
+    }
+
     updateViewBinButton();
   }
 }
+
+// 🔹 When connection is restored, flush queued saves
+window.addEventListener("online", async () => {
+  const queued = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
+  if (!queued.length) return;
+  console.log(`🌐 Back online — syncing ${queued.length} queued updates...`);
+  for (const p of queued) {
+    try {
+      await cloudSave(p, true);
+      console.log("☁️ Synced queued payload");
+    } catch (err) {
+      console.warn("⚠️ Failed to sync queued payload:", err);
+    }
+  }
+  localStorage.removeItem("offlineQueue");
+});
+
 window.addEventListener("beforeunload", () => cloudSave(state));
 
 
@@ -4421,6 +4491,44 @@ function integrityCheck() {
   }
 }
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    console.log('✅ Service Worker registered');
+
+    // 🔹 Check if there’s an updated service worker waiting
+    function showUpdatePrompt(worker) {
+      const shouldUpdate = confirm("🧪 MeadTrics update available!\n\nReload now to apply the latest version?");
+      if (shouldUpdate) {
+        worker.postMessage({ type: 'SKIP_WAITING' });
+      }
+    }
+
+    // If a new worker is waiting
+    if (reg.waiting) {
+      showUpdatePrompt(reg.waiting);
+    }
+
+    // If a new worker is installed and waiting
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker?.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdatePrompt(newWorker);
+        }
+      });
+    });
+
+    // When the new worker activates
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+  }).catch(err => console.warn('⚠️ SW registration failed:', err));
+}
+
+
 (async () => {
 
   const hasValidBin =
@@ -4447,6 +4555,21 @@ function integrityCheck() {
 
   renderApp();
 
+const isPWA =
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone;
+
+if (isPWA) {
+  console.log('📦 MeadTrics running in PWA mode');
+
+  // Optional: auto-save state every 3 min while installed
+  setInterval(() => {
+    if (navigator.onLine) {
+      cloudSave(state, true);
+      console.log('🔁 Background sync (PWA)');
+    }
+  }, 180000); // 3 minutes
+}
 
   state = load();
   render();
