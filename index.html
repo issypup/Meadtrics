@@ -515,6 +515,8 @@ html {
 <div class="app"></div>
 </body>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
   <script>
 
 const LS_KEY = 'mead-tracker:v2';
@@ -569,6 +571,31 @@ let chartMode = 'sg';
 
 let sidebarCollapse = { active: false, archived: false };
 
+function compressPayload(obj) {
+  try {
+    if (typeof LZString === "undefined") throw new Error("LZString not loaded");
+    const json = JSON.stringify(obj);
+    const compressed = LZString.compressToBase64(json);
+    return { __compressed: true, data: compressed };
+  } catch (err) {
+    console.warn("⚠️ Compression failed:", err);
+    return obj;
+  }
+}
+
+
+function decompressPayload(obj) {
+  try {
+    if (obj && obj.__compressed && typeof obj.data === "string" && typeof LZString !== "undefined") {
+      const json = LZString.decompressFromBase64(obj.data);
+      return JSON.parse(json);
+    }
+    return obj;
+  } catch (err) {
+    console.warn("⚠️ Decompression failed:", err);
+    return obj;
+  }
+}
 
 function load() {
   try {
@@ -3985,7 +4012,17 @@ async function cloudLoad() {
     });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    let data = await res.json();
+	
+	let data = await res.json();
+	
+// 🔹 Handle compressed payloads and unwrap formats
+if (data && data.data && data.data.__compressed) {
+  data.data = decompressPayload(data.data);
+}
+if (data.data && data.data.batches) data = data.data;
+
+console.log("☁️ Cloud data loaded:", data);
+return data;
 
     // 🧩 unwrap legacy/new bin formats
     if (data.data && data.data.batches) data = data.data;
@@ -4042,7 +4079,7 @@ async function cloudSave(payload, patchOnly = true) {
 
 
 	if (merged.data && merged.batches) delete merged.batches; 
-    const body = JSON.stringify({ data: merged });
+    const body = JSON.stringify({ data: compressPayload(merged) });
 
     const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
       method,
@@ -4339,6 +4376,50 @@ function migrateOldLocalData() {
   }
 }
 
+function integrityCheck() {
+  if (!state || !Array.isArray(state.batches)) {
+    console.warn("🧩 Invalid state.batches — resetting to empty array.");
+    state = { batches: [] };
+    save(state);
+    return;
+  }
+
+  let fixed = 0;
+  for (const b of state.batches) {
+    let changed = false;
+
+    // Ensure each batch has required base fields
+    if (!b.id) { b.id = crypto.randomUUID(); changed = true; }
+    if (!Array.isArray(b.sgReadings)) { b.sgReadings = []; changed = true; }
+    if (!Array.isArray(b.events)) { b.events = []; changed = true; }
+    if (!Array.isArray(b.ingredients)) { b.ingredients = []; changed = true; }
+    if (!Array.isArray(b.tags)) { b.tags = []; changed = true; }
+    if (typeof b.name !== "string") { b.name = "Unnamed Batch"; changed = true; }
+    if (!b.startDate) { b.startDate = new Date().toISOString().slice(0, 10); changed = true; }
+
+    // Ensure all events have date & type
+    for (const ev of b.events) {
+      if (!ev.date) ev.date = b.startDate;
+      if (!ev.type) ev.type = "note";
+    }
+
+    // Ensure all SG readings have id & sg fields
+    for (const r of b.sgReadings) {
+      if (!r.id) r.id = crypto.randomUUID();
+      if (typeof r.sg === "string") r.sg = r.sg.trim();
+      if (!r.date) r.date = b.startDate;
+    }
+
+    if (changed) fixed++;
+  }
+
+  if (fixed > 0) {
+    console.log(`🧩 Integrity check: fixed ${fixed} batch(es).`);
+    save(state);
+  } else {
+    console.log("✅ Integrity check passed — all batches valid.");
+  }
+}
 
 (async () => {
 
@@ -4409,11 +4490,10 @@ function migrateOldLocalData() {
     }
   } else {
     console.log("💾 Loaded local data (no ExtendsClass bin configured).");
-  }
-
+  };
   updateSyncCard();
+  integrityCheck();
 })();
-
 
 </script>
 </body>
