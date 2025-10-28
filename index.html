@@ -2306,17 +2306,35 @@ function initMobileSidebar() {
   }
 
   // === Helper: rebuild collapsible interactivity inside the drawer ===
-  function reattachCollapsibles(target) {
-    target.querySelectorAll('.fieldset.collapsible legend').forEach(legend => {
-      legend.addEventListener('click', () => {
-        const fs = legend.parentElement;
-        fs.classList.toggle('collapsed');
-        const content = Array.from(fs.children).find(c => c.tagName !== 'LEGEND');
-        if (content)
-          content.style.display = fs.classList.contains('collapsed') ? 'none' : 'block';
-      });
+function reattachCollapsibles(target) {
+  // Handle fieldset collapsibles (Utilities, Cloud Sync, etc.)
+  target.querySelectorAll('.fieldset.collapsible legend').forEach(legend => {
+    legend.addEventListener('click', () => {
+      const fs = legend.parentElement;
+      fs.classList.toggle('collapsed');
+      const content = Array.from(fs.children).find(c => c.tagName !== 'LEGEND');
+      if (content)
+        content.style.display = fs.classList.contains('collapsed') ? 'none' : 'block';
     });
-  }
+  });
+
+  // Handle Active / Archived batch sections
+  target.querySelectorAll('.row[onclick]').forEach(row => {
+    const clone = row.cloneNode(true);
+    clone.addEventListener('click', () => {
+      const key = row.textContent.includes('Active') ? 'active' : 'archived';
+      sidebarCollapse[key] = !sidebarCollapse[key];
+      renderBatchList();
+      const drawer = document.getElementById('sidebarDrawer');
+      if (drawer) {
+        drawer.innerHTML = document.querySelector('.sidebar').innerHTML;
+        reattachCollapsibles(drawer);
+      }
+    });
+    row.replaceWith(clone);
+  });
+}
+
 
   // === Render the sidebar content into the drawer ===
   const desktopSidebar = document.querySelector('.sidebar');
