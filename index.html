@@ -2268,92 +2268,81 @@ function render(highlightId = null) {
   renderFooterButtons();
 }
 
-
-// === Mobile Sidebar Drawer System ===
 function initMobileSidebar() {
-  // Remove old instances if reloaded
-  document.getElementById('sidebarToggle')?.remove();
-  document.getElementById('sidebarDrawer')?.remove();
-  document.getElementById('sidebarOverlay')?.remove();
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
 
-  // Create core elements
-  const toggleBtn = el('button', {
-    id: 'sidebarToggle',
-    'aria-label': 'Toggle menu',
-    text: '☰'
-  });
-  const drawer = el('aside', { id: 'sidebarDrawer' });
-  const overlay = el('div', { id: 'sidebarOverlay' });
-
-  // Insert before .app so it's top-level
-  const app = document.querySelector('.app');
-  if (app) {
-    document.body.insertBefore(toggleBtn, app);
-    document.body.insertBefore(drawer, app);
-    document.body.insertBefore(overlay, app);
+  // Create drawer + overlay
+  let drawer = document.getElementById('sidebarDrawer');
+  let overlay = document.getElementById('sidebarOverlay');
+  if (!drawer) {
+    drawer = document.createElement('div');
+    drawer.id = 'sidebarDrawer';
+    drawer.className = 'sidebar drawer';
+    document.body.appendChild(drawer);
+  }
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'sidebarOverlay';
+    overlay.className = 'overlay';
+    document.body.appendChild(overlay);
   }
 
-  // === Helper: attach open/close logic ===
-  function attachDrawerListeners() {
-    toggleBtn.onclick = () => {
-      drawer.classList.toggle('open');
-      overlay.classList.toggle('visible');
-    };
-    overlay.onclick = () => {
-      drawer.classList.remove('open');
-      overlay.classList.remove('visible');
-    };
+  // 🔹 Create / reattach toggle button
+  let toggle = document.getElementById('sidebarToggle');
+  if (!toggle) {
+    toggle = document.createElement('button');
+    toggle.id = 'sidebarToggle';
+    toggle.textContent = '☰';
+    toggle.className = 'mobile-toggle';
+    document.body.prepend(toggle);
   }
 
-  // === Helper: rebuild collapsible interactivity inside the drawer ===
-function reattachCollapsibles(target) {
-  // Handle fieldset collapsibles (Utilities, Cloud Sync, etc.)
-  target.querySelectorAll('.fieldset.collapsible legend').forEach(legend => {
-    legend.addEventListener('click', () => {
-      const fs = legend.parentElement;
-      fs.classList.toggle('collapsed');
-      const content = Array.from(fs.children).find(c => c.tagName !== 'LEGEND');
-      if (content)
-        content.style.display = fs.classList.contains('collapsed') ? 'none' : 'block';
-    });
-  });
+  // 🔹 Core toggle logic
+  toggle.onclick = () => {
+    drawer.classList.toggle('open');
+    overlay.classList.toggle('visible');
+  };
+  overlay.onclick = () => {
+    drawer.classList.remove('open');
+    overlay.classList.remove('visible');
+  };
 
-  // Handle Active / Archived batch sections
-  target.querySelectorAll('.row[onclick]').forEach(row => {
-    const clone = row.cloneNode(true);
-    clone.addEventListener('click', () => {
-      const key = row.textContent.includes('Active') ? 'active' : 'archived';
-      sidebarCollapse[key] = !sidebarCollapse[key];
-      renderBatchList();
-      const drawer = document.getElementById('sidebarDrawer');
-      if (drawer) {
-        drawer.innerHTML = document.querySelector('.sidebar').innerHTML;
-        reattachCollapsibles(drawer);
-      }
+  // 🔹 Function to sync sidebar into drawer and reattach all listeners
+  function syncDrawer() {
+    drawer.innerHTML = sidebar.innerHTML;
+
+    // --- Reattach collapsibles (fieldset legends like Cloud Sync, Utilities, etc.)
+    drawer.querySelectorAll('.fieldset.collapsible legend').forEach(legend => {
+      legend.addEventListener('click', () => {
+        const fs = legend.parentElement;
+        fs.classList.toggle('collapsed');
+        const content = Array.from(fs.children).find(c => c.tagName !== 'LEGEND');
+        if (content)
+          content.style.display = fs.classList.contains('collapsed') ? 'none' : 'block';
+      });
     });
-    row.replaceWith(clone);
-  });
+
+    // --- Reattach Active / Archived collapse events ---
+    drawer.querySelectorAll('.row.section').forEach(row => {
+      row.addEventListener('click', () => {
+        const key = row.textContent.includes('Active') ? 'active' : 'archived';
+        sidebarCollapse[key] = !sidebarCollapse[key];
+        renderBatchList();
+
+        // Re-sync after re-render to update state
+        syncDrawer();
+      });
+    });
+  }
+
+  // Initial sync + observer for live updates
+  syncDrawer();
+
+  const obs = new MutationObserver(() => syncDrawer());
+  obs.observe(sidebar, { childList: true, subtree: true });
 }
 
-
-  // === Render the sidebar content into the drawer ===
-  const desktopSidebar = document.querySelector('.sidebar');
-  if (desktopSidebar) {
-    drawer.innerHTML = '';
-    const tempSidebar = el('div', { class: 'sidebar-temp' });
-    drawer.append(tempSidebar);
-    renderSidebar(); // reuse your existing function
-    const built = document.querySelector('.sidebar');
-    if (built) drawer.innerHTML = built.innerHTML;
-  }
-
-  // Re-activate collapsibles and button logic
-  reattachCollapsibles(drawer);
-  attachDrawerListeners();
-
-  // Return helpers for reuse (sync observer)
-  return { attachDrawerListeners, reattachCollapsibles };
-}
 
 // Run after the app is rendered
 document.addEventListener('DOMContentLoaded', () => {
