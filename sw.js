@@ -1,4 +1,4 @@
-let CACHE_NAME = 'meadtrics-cache-v0'; // temporary name until version is loaded
+let CACHE_NAME = 'meadtrics-cache-v0.0.1'; // temporary name until version is loaded
 
 const ASSETS = [
   './',
@@ -109,3 +109,4 @@ self.addEventListener('fetch', e => {
       )
   );
 });
+
