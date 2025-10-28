@@ -2271,83 +2271,90 @@ function render(highlightId = null) {
 
 // === Mobile Sidebar Drawer System ===
 function initMobileSidebar() {
-  // Remove any existing drawer elements (for hot reloads)
+  // Remove old instances if reloaded
   document.getElementById('sidebarToggle')?.remove();
   document.getElementById('sidebarDrawer')?.remove();
   document.getElementById('sidebarOverlay')?.remove();
 
-  // 🔹 Toggle button (☰)
+  // Create core elements
   const toggleBtn = el('button', {
     id: 'sidebarToggle',
     'aria-label': 'Toggle menu',
     text: '☰'
   });
-
-  // 🔹 Drawer container
   const drawer = el('aside', { id: 'sidebarDrawer' });
-
-  // 🔹 Overlay
   const overlay = el('div', { id: 'sidebarOverlay' });
 
-  // Insert them before your .app container
+  // Insert before .app so it's top-level
   const app = document.querySelector('.app');
-  if (app) document.body.insertBefore(toggleBtn, app);
-  if (app) document.body.insertBefore(drawer, app);
-  if (app) document.body.insertBefore(overlay, app);
+  if (app) {
+    document.body.insertBefore(toggleBtn, app);
+    document.body.insertBefore(drawer, app);
+    document.body.insertBefore(overlay, app);
+  }
 
-  // Optional: clone your sidebar content for mobile
+  // === Helper: attach open/close logic ===
+  function attachDrawerListeners() {
+    toggleBtn.onclick = () => {
+      drawer.classList.toggle('open');
+      overlay.classList.toggle('visible');
+    };
+    overlay.onclick = () => {
+      drawer.classList.remove('open');
+      overlay.classList.remove('visible');
+    };
+  }
+
+  // === Helper: rebuild collapsible interactivity inside the drawer ===
+  function reattachCollapsibles(target) {
+    target.querySelectorAll('.fieldset.collapsible legend').forEach(legend => {
+      legend.addEventListener('click', () => {
+        const fs = legend.parentElement;
+        fs.classList.toggle('collapsed');
+        const content = Array.from(fs.children).find(c => c.tagName !== 'LEGEND');
+        if (content)
+          content.style.display = fs.classList.contains('collapsed') ? 'none' : 'block';
+      });
+    });
+  }
+
+  // === Render the sidebar content into the drawer ===
   const desktopSidebar = document.querySelector('.sidebar');
-if (desktopSidebar) {
-  // Rebuild sidebar content dynamically to include event bindings
-  drawer.innerHTML = '';
-  const tempSidebar = el('div', { class: 'sidebar-temp' });
-  drawer.append(tempSidebar);
-  renderSidebar(); // existing function that builds the desktop sidebar
-  const built = document.querySelector('.sidebar');
-  if (built) drawer.innerHTML = built.innerHTML;
-}
+  if (desktopSidebar) {
+    drawer.innerHTML = '';
+    const tempSidebar = el('div', { class: 'sidebar-temp' });
+    drawer.append(tempSidebar);
+    renderSidebar(); // reuse your existing function
+    const built = document.querySelector('.sidebar');
+    if (built) drawer.innerHTML = built.innerHTML;
+  }
 
-// ✅ Reattach collapsible toggles inside the drawer
-drawer.querySelectorAll('.fieldset.collapsible legend').forEach(legend => {
-  legend.addEventListener('click', () => {
-    const fs = legend.parentElement;
-    fs.classList.toggle('collapsed');
-    const content = Array.from(fs.children).find(c => c.tagName !== 'LEGEND');
-    if (content)
-      content.style.display = fs.classList.contains('collapsed') ? 'none' : 'block';
-  });
-});
+  // Re-activate collapsibles and button logic
+  reattachCollapsibles(drawer);
+  attachDrawerListeners();
 
-
-  // 🔹 Event bindings
-  toggleBtn.addEventListener('click', () => {
-    drawer.classList.toggle('open');
-    overlay.classList.toggle('visible');
-  });
-
-  overlay.addEventListener('click', () => {
-    drawer.classList.remove('open');
-    overlay.classList.remove('visible');
-  });
+  // Return helpers for reuse (sync observer)
+  return { attachDrawerListeners, reattachCollapsibles };
 }
 
 // Run after the app is rendered
 document.addEventListener('DOMContentLoaded', () => {
-  initMobileSidebar();
+  const { attachDrawerListeners, reattachCollapsibles } = initMobileSidebar();
 
-  // 🔁 Observe sidebar changes and re-sync drawer
+  // Watch for sidebar changes and mirror into the drawer
   const sidebar = document.querySelector('.sidebar');
   if (sidebar) {
     const obs = new MutationObserver(() => {
       const drawer = document.getElementById('sidebarDrawer');
-      if (drawer) drawer.innerHTML = sidebar.innerHTML;
+      if (drawer && sidebar) {
+        drawer.innerHTML = sidebar.innerHTML;
+        reattachCollapsibles(drawer);
+        attachDrawerListeners();
+      }
     });
     obs.observe(sidebar, { childList: true, subtree: true });
   }
 });
-
-
-
 
 
 function renderBatchList() {
