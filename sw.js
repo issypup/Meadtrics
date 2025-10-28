@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meadtrics-cache-v2';
+let CACHE_NAME = 'meadtrics-cache-v0'; // placeholder until we load from manifest
 
 const ASSETS = [
   './',
@@ -9,6 +9,19 @@ const ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js',
 ];
 
+// 🔹 Try to load version from manifest.json
+async function getCacheName() {
+  try {
+    const res = await fetch('./manifest.json', { cache: 'no-store' });
+    const manifest = await res.json();
+    if (manifest.version) {
+      CACHE_NAME = `meadtrics-cache-v${manifest.version}`;
+    }
+  } catch (err) {
+    console.warn('⚠️ Could not read manifest version, using fallback cache name.', err);
+  }
+}
+
 // 🔹 Allow manual update activation
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
@@ -16,33 +29,38 @@ self.addEventListener('message', event => {
   }
 });
 
-// 🔹 Install: pre-cache essential files
+// 🔹 Install: pre-cache essential files with versioned name
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+    (async () => {
+      await getCacheName(); // load version dynamically
+      const cache = await caches.open(CACHE_NAME);
+      await cache.addAll(ASSETS);
+      self.skipWaiting();
+    })()
   );
-  self.skipWaiting();
 });
 
-// 🔹 Activate: remove old caches
+// 🔹 Activate: remove old versioned caches
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    (async () => {
+      await getCacheName();
+      const keys = await caches.keys();
+      await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+      self.clients.claim();
+    })()
   );
-  self.clients.claim();
 });
 
 // 🔹 Fetch: online-first with cache update
 self.addEventListener('fetch', e => {
-  // Ignore non-GET requests (e.g., POST to cloud API)
   if (e.request.method !== 'GET') return;
 
   e.respondWith(
     fetch(e.request)
       .then(networkRes => {
-        // ✅ Update cache in background for fresh assets
+        // ✅ Update cache if request succeeds
         if (
           networkRes &&
           networkRes.status === 200 &&
@@ -56,7 +74,7 @@ self.addEventListener('fetch', e => {
         return networkRes;
       })
       .catch(() =>
-        // ✅ Offline fallback
+        // ✅ Fallback to cache when offline
         caches.match(e.request).then(cachedRes => {
           return cachedRes || caches.match('./index.html');
         })
