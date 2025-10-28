@@ -4789,25 +4789,6 @@ if ('serviceWorker' in navigator) {
   }).catch(err => console.warn('⚠️ SW registration failed:', err));
 }
 
-// === Mobile Sidebar Drawer ===
-document.addEventListener("DOMContentLoaded", () => {
-  const toggleBtn = document.getElementById('sidebarToggle');
-  const drawer = document.getElementById('sidebarDrawer');
-  const overlay = document.getElementById('sidebarOverlay');
-
-  if (toggleBtn && drawer && overlay) {
-    toggleBtn.addEventListener('click', () => {
-      drawer.classList.toggle('open');
-      overlay.classList.toggle('visible');
-    });
-
-    overlay.addEventListener('click', () => {
-      drawer.classList.remove('open');
-      overlay.classList.remove('visible');
-    });
-  }
-});
-
 (async () => {
 
   const hasValidBin =
