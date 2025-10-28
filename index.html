@@ -396,14 +396,83 @@ canvas {
   width: 90%;
 }
 
+/* Keep label preview positioned so QR can anchor to a corner */
 .label-preview {
-  background: #0f141b;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 10px;
-  text-align: left;
-  color: var(--text);
+  position: relative;
+  padding: 8mm;
+  border-radius: 8px;
+  background: var(--panel, #1b2330);
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  text-align: center;
+}
+
+/* Centered QR container */
+#qrContainer {
+  width: 28mm;       /* consistent print scaling */
+  height: 28mm;
+  margin: 6mm auto 0 auto;
+  display: grid;
+  place-items: center;
+  background: transparent;
+}
+
+/* QR image/canvas crisp rendering */
+#qrContainer canvas,
+#qrContainer img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* Optional subtle frame */
+#qrContainer.qr-framed {
+  padding: 2mm;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.06);
+  outline: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Print layout */
+@media print {
+  body * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #labelModal.modal-overlay {
+    background: transparent !important;
+  }
+
+  #labelModal .modal-content {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Hide buttons on print */
+  #labelModal .row {
+    display: none !important;
+  }
+
+  .label-preview {
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    width: 90mm;          /* adjust for sticker width */
+    min-height: 120mm;    /* adjust for sticker height */
+  }
+
+  #qrContainer {
+    margin-top: 6mm !important;
+  }
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+  #qrContainer {
+    width: 24mm;
+    height: 24mm;
+    margin-top: 4mm;
+  }
 }
 
 /* === Enhanced Responsive Scaling === */
@@ -518,6 +587,9 @@ html {
 </body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 
   <script>
 
@@ -3679,11 +3751,9 @@ $('#exportBtn')?.addEventListener('click', () => {
   }
 });
 
-
 function openLabelMaker(batch) {
   const existing = document.getElementById('labelModal');
-  if (existing) existing.remove(); 
-
+  if (existing) existing.remove();
 
   const escapeHTML = s => String(s)
     .replace(/&/g, '&amp;')
@@ -3704,10 +3774,10 @@ function openLabelMaker(batch) {
     : '–';
   const honey = batch.honey || 'Mixed Blossom';
 
-
+  // 🧩 Create modal structure
   const modal = el('div', { id: 'labelModal', class: 'modal-overlay' }, [
     el('div', { class: 'modal-content card' }, [
-      el('div', { class: 'label-preview', id: 'labelPreview' }, [
+      el('div', { class: 'label-preview', id: 'labelPreview', style: 'position:relative;' }, [
         el('h1', {
           text: batch.name,
           style: 'text-align:center;font-size:20pt;margin:0;'
@@ -3722,6 +3792,12 @@ function openLabelMaker(batch) {
         el('p', { text: `Batch: ${batch.name}` }),
         el('p', { text: `Start: ${date}` }),
         el('p', { text: `ABV: ${abv}` }),
+
+        // 🧩 QR placeholder (auto-filled below)
+        el('div', {
+          id: 'qrContainer',
+          style: 'width:80px;height:80px;margin:6mm auto 0 auto;'
+        })
       ]),
       el('div', { class: 'row', style: 'justify-content:center;gap:8px;margin-top:10px;' }, [
         el('button', {
@@ -3740,14 +3816,12 @@ function openLabelMaker(batch) {
     ])
   ]);
 
-
   document.body.append(modal);
 
-
+  // Close handlers
   modal.addEventListener('click', e => {
     if (e.target === modal) modal.remove();
   });
-
 
   document.addEventListener('keydown', function escHandler(ev) {
     if (ev.key === 'Escape') {
@@ -3755,7 +3829,29 @@ function openLabelMaker(batch) {
       document.removeEventListener('keydown', escHandler);
     }
   });
+
+  // 🧩 Auto-generate QR code on open
+  setTimeout(() => {
+    const container = document.getElementById('qrContainer');
+    if (!container) return;
+
+    // You can change the encoded text here
+    const qrText = `https://meadtrics.app/batch/${encodeURIComponent(batch.name)}`;
+
+    container.innerHTML = '';
+    new QRCode(container, {
+      text: qrText,
+      width: 80,
+      height: 80,
+      colorDark: '#000000',
+      colorLight: 'transparent',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    console.log(`📦 QR code generated for: ${qrText}`);
+  }, 100);
 }
+
 
 
 
