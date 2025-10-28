@@ -12,7 +12,13 @@ const ASSETS = [
 // 🔹 Try to read version from manifest.json
 async function getCacheName() {
   try {
-    const res = await fetch('./manifest.json', { cache: 'no-store' });
+	  
+	  const MANIFEST_PATH = self.location.pathname.includes('/Meadtrics/')
+  ? '/Meadtrics/manifest.json'
+  : './manifest.json';
+  
+    const res = await fetch(MANIFEST_PATH, { cache: 'no-store' });
+	
     const manifest = await res.json();
     if (manifest.version) {
       CACHE_NAME = `meadtrics-cache-v${manifest.version}`;
