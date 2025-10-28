@@ -1692,6 +1692,9 @@ function backupHeaderCard() {
 function syncCard() {
   let collapsed = true;
 
+  const hasAPI = localStorage.getItem("EXTENDS_API_KEY");
+  const hasBIN = localStorage.getItem("EXTENDS_BIN_ID");
+  const hasCloud = hasAPI && hasBIN;
 
   const infoPara = el("p", {
     style: "font-size:13px;color:var(--muted);"
@@ -1713,12 +1716,11 @@ function syncCard() {
     document.createTextNode("• Paste it below to enable cloud sync.")
   ]);
 
-
   const apiInput = el("input", {
     id: "apiKeyInput",
     type: "text",
     placeholder: "Paste your ExtendsClass API key here",
-    value: localStorage.getItem("EXTENDS_API_KEY") || "",
+    value: hasAPI || "",
     style: `
       width:100%;margin:6px 0;padding:6px;
       border-radius:8px;border:1px solid var(--border);
@@ -1726,149 +1728,143 @@ function syncCard() {
     `
   });
 
-
-const saveBtn = el("button", {
-  id: "saveApiKeyBtn",
-  class: "btn-accent",
-  text: "Save API Key",
-  style: "width:100%;",
-onclick: async () => {
-  const key = apiInput.value.trim();
-
-  if (!key) {
-    clearExtendsCredentials();
-    EXTENDS_API_KEY = "";
-    EXTENDS_BIN_ID = "";
-    state.cloudEnabled = false;
-    updateSyncCard();
-    updateViewBinButton();
-    syncStatus.textContent = "💾 Cloud sync disabled — now saving locally only.";
-    console.log("💾 Cloud sync disabled — reverted to local-only mode.");
-    alert("💾 Cloud sync disabled — now saving locally only.");
-    return;
-  }
-
-  EXTENDS_API_KEY = key;
-  localStorage.setItem("EXTENDS_API_KEY", EXTENDS_API_KEY);
-  localStorage.setItem("EXTENDS_KEY", EXTENDS_KEY);
-  state.cloudEnabled = true;
-  syncStatus.textContent = "☁️ Cloud API key saved.";
-  console.log("☁️ Cloud API key saved:", key);
-
-  if (!EXTENDS_BIN_ID) {
-    const existingBin = await getExistingBin();
-    if (existingBin) {
-      EXTENDS_BIN_ID = existingBin;
-      localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
-      console.log(`☁️ Using existing bin: ${EXTENDS_BIN_ID}`);
-    } else {
-      await createBin();
-    }
-  }
-
-  updateViewBinButton();
-  updateSyncCard();
-
-  try {
-    let cloudData = await cloudLoad();
-    if (cloudData?.data?.batches) cloudData = cloudData.data;
-
-    if (cloudData && cloudData.batches?.length) {
-      console.log("☁️ Loaded cloud data after saving key:", cloudData);
-      state = cloudData;
-      save(state);
-      render();
-      alert("✅ API key saved — cloud data loaded successfully.");
-    } else {
-      console.log("☁️ Cloud empty — uploading local data to cloud.");
-      await cloudSave(state);
-      alert("✅ API key saved — local data uploaded to cloud.");
-    }
-  } catch (err) {
-    console.warn("⚠️ Failed to load cloud data:", err);
-    alert("⚠️ API key saved, but cloud load failed. Using local data for now.");
-  }
-}
-});
-
-
-const viewBtn = el("button", {
-  id: "viewBinBtn",
-  class: "btn-accent",
-  text: "🔗 View Bin",
-  style: "display:none;width:100%;margin-top:6px;",
-  onclick: async (e) => {
-    e.stopPropagation();
-    const bin = localStorage.getItem("EXTENDS_BIN_ID");
-    if (!bin) return alert("⚠️ No bin ID found yet.");
-
-    try {
-      const data = await cloudLoad();
-      if (!data) return alert("⚠️ Could not load bin data.");
-
-
-      const popup = window.open("", "binPopup", "width=700,height=600,resizable,scrollbars=yes");
-      if (!popup) return alert("⚠️ Popup blocked. Please allow popups for this site.");
-
-
-      popup.document.write(`
-        <html>
-          <head>
-            <title>MeadTrics Cloud Bin – ${bin}</title>
-            <style>
-              body {
-                background-color: #0f141b;
-                color: #e4e9f0;
-                font-family: monospace;
-                padding: 16px;
-                white-space: pre-wrap;
-                overflow-wrap: anywhere;
-              }
-              h2 {
-                font-family: system-ui, sans-serif;
-                font-size: 16px;
-                margin-top: 0;
-                color: #ffd86b;
-              }
-              code {
-                background: #1a2028;
-                padding: 8px;
-                display: block;
-                border-radius: 8px;
-                border: 1px solid #2a3340;
-              }
-            </style>
-          </head>
-          <body>
-            <h2>Cloud Bin: ${bin}</h2>
-            <code id="jsonArea">Loading...</code>
-          </body>
-        </html>
-      `);
-      popup.document.close();
-
-
-      const jsonString = JSON.stringify(data, null, 2);
-      popup.document.getElementById("jsonArea").textContent = jsonString;
-
-      console.log("✅ Cloud bin opened in popup");
-    } catch (err) {
-      console.error("Failed to load bin:", err);
-      alert("⚠️ Failed to open bin.\n" + err.message);
-    }
-  }
-});
-
-
-
   const syncStatus = el("div", {
     id: "syncStatus",
     style: "margin-top:6px;color:var(--muted);font-size:13px;",
-    text: "💾 Local-only mode"
+    // ✅ set dynamically at render time
+    text: hasCloud ? "☁️ Cloud Sync Active" : "💾 Local-only mode"
   });
 
-  const syncUrl = el("span", { id: "syncUrl", text: "Local only" });
-  const syncKey = el("span", { id: "syncKey", text: "meadtracker" }); 
+  const saveBtn = el("button", {
+    id: "saveApiKeyBtn",
+    class: "btn-accent",
+    text: "Save API Key",
+    style: "width:100%;",
+    onclick: async () => {
+      const key = apiInput.value.trim();
+
+      if (!key) {
+        clearExtendsCredentials();
+        EXTENDS_API_KEY = "";
+        EXTENDS_BIN_ID = "";
+        state.cloudEnabled = false;
+        updateSyncCard();
+        updateViewBinButton();
+        syncStatus.textContent = "💾 Cloud sync disabled — now saving locally only.";
+        console.log("💾 Cloud sync disabled — reverted to local-only mode.");
+        alert("💾 Cloud sync disabled — now saving locally only.");
+        return;
+      }
+
+      EXTENDS_API_KEY = key;
+      localStorage.setItem("EXTENDS_API_KEY", EXTENDS_API_KEY);
+      localStorage.setItem("EXTENDS_KEY", EXTENDS_KEY);
+      state.cloudEnabled = true;
+      syncStatus.textContent = "☁️ Cloud API key saved.";
+      console.log("☁️ Cloud API key saved:", key);
+
+      if (!EXTENDS_BIN_ID) {
+        const existingBin = await getExistingBin();
+        if (existingBin) {
+          EXTENDS_BIN_ID = existingBin;
+          localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
+          console.log(`☁️ Using existing bin: ${EXTENDS_BIN_ID}`);
+        } else {
+          await createBin();
+        }
+      }
+
+      updateViewBinButton();
+      updateSyncCard();
+
+      try {
+        let cloudData = await cloudLoad();
+        if (cloudData?.data?.batches) cloudData = cloudData.data;
+
+        if (cloudData && cloudData.batches?.length) {
+          console.log("☁️ Loaded cloud data after saving key:", cloudData);
+          state = cloudData;
+          save(state);
+          render();
+          alert("✅ API key saved — cloud data loaded successfully.");
+        } else {
+          console.log("☁️ Cloud empty — uploading local data to cloud.");
+          await cloudSave(state);
+          alert("✅ API key saved — local data uploaded to cloud.");
+        }
+      } catch (err) {
+        console.warn("⚠️ Failed to load cloud data:", err);
+        alert("⚠️ API key saved, but cloud load failed. Using local data for now.");
+      }
+    }
+  });
+
+  const viewBtn = el("button", {
+    id: "viewBinBtn",
+    class: "btn-accent",
+    text: "🔗 View Bin",
+    style: "display:none;width:100%;margin-top:6px;",
+    onclick: async (e) => {
+      e.stopPropagation();
+      const bin = localStorage.getItem("EXTENDS_BIN_ID");
+      if (!bin) return alert("⚠️ No bin ID found yet.");
+
+      try {
+        const data = await cloudLoad();
+        if (!data) return alert("⚠️ Could not load bin data.");
+
+        const popup = window.open("", "binPopup", "width=700,height=600,resizable,scrollbars=yes");
+        if (!popup) return alert("⚠️ Popup blocked. Please allow popups for this site.");
+
+        popup.document.write(`
+          <html>
+            <head>
+              <title>MeadTrics Cloud Bin – ${bin}</title>
+              <style>
+                body {
+                  background-color: #0f141b;
+                  color: #e4e9f0;
+                  font-family: monospace;
+                  padding: 16px;
+                  white-space: pre-wrap;
+                  overflow-wrap: anywhere;
+                }
+                h2 {
+                  font-family: system-ui, sans-serif;
+                  font-size: 16px;
+                  margin-top: 0;
+                  color: #ffd86b;
+                }
+                code {
+                  background: #1a2028;
+                  padding: 8px;
+                  display: block;
+                  border-radius: 8px;
+                  border: 1px solid #2a3340;
+                }
+              </style>
+            </head>
+            <body>
+              <h2>Cloud Bin: ${bin}</h2>
+              <code id="jsonArea">Loading...</code>
+            </body>
+          </html>
+        `);
+        popup.document.close();
+
+        const jsonString = JSON.stringify(data, null, 2);
+        popup.document.getElementById("jsonArea").textContent = jsonString;
+
+        console.log("✅ Cloud bin opened in popup");
+      } catch (err) {
+        console.error("Failed to load bin:", err);
+        alert("⚠️ Failed to open bin.\n" + err.message);
+      }
+    }
+  });
+
+  const syncUrl = el("span", { id: "syncUrl", text: hasCloud ? `${EXTENDS_API}/${hasBIN}` : "Local only" });
+  const syncKey = el("span", { id: "syncKey", text: EXTENDS_KEY || "meadtracker" });
 
   const syncInfo = el("div", {
     id: "syncInfo",
@@ -1885,7 +1881,6 @@ const viewBtn = el("button", {
     el("b", { text: "Security Key:" }), document.createTextNode(" "), syncKey
   ]);
 
-
   const body = el("div", {
     id: "syncContent",
     style: "margin-top:8px;"
@@ -1900,9 +1895,8 @@ const viewBtn = el("button", {
     keyInfo
   ]);
 
-
   const legend = el("legend", {
-    text: "☁️ Cloud Sync",
+    text: hasCloud ? "▼ ☁️ Cloud Sync" : "▶ ☁️ Cloud Sync",
     style: "cursor:pointer;",
     onclick: () => {
       collapsed = !collapsed;
@@ -1911,31 +1905,25 @@ const viewBtn = el("button", {
     }
   });
 
-
   const card = el("div", {
     id: "syncCard",
     class: "fieldset collapsible",
     style: "margin-top:16px;"
   }, [legend, body]);
 
-
-  const hasAPI = localStorage.getItem("EXTENDS_API_KEY");
-  const hasBIN = localStorage.getItem("EXTENDS_BIN_ID");
-  if (hasAPI && hasBIN) {
+  // expand automatically if cloud is active
+  if (hasCloud) {
     collapsed = false;
     body.style.display = "block";
-    legend.textContent = "▼ ☁️ Cloud Sync";
   } else {
-    collapsed = true;
     body.style.display = "none";
-    legend.textContent = "▶ ☁️ Cloud Sync";
   }
-
 
   setTimeout(updateViewBinButton, 0);
 
   return card;
 }
+
 
 function renderApp() {
   const app = document.querySelector('.app');
@@ -4063,11 +4051,12 @@ function updateSyncCard() {
   if (keyEl) keyEl.textContent = EXTENDS_KEY;
   if (keyInput) keyInput.value = EXTENDS_API_KEY || "";
 
-  // Update status
-  if (statusEl)
+  // ✅ Always set status text
+  if (statusEl) {
     statusEl.textContent = hasCloud
       ? "☁️ Cloud Sync Active"
       : "💾 Local-only mode";
+  }
 
   // Update legend arrow state
   if (legend) {
@@ -4076,9 +4065,9 @@ function updateSyncCard() {
       : "▶ ☁️ Cloud Sync";
   }
 
-  // Refresh footer tag to reflect mode
   renderFooterButtons();
 }
+
 
 
 
@@ -4870,8 +4859,12 @@ if (isPWA) {
 
   state = load();
   render();
-  updateSyncCard();
-  updateViewBinButton();
+
+  // ✅ Run once sidebar (syncCard) exists
+  setTimeout(() => {
+    updateSyncCard();
+    updateViewBinButton();
+  }, 50);
 
 
   if (hasValidBin && (!state.batches || !state.batches.length)) {
