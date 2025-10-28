@@ -4045,22 +4045,41 @@ const EXTENDS_API = "https://json.extendsclass.com/bin";
 const EXTENDS_KEY = "meadtracker";
 
 function updateSyncCard() {
+  const syncCard = document.getElementById("syncCard");
   const urlEl = document.getElementById("syncUrl");
   const keyEl = document.getElementById("syncKey");
   const keyInput = document.getElementById("apiKeyInput");
   const statusEl = document.getElementById("syncStatus");
+  const legend = syncCard?.querySelector("legend");
+
+  const hasCloud = EXTENDS_BIN_ID && EXTENDS_API_KEY;
+
+  // Update display fields
   if (urlEl) {
-    urlEl.textContent = EXTENDS_BIN_ID
+    urlEl.textContent = hasCloud
       ? `${EXTENDS_API}/${EXTENDS_BIN_ID}`
-      : "Local only (no cloud bin)";
+      : "Local only";
   }
   if (keyEl) keyEl.textContent = EXTENDS_KEY;
-  if (keyInput) keyInput.value = EXTENDS_API_KEY;
+  if (keyInput) keyInput.value = EXTENDS_API_KEY || "";
+
+  // Update status
   if (statusEl)
-    statusEl.textContent = EXTENDS_API_KEY
+    statusEl.textContent = hasCloud
       ? "☁️ Cloud Sync Active"
       : "💾 Local-only mode";
+
+  // Update legend arrow state
+  if (legend) {
+    legend.textContent = hasCloud
+      ? "▼ ☁️ Cloud Sync"
+      : "▶ ☁️ Cloud Sync";
+  }
+
+  // Refresh footer tag to reflect mode
+  renderFooterButtons();
 }
+
 
 
 function updateYAN() {
@@ -4880,6 +4899,7 @@ if (isPWA) {
         state = cloud;
         save(state);
         render();
+		updateSyncCard();
       } else if (state && state.batches && state.batches.length > 0) {
         console.log("☁️ Cloud empty — pushing local data up for the first time.");
         await cloudSave(state);
