@@ -578,6 +578,84 @@ html {
   border-color: var(--accent);
 }
 
+/* === Sidebar Drawer System === */
+#sidebarToggle {
+  display: none;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 1001;
+  background: var(--accent, #4a9fff);
+  color: white;
+  font-size: 1.4rem;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+/* Drawer hidden by default */
+#sidebarDrawer {
+  position: fixed;
+  top: 0;
+  left: -260px; /* hidden off-screen */
+  width: 240px;
+  height: 100%;
+  background: var(--panel, #1b1f27);
+  box-shadow: 4px 0 12px rgba(0,0,0,0.4);
+  padding: 1rem;
+  transition: left 0.3s ease;
+  z-index: 1000;
+  overflow-y: auto;
+  color: var(--text, #fff);
+}
+
+#sidebarDrawer.open {
+  left: 0; /* slide in */
+}
+
+/* Overlay */
+#sidebarOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease;
+  z-index: 999;
+}
+
+#sidebarOverlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Mobile only */
+@media (max-width: 768px) {
+  #sidebarToggle {
+    display: block;
+  }
+
+  /* Prevent double layout on mobile */
+  #sidebar {
+    display: none !important;
+  }
+}
+
+/* Desktop keeps normal layout */
+@media (min-width: 769px) {
+  #sidebarDrawer,
+  #sidebarOverlay,
+  #sidebarToggle {
+    display: none;
+  }
+}
+
+
   </style>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f1216">
@@ -2189,6 +2267,59 @@ function render(highlightId = null) {
   renderDetail(highlightId);
   renderFooterButtons();
 }
+
+
+// === Mobile Sidebar Drawer System ===
+function initMobileSidebar() {
+  // Remove any existing drawer elements (for hot reloads)
+  document.getElementById('sidebarToggle')?.remove();
+  document.getElementById('sidebarDrawer')?.remove();
+  document.getElementById('sidebarOverlay')?.remove();
+
+  // 🔹 Toggle button (☰)
+  const toggleBtn = el('button', {
+    id: 'sidebarToggle',
+    'aria-label': 'Toggle menu',
+    text: '☰'
+  });
+
+  // 🔹 Drawer container
+  const drawer = el('aside', { id: 'sidebarDrawer' });
+
+  // 🔹 Overlay
+  const overlay = el('div', { id: 'sidebarOverlay' });
+
+  // Insert them before your .app container
+  const app = document.querySelector('.app');
+  if (app) document.body.insertBefore(toggleBtn, app);
+  if (app) document.body.insertBefore(drawer, app);
+  if (app) document.body.insertBefore(overlay, app);
+
+  // Optional: clone your sidebar content for mobile
+  const desktopSidebar = document.querySelector('.sidebar');
+  if (desktopSidebar) {
+    drawer.innerHTML = desktopSidebar.innerHTML;
+  }
+
+  // 🔹 Event bindings
+  toggleBtn.addEventListener('click', () => {
+    drawer.classList.toggle('open');
+    overlay.classList.toggle('visible');
+  });
+
+  overlay.addEventListener('click', () => {
+    drawer.classList.remove('open');
+    overlay.classList.remove('visible');
+  });
+}
+
+// Run after the app is rendered
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait a bit to ensure .app and sidebar are rendered
+  setTimeout(initMobileSidebar, 500);
+});
+
+
 
 
 function renderBatchList() {
@@ -4623,6 +4754,24 @@ if ('serviceWorker' in navigator) {
   }).catch(err => console.warn('⚠️ SW registration failed:', err));
 }
 
+// === Mobile Sidebar Drawer ===
+document.addEventListener("DOMContentLoaded", () => {
+  const toggleBtn = document.getElementById('sidebarToggle');
+  const drawer = document.getElementById('sidebarDrawer');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  if (toggleBtn && drawer && overlay) {
+    toggleBtn.addEventListener('click', () => {
+      drawer.classList.toggle('open');
+      overlay.classList.toggle('visible');
+    });
+
+    overlay.addEventListener('click', () => {
+      drawer.classList.remove('open');
+      overlay.classList.remove('visible');
+    });
+  }
+});
 
 (async () => {
 
