@@ -2297,9 +2297,27 @@ function initMobileSidebar() {
 
   // Optional: clone your sidebar content for mobile
   const desktopSidebar = document.querySelector('.sidebar');
-  if (desktopSidebar) {
-    drawer.innerHTML = desktopSidebar.innerHTML;
-  }
+if (desktopSidebar) {
+  // Rebuild sidebar content dynamically to include event bindings
+  drawer.innerHTML = '';
+  const tempSidebar = el('div', { class: 'sidebar-temp' });
+  drawer.append(tempSidebar);
+  renderSidebar(); // existing function that builds the desktop sidebar
+  const built = document.querySelector('.sidebar');
+  if (built) drawer.innerHTML = built.innerHTML;
+}
+
+// ✅ Reattach collapsible toggles inside the drawer
+drawer.querySelectorAll('.fieldset.collapsible legend').forEach(legend => {
+  legend.addEventListener('click', () => {
+    const fs = legend.parentElement;
+    fs.classList.toggle('collapsed');
+    const content = Array.from(fs.children).find(c => c.tagName !== 'LEGEND');
+    if (content)
+      content.style.display = fs.classList.contains('collapsed') ? 'none' : 'block';
+  });
+});
+
 
   // 🔹 Event bindings
   toggleBtn.addEventListener('click', () => {
@@ -2315,9 +2333,19 @@ function initMobileSidebar() {
 
 // Run after the app is rendered
 document.addEventListener('DOMContentLoaded', () => {
-  // Wait a bit to ensure .app and sidebar are rendered
-  setTimeout(initMobileSidebar, 500);
+  initMobileSidebar();
+
+  // 🔁 Observe sidebar changes and re-sync drawer
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) {
+    const obs = new MutationObserver(() => {
+      const drawer = document.getElementById('sidebarDrawer');
+      if (drawer) drawer.innerHTML = sidebar.innerHTML;
+    });
+    obs.observe(sidebar, { childList: true, subtree: true });
+  }
 });
+
 
 
 
