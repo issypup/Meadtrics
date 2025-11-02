@@ -2504,9 +2504,7 @@ function renderBatchList() {
   const list = document.getElementById('batchList');
   if (!list) return;
 
-
   list.innerHTML = '';
-
 
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
 
@@ -2521,11 +2519,9 @@ function renderBatchList() {
   const active = sorted.filter(b => !b.events.some(e => e.type === 'bottled'));
   const archived = sorted.filter(b => b.events.some(e => e.type === 'bottled'));
 
-
   const makeSection = (key, title, batches, emptyText) => {
     const isCollapsed = sidebarCollapse[key];
     const section = el('div', { class: 'fieldset', style: 'margin-bottom:12px;' });
-
 
     const header = el(
       'div',
@@ -2557,59 +2553,22 @@ function renderBatchList() {
 
     if (isCollapsed) return section;
 
-
     if (!batches.length) {
       section.append(el('div', { class: 'empty', text: emptyText }));
       return section;
     }
 
-
     batches.forEach(b => {
       const item = el('div', { class: 'batch' });
 
+      // 🔹 Non-editable name
+      const nameEl = el('div', {
+        class: 'batchName',
+        text: b.name,
+        style: 'font-weight:600;cursor:default;'
+      });
 
-      const nameEl = (() => {
-        const nameDiv = el('div', {
-          class: 'name',
-          text: b.name,
-          title: 'Click to rename batch'
-        });
-        nameDiv.style.cursor = 'pointer';
-        nameDiv.addEventListener('click', e => {
-          e.stopPropagation();
-          const input = el('input', {
-            type: 'text',
-            value: b.name,
-            class: 'wide',
-            style: `
-              font-size:13px;
-              font-weight:600;
-              border:1px solid var(--border);
-              background:#0f141b;
-              color:var(--text);
-              border-radius:6px;
-              padding:4px 6px;
-            `
-          });
-          const commit = () => {
-            const newName = input.value.trim();
-            if (newName) b.name = newName;
-            saveAll(state, b, ['name']);
-            render();
-          };
-          input.addEventListener('blur', commit);
-          input.addEventListener('keydown', ev => {
-            if (ev.key === 'Enter') input.blur();
-            if (ev.key === 'Escape') render();
-          });
-          nameDiv.replaceWith(input);
-          input.focus();
-          input.select();
-        });
-        return nameDiv;
-      })();
-
-
+      // Delete button
       const delBtn = el('button', {
         text: '✕',
         class: 'btn-danger',
@@ -2632,7 +2591,6 @@ function renderBatchList() {
         style: 'justify-content:space-between;align-items:center;'
       }, [nameEl, delBtn]);
 
-
       const latestSG = b.sgReadings?.length
         ? b.sgReadings[b.sgReadings.length - 1].sg
         : null;
@@ -2653,48 +2611,49 @@ function renderBatchList() {
         if (target) sugarBreakText = `🍯 1/3 Sugar Break: ${target}`;
       }
 
-const metaText =
-  `${fmt(b.startDate)} · OG ${b.og}` +
-  (latestSG ? ` · FG ${latestSG}` : '') +
-  (abv ? ` · ~${abv.toFixed(1)}% ABV` : '') +
-  (fermentText ? `\n${fermentText}` : '') +
-  (sugarBreakText ? `\n${sugarBreakText}` : '') +
-  (maturityText ? `\n${maturityText}` : '');
+      const metaText =
+        `${fmt(b.startDate)} · OG ${b.og}` +
+        (latestSG ? ` · FG ${latestSG}` : '') +
+        (abv ? ` · ~${abv.toFixed(1)}% ABV` : '') +
+        (fermentText ? `\n${fermentText}` : '') +
+        (sugarBreakText ? `\n${sugarBreakText}` : '') +
+        (maturityText ? `\n${maturityText}` : '');
 
-const metaDiv = el('div', { class: 'meta', text: metaText });
+      const metaDiv = el('div', { class: 'meta', text: metaText });
 
-// === 🏷️ Tag display under batch ===
-const tagsRow = el('div', {
-  class: 'row',
-  style: 'flex-wrap:wrap;gap:4px;margin-top:4px;'
-});
+      // === 🏷️ Tag display under batch ===
+      const tagsRow = el('div', {
+        class: 'row',
+        style: 'flex-wrap:wrap;gap:4px;margin-top:4px;'
+      });
 
-if (Array.isArray(b.tags) && b.tags.length > 0) {
-  b.tags.forEach(tag => {
-    const tagEl = el('span', {
-      class: 'tag',
-      text: tag,
-      style: `
-        font-size:11px;
-        padding:2px 6px;
-        border-color:#2f3b4b;
-        background:#1a2028;
-        color:var(--accent);
-      `
-    });
-    tagsRow.append(tagEl);
-  });
-} else {
-  tagsRow.append(el('span', {
-    class: 'tag',
-    text: 'No tags',
-    style: 'opacity:0.5;font-size:11px;'
-  }));
-}
+      if (Array.isArray(b.tags) && b.tags.length > 0) {
+        b.tags.forEach(tag => {
+          const tagEl = el('span', {
+            class: 'tag',
+            text: tag,
+            style: `
+              font-size:11px;
+              padding:2px 6px;
+              border-color:#2f3b4b;
+              background:#1a2028;
+              color:var(--accent);
+            `
+          });
+          tagsRow.append(tagEl);
+        });
+      } else {
+        tagsRow.append(el('span', {
+          class: 'tag',
+          text: 'No tags',
+          style: 'opacity:0.5;font-size:11px;'
+        }));
+      }
 
-item.append(headerRow, metaDiv, tagsRow);
+      item.append(headerRow, metaDiv, tagsRow);
       item.classList.toggle('active', b.id === selectedId);
 
+      // Clicking item now only opens detail view
       item.addEventListener('click', () => {
         selectedId = b.id;
         render();
@@ -2706,7 +2665,6 @@ item.append(headerRow, metaDiv, tagsRow);
     return section;
   };
 
-
   const sidebarSections = [
     batchHeaderCard,
     () => makeSection('active', '🧪 Active Batches', active, 'No active batches.'),
@@ -2717,12 +2675,11 @@ item.append(headerRow, metaDiv, tagsRow);
     dilutionCard,
     primingCard,
     stabilCard,
-	finingCard,
+    finingCard,
     brixCard,
     backupHeaderCard,
     syncCard
   ];
-
 
   for (const create of sidebarSections) {
     try {
@@ -2735,6 +2692,7 @@ item.append(headerRow, metaDiv, tagsRow);
 
   initTosnaBindings();
 }
+
 
 function renderTagsSection(batch) {
   if (!Array.isArray(batch.tags)) batch.tags = [];
