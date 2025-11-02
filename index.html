@@ -655,6 +655,22 @@ html {
   }
 }
 
+#finingCard table {
+  border-collapse: collapse;
+  width: 100%;
+}
+#finingCard th, #finingCard td {
+  border-bottom: 1px solid var(--border);
+  padding: 4px 6px;
+  text-align: left;
+}
+#finingCard th {
+  color: var(--text-strong);
+}
+#finingCard td {
+  color: var(--muted);
+}
+
 
   </style>
   <link rel="manifest" href="manifest.json">
@@ -1538,6 +1554,127 @@ function stabilCard() {
 
   return card;
 }
+
+function finingCard() {
+  let collapsed = true;
+
+  const volumeInput = el("input", {
+    id: "finingVolume",
+    type: "number",
+    step: "0.1",
+    min: "0.1",
+    value: "5",
+    style: "width:100%;margin-bottom:6px;",
+    placeholder: "Enter batch volume (L)"
+  });
+
+  const resultTable = el("table", {
+    class: "table",
+    style: "font-size:13px;width:100%;margin-bottom:6px;"
+  });
+
+  const resultBody = el("tbody");
+
+  const updateFining = () => {
+    const vol = parseFloat(volumeInput.value);
+    if (isNaN(vol) || vol <= 0) {
+      resultBody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);">⚠️ Enter a valid volume above.</td></tr>`;
+      return;
+    }
+
+    // Densities: assume 1 mL ≈ 1 g (both are near water density)
+    const kiesel_mL = vol * 1.5;
+    const chito_mL = vol * 1.0;
+
+    const kiesel_g = kiesel_mL;
+    const chito_g = chito_mL;
+
+    const kiesel_oz = kiesel_mL * 0.033814;
+    const chito_oz = chito_mL * 0.033814;
+
+    resultBody.innerHTML = `
+      <tr>
+        <td>Chitosan</td>
+        <td>1 mL / L</td>
+        <td>${chito_mL.toFixed(1)} mL</td>
+        <td>${chito_g.toFixed(1)} g</td>
+        <td>${chito_oz.toFixed(2)} fl oz</td>
+      </tr>
+      <tr>
+        <td>Kieselsol (silica)</td>
+        <td>1.5 mL / L</td>
+        <td>${kiesel_mL.toFixed(1)} mL</td>
+        <td>${kiesel_g.toFixed(1)} g</td>
+        <td>${kiesel_oz.toFixed(2)} fl oz</td>
+      </tr>
+    `;
+  };
+
+  const calcBtn = el("button", {
+    text: "Calculate Fining Dosage",
+    class: "btn-accent",
+    style: "width:100%;margin:6px 0;",
+    onclick: updateFining
+  });
+
+  const body = el("div", { class: "card-content", id: "finingContent", style: "margin-top:8px;" }, [
+    el("p", {
+      style: "font-size:13px;color:var(--muted);",
+      text: "Enter your batch size below to calculate fining additions:"
+    }),
+    el("label", { text: "Batch Volume (L):" }),
+    volumeInput,
+    calcBtn,
+    el("table", { class: "table", style: "font-size:13px;width:100%;margin-bottom:6px;" }, [
+      el("thead", {}, [
+        el("tr", {}, [
+          el("th", { text: "Fining" }),
+          el("th", { text: "Standard Dose" }),
+          el("th", { text: "For Batch" }),
+          el("th", { text: "In grams*" }),
+          el("th", { text: "In fluid oz" }),
+        ])
+      ]),
+      resultBody
+    ]),
+    el("p", {
+      style: "font-size:12.5px;color:var(--muted);margin-bottom:8px;",
+      text: "*Both have density ≈ water (1 mL ≈ 1 g)."
+    }),
+    el("ul", { style: "font-size:13px;color:var(--muted);" }, [
+      el("li", { text: "Degas first (important for good clearing)." }),
+      el("li", { text: "Add Kieselsol → stir gently → wait 12–24 h." }),
+      el("li", { text: "Add Chitosan → stir gently → leave 1–3 days to clear." }),
+    ])
+  ]);
+
+  const legend = el("legend", {
+    text: "▶ Fining Calculator",
+    style: "cursor:pointer;",
+    onclick: () => {
+      collapsed = !collapsed;
+      body.style.display = collapsed ? "none" : "block";
+      legend.textContent = (collapsed ? "▶ " : "▼ ") + "Fining Calculator";
+    }
+  });
+
+  const card = el("fieldset", {
+    class: "fieldset collapsible",
+    id: "finingCard",
+    style: "margin-top:16px;"
+  }, [legend, body]);
+
+  // collapsed by default
+  collapsed = true;
+  body.style.display = "none";
+
+  // calculate initial default (5 L)
+  setTimeout(updateFining, 50);
+
+  return card;
+}
+
+
 
 
 function brixCard() {
@@ -2580,6 +2717,7 @@ item.append(headerRow, metaDiv, tagsRow);
     dilutionCard,
     primingCard,
     stabilCard,
+	finingCard,
     brixCard,
     backupHeaderCard,
     syncCard
