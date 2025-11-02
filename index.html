@@ -3602,6 +3602,31 @@ function calcABV(og, fg) {
   return (OG - FG) * 131.25;
 }
 
+function getBacksweetenCutoffTs(batch) {
+  // earliest backsweetened event (first time you sweeten)
+  const times = (batch.events || [])
+    .filter(e => e && e.type === 'backsweetened' && e.date)
+    .map(e => new Date(e.date).getTime())
+    .filter(t => !isNaN(t));
+  return times.length ? Math.min(...times) : null;
+}
+
+function getLastFermentationSGBefore(batch, cutoffTs = null) {
+  const readings = (batch.sgReadings || [])
+    .slice()
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  if (!readings.length) return null;
+
+  const filtered = cutoffTs == null
+    ? readings
+    : readings.filter(r => new Date(r.date).getTime() <= cutoffTs);
+
+  if (!filtered.length) return null;
+  const last = filtered[filtered.length - 1];
+  const val = parseFloat(last.sg);
+  return isFinite(val) ? val : null;
+}
+
 function formatMaturityDays(bottledDate) {
   const diffMs = Date.now() - new Date(bottledDate).getTime();
   const days = Math.floor(diffMs / 86400000);
@@ -3646,6 +3671,32 @@ function formatFermentationDays(startDate) {
   return result;
 }
 
+// --- Helper functions for sugar break cutoff ---
+function getBacksweetenCutoffTs(batch) {
+  const times = (batch.events || [])
+    .filter(e => e && e.type === 'backsweetened' && e.date)
+    .map(e => new Date(e.date).getTime())
+    .filter(t => !isNaN(t));
+  return times.length ? Math.min(...times) : null;
+}
+
+function getLastFermentationSGBefore(batch, cutoffTs = null) {
+  const readings = (batch.sgReadings || [])
+    .slice()
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  if (!readings.length) return null;
+
+  const filtered = cutoffTs == null
+    ? readings
+    : readings.filter(r => new Date(r.date).getTime() <= cutoffTs);
+
+  if (!filtered.length) return null;
+  const last = filtered[filtered.length - 1];
+  const val = parseFloat(last.sg);
+  return isFinite(val) ? val : null;
+}
+
+// --- Main chart ---
 function drawChart(batch) {
   const c = document.getElementById('sgChart');
   if (!c) return;
@@ -3724,7 +3775,7 @@ function drawChart(batch) {
     ctx.clearRect(0, 0, logicalW, logicalH);
     ctx.save();
 
-
+    // Grid and axes
     ctx.strokeStyle = '#2a3340';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -3733,7 +3784,7 @@ function drawChart(batch) {
     ctx.lineTo(pad.l + W, pad.t + H);
     ctx.stroke();
 
-
+    // Y grid
     ctx.fillStyle = '#8fa3bd';
     ctx.font = '12px system-ui';
     ctx.textAlign = 'right';
@@ -3748,7 +3799,7 @@ function drawChart(batch) {
       ctx.stroke();
     }
 
-
+    // X grid
     ctx.textAlign = 'center';
     const ticks = 4;
     for (let i = 0; i <= ticks; i++) {
@@ -3757,47 +3808,56 @@ function drawChart(batch) {
       ctx.fillText(new Date(x).toLocaleDateString(), xx, pad.t + H + 20);
     }
 
-
+    // SG/ABV line
     ctx.strokeStyle = chartMode === 'sg' ? '#82cfff' : '#b5e08a';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     points.forEach((p, i) => (i ? ctx.lineTo(p.xx, p.yy) : ctx.moveTo(p.xx, p.yy)));
     ctx.stroke();
 
+    // --- Updated sugar break marker ---
+// --- Updated sugar break marker (v2) ---
+if (sugarBreak) {
+  const breakValue =
+    chartMode === 'sg'
+      ? parseFloat(sugarBreak)
+      : calcABV(batch.og, sugarBreak);
+  if (breakValue >= minY && breakValue <= maxY) {
+    const yBreak = yScale(breakValue);
 
-    if (sugarBreak) {
-      const breakValue =
-        chartMode === 'sg'
-          ? parseFloat(sugarBreak)
-          : calcABV(batch.og, sugarBreak);
-      if (breakValue >= minY && breakValue <= maxY) {
-        const yBreak = yScale(breakValue);
-        const latestSG =
-          batch.sgReadings?.length &&
-          parseFloat(batch.sgReadings[batch.sgReadings.length - 1].sg);
-        const reached = latestSG && latestSG <= parseFloat(sugarBreak);
+    // ✅ Find earliest backsweetening
+    const cutoffTs = getBacksweetenCutoffTs(batch);
 
-        ctx.save();
-        ctx.beginPath();
-        ctx.setLineDash([6, 4]);
-        ctx.strokeStyle = reached ? '#00cc66' : '#ffaa33';
-        ctx.lineWidth = 1.2;
-        ctx.moveTo(pad.l, yBreak);
-        ctx.lineTo(pad.l + W, yBreak);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = reached ? '#00cc66' : '#ffaa33';
-        ctx.beginPath();
-        ctx.arc(pad.l + W - 8, yBreak, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.font = '12px system-ui';
-        ctx.textAlign = 'left';
-        ctx.fillText('1/3 Break', pad.l + 8, yBreak - 6);
-        ctx.restore();
-      }
-    }
+    // ✅ Find *any* SG reading before backsweetening that dropped below sugar break
+    const preSweetReadings = (batch.sgReadings || [])
+      .filter(r => !cutoffTs || new Date(r.date).getTime() <= cutoffTs)
+      .map(r => parseFloat(r.sg))
+      .filter(v => isFinite(v));
 
+    // ✅ Reached if *any* pre-sweetening SG <= break target
+    const reached = preSweetReadings.some(v => v <= parseFloat(sugarBreak));
 
+    ctx.save();
+    ctx.beginPath();
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = reached ? '#00cc66' : '#ffaa33'; // ✅ green if achieved before sweetening
+    ctx.lineWidth = 1.2;
+    ctx.moveTo(pad.l, yBreak);
+    ctx.lineTo(pad.l + W, yBreak);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = reached ? '#00cc66' : '#ffaa33';
+    ctx.beginPath();
+    ctx.arc(pad.l + W - 8, yBreak, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = '12px system-ui';
+    ctx.textAlign = 'left';
+    ctx.fillText('1/3 Break', pad.l + 8, yBreak - 6);
+    ctx.restore();
+  }
+}
+
+    // Points
     points.forEach((p, i) => {
       ctx.beginPath();
       if (i === 0) {
@@ -3827,7 +3887,7 @@ function drawChart(batch) {
 
   renderBase();
 
-
+  // Tooltip logic
   const radius = 14;
   c.onmousemove = evt => {
     const rect = c.getBoundingClientRect();
@@ -3851,7 +3911,6 @@ function drawChart(batch) {
     if (nearest) {
       renderBase(nearest);
       tooltip.style.display = 'block';
-
 
       const left = nearest.xx / dpr + 12;
       const top = nearest.yy / dpr - 28;
@@ -3882,8 +3941,7 @@ function drawChart(batch) {
     tooltip.style.display = 'none';
     renderBase();
   };
-} 
-
+}
 
 
 
