@@ -1,4 +1,4 @@
-let CACHE_NAME = 'meadtrics-cache-v0.0.2.6'; // temporary name until version is loaded
+let CACHE_NAME = 'meadtrics-cache-v0.0.2.7'; // temporary name until version is loaded
 
 const ASSETS = [
   './',

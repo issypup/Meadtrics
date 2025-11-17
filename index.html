@@ -837,32 +837,52 @@ function utilitiesHeaderCard() {
 }
 
 
-function calcTosna() {
-  const vol = parseFloat(document.getElementById("tosnaVol")?.value || 0);
-  const yan = parseFloat(document.getElementById("tosnaYan")?.value || 0);
-  const req = document.getElementById("tosnaReq")?.value || "medium";
-  const type = document.getElementById("tosnaType")?.value || "OK";
-  const result = document.getElementById("tosnaResult");
+function calcTosna(sourceEl) {
+  console.log("🔥 calcTosna() fired", sourceEl);
+
+  // Work out which TOSNA card we’re inside (handles sidebar + drawer clones)
+  let root = document;
+  if (sourceEl && sourceEl.closest) {
+    const card = sourceEl.closest('#tosnaCard') || sourceEl.closest('.fieldset');
+    if (card) root = card;
+  } else if (typeof event !== "undefined" && event.currentTarget && event.currentTarget.closest) {
+    // Fallback if called inline without explicit param
+    const card = event.currentTarget.closest('#tosnaCard') || event.currentTarget.closest('.fieldset');
+    if (card) root = card;
+  }
+
+  const volEl   = root.querySelector('#tosnaVol');
+  const yanEl   = root.querySelector('#tosnaYan');
+  const reqEl   = root.querySelector('#tosnaReq');
+  const typeEl  = root.querySelector('#tosnaType');
+  const result  = root.querySelector('#tosnaResult');
+
+  console.log("📦 calcTosna resolved elements:", { root, volEl, yanEl, reqEl, typeEl, result });
+
+  const vol  = parseFloat(volEl?.value || 0);
+  const yan  = parseFloat(yanEl?.value || 0);         // "Current YAN" from the field
+  const req  = reqEl?.value || "medium";
+  const type = typeEl?.value || "OK";
 
   if (!vol || !yan || !result) {
-    console.warn("calcTosna() skipped — elements not ready");
+    console.warn("calcTosna() skipped — elements not ready or invalid", { vol, yan, result });
+    if (result) {
+      result.textContent = "Please enter a valid volume and YAN.";
+    }
     return;
   }
 
-  
-  const reqMap = { low: 125, medium: 150, high: 200 }; 
+  // Map requirement → target YAN
+  const reqMap = { low: 125, medium: 150, high: 200 };
   const targetYan = reqMap[req] || 150;
 
-  const yanNeeded = targetYan - yan;
-  if (yanNeeded <= 0) {
-    result.textContent = "YAN already sufficient.";
-    return;
-  }
+  // How much YAN we still need to add
+  const yanNeeded = Math.max(0, targetYan - yan);
 
-  
+  // Approximate YAN contributions (mg N per g per litre)
   const fermaidO_YAN = 20;
   const fermaidK_YAN = 25;
-  const dap_YAN = 60;
+  const dap_YAN      = 60;
 
   let fermaidO = 0, fermaidK = 0, dap = 0;
   if (type === "O") {
@@ -873,22 +893,33 @@ function calcTosna() {
   } else if (type === "OKDAP") {
     fermaidO = (yanNeeded * 0.5 / fermaidO_YAN) * vol;
     fermaidK = (yanNeeded * 0.3 / fermaidK_YAN) * vol;
-    dap = (yanNeeded * 0.2 / dap_YAN) * vol;
+    dap      = (yanNeeded * 0.2 / dap_YAN)      * vol;
   }
 
+  console.log("🧮 calcTosna grams:", {
+    vol, yan, req, targetYan, yanNeeded,
+    fermaidO, fermaidK, dap
+  });
+
+  const oPerAddition = fermaidO / 4;
+
   const schedule = [
-    `• 24h → ${(fermaidO / 4).toFixed(2)} g O`,
-    `• 48h → ${(fermaidO / 4).toFixed(2)} g O`,
-    `• 72h → ${(fermaidO / 4).toFixed(2)} g O`,
-    `• 1/3 Break → ${(fermaidO / 4).toFixed(2)} g O + ${fermaidK.toFixed(2)} g K + ${dap.toFixed(2)} g DAP`
-  ].join("\n");
+    `• 24h → ${oPerAddition.toFixed(2)} g O`,
+    `• 48h → ${oPerAddition.toFixed(2)} g O`,
+    `• 72h → ${oPerAddition.toFixed(2)} g O`,
+    `• 1/3 Break → ${oPerAddition.toFixed(2)} g O`
+      + (fermaidK > 0 ? ` + ${fermaidK.toFixed(2)} g K` : "")
+      + (dap      > 0 ? ` + ${dap.toFixed(2)} g DAP`   : "")
+  ].join("<br>");
 
   result.innerHTML =
-    `📦 For ${vol.toFixed(1)} L at ${targetYan} mg/L target YAN<br><br>` +
-    `Fermaid O ≈ ${fermaidO.toFixed(1)} g · ` +
-    `Fermaid K ≈ ${fermaidK.toFixed(1)} g · ` +
-    `DAP ≈ ${dap.toFixed(1)} g<br><br>` +
-    `Schedule:<br>${schedule.replace(/\n/g, "<br>")}`;
+    `📦 For <b>${vol.toFixed(1)} L</b> at <b>${targetYan} mg/L</b> target YAN<br><br>` +
+    `Fermaid O ≈ <b>${fermaidO.toFixed(1)} g</b>` +
+    ` · Fermaid K ≈ <b>${fermaidK.toFixed(1)} g</b>` +
+    ` · DAP ≈ <b>${dap.toFixed(1)} g</b><br><br>` +
+    `<b>Schedule:</b><br>${schedule}`;
+
+  console.log("✅ calcTosna() finished and updated tosnaResult in card:", root);
 }
 
 
@@ -4251,18 +4282,46 @@ function updateYAN() {
 }
 
 function initTosnaBindings() {
-  const ids = ['tosnaYeastABV','tosnaSweetness','tosnaReq'];
-  let found = false;
-  ids.forEach(id=>{
-    const el = document.getElementById(id);
-    if (el) {
-      found = true;
-      el.addEventListener('input', updateYAN);
-    }
+  // Support both desktop sidebar and mobile drawer copies
+  const abvInputs     = document.querySelectorAll('#tosnaYeastABV');
+  const sweetSelects  = document.querySelectorAll('#tosnaSweetness');
+  const reqSelects    = document.querySelectorAll('#tosnaReq');
+  const calcButtons   = document.querySelectorAll('#calcTosna');
+
+  if (!abvInputs.length || !sweetSelects.length || !reqSelects.length) {
+    // TOSNA card not rendered yet
+    return;
+  }
+
+  // Wire ABV / sweetness / requirement -> YAN + FG/OG
+  abvInputs.forEach(el => {
+    el.addEventListener('input', () => {
+      updateFGOG();
+      updateYAN();
+    });
   });
-  if (found) updateYAN();
-  
+
+  sweetSelects.forEach(el => {
+    el.addEventListener('change', () => {
+      updateFGOG();
+      updateYAN();
+    });
+  });
+
+  reqSelects.forEach(el => {
+    el.addEventListener('change', updateYAN);
+  });
+
+  // Wire the Calculate button → calcTosna()
+  calcButtons.forEach(btn => {
+    btn.addEventListener('click', calcTosna);
+  });
+
+  // Initialise display once
+  updateFGOG();
+  updateYAN();
 }
+
 
 
 function updateFGOG() {
