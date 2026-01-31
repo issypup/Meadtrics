@@ -1,4 +1,4 @@
-let CACHE_NAME = 'meadtrics-cache-v0.0.2.7'; // temporary name until version is loaded
+let CACHE_NAME = 'meadtrics-cache-v0.0.2.8';
 
 const ASSETS = [
   './',
@@ -36,82 +36,67 @@ async function getCacheName() {
   }
 }
 
-// 🔹 Listen for SKIP_WAITING messages from app
+// 🔹 Listen for SKIP_WAITING messages from the app (USER CONFIRMED)
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('🟢 Update accepted by user');
     self.skipWaiting();
   }
 });
 
-// 🧩 Always activate immediately, even before waiting for the old worker
-self.skipWaiting();
-
-// 🔹 Install: pre-cache essential assets and activate immediately
+// 🔹 Install: pre-cache essential assets ONLY
 self.addEventListener('install', e => {
   e.waitUntil(
     (async () => {
       await getCacheName();
       const cache = await caches.open(CACHE_NAME);
       await cache.addAll(ASSETS);
-      self.skipWaiting(); // ensure immediate activation
+      // ❌ DO NOT auto-activate
     })()
   );
 });
 
-// 🔹 Activate: clean up old caches, claim clients, and refresh open pages
+// 🔹 Activate: clean up old caches & take control
 self.addEventListener('activate', e => {
   e.waitUntil(
     (async () => {
       await getCacheName();
 
-      // Delete old caches
+      // Remove old caches
       const keys = await caches.keys();
-      await Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)));
+      await Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+      );
 
       console.log(`🧹 Active cache: ${CACHE_NAME}`);
       await self.clients.claim();
-
-      // Force reload all open pages to apply the new SW
-      const clientsList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-      for (const client of clientsList) {
-        client.navigate(client.url);
-      }
     })()
   );
 });
 
-// 🔁 If a new SW becomes active, reload open windows automatically
-self.addEventListener('statechange', event => {
-  if (event.target.state === 'activated') {
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      for (const client of clientList) {
-        client.navigate(client.url);
-      }
-    });
-  }
-});
-
-// 🔹 Fetch: online-first strategy with cache update fallback
+// 🔹 Fetch: online-first with cache update fallback
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
 
   e.respondWith(
     fetch(e.request)
       .then(networkRes => {
-        if (networkRes && networkRes.status === 200 && networkRes.type === 'basic') {
+        if (
+          networkRes &&
+          networkRes.status === 200 &&
+          networkRes.type === 'basic'
+        ) {
           const responseClone = networkRes.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, responseClone));
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(e.request, responseClone);
+          });
         }
         return networkRes;
       })
       .catch(() =>
-        caches.match(e.request).then(cachedRes => cachedRes || caches.match('./index.html'))
+        caches.match(e.request).then(
+          cachedRes => cachedRes || caches.match('./index.html')
+        )
       )
   );
 });
-
-
-
-
-
-

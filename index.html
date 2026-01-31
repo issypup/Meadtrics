@@ -422,7 +422,6 @@ canvas {
   width: 100% !important;
   height: 100% !important;
   display: block;
-  image-rendering: pixelated;
 }
 
 /* Optional subtle frame */
@@ -671,6 +670,48 @@ html {
   color: var(--muted);
 }
 
+/* 🔔 Update Toast */
+#updateToast {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  max-width: 320px;
+  background: #1f1f1f;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  z-index: 9999;
+}
+
+#updateToast .toast-content {
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+#updateToast .diff {
+  margin: 0.5rem 0;
+  opacity: 0.85;
+  font-family: monospace;
+}
+
+#updateToast .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+#updateToast button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+}
+
+#updateToast #updateNow {
+  background: #e0a400;
+  color: #000;
+}
+
 
   </style>
   <link rel="manifest" href="manifest.json">
@@ -838,90 +879,65 @@ function utilitiesHeaderCard() {
 
 
 function calcTosna(sourceEl) {
-  console.log("🔥 calcTosna() fired", sourceEl);
-
-  // Work out which TOSNA card we’re inside (handles sidebar + drawer clones)
   let root = document;
-  if (sourceEl && sourceEl.closest) {
-    const card = sourceEl.closest('#tosnaCard') || sourceEl.closest('.fieldset');
-    if (card) root = card;
-  } else if (typeof event !== "undefined" && event.currentTarget && event.currentTarget.closest) {
-    // Fallback if called inline without explicit param
-    const card = event.currentTarget.closest('#tosnaCard') || event.currentTarget.closest('.fieldset');
-    if (card) root = card;
+  if (sourceEl?.closest) {
+    root = sourceEl.closest('#tosnaCard') || document;
   }
 
-  const volEl   = root.querySelector('#tosnaVol');
-  const yanEl   = root.querySelector('#tosnaYan');
-  const reqEl   = root.querySelector('#tosnaReq');
-  const typeEl  = root.querySelector('#tosnaType');
-  const result  = root.querySelector('#tosnaResult');
+  const vol = parseFloat(root.querySelector('#tosnaVol')?.value || 0);
+  const req = root.querySelector('#tosnaReq')?.value || 'medium';
+  const result = root.querySelector('#tosnaResult');
 
-  console.log("📦 calcTosna resolved elements:", { root, volEl, yanEl, reqEl, typeEl, result });
-
-  const vol  = parseFloat(volEl?.value || 0);
-  const yan  = parseFloat(yanEl?.value || 0);         // "Current YAN" from the field
-  const req  = reqEl?.value || "medium";
-  const type = typeEl?.value || "OK";
-
-  if (!vol || !yan || !result) {
-    console.warn("calcTosna() skipped — elements not ready or invalid", { vol, yan, result });
-    if (result) {
-      result.textContent = "Please enter a valid volume and YAN.";
-    }
+  if (!vol || !result) {
+    result.textContent = 'Please enter a valid volume.';
     return;
   }
 
-  // Map requirement → target YAN
-  const reqMap = { low: 125, medium: 150, high: 200 };
-  const targetYan = reqMap[req] || 150;
-
-  // How much YAN we still need to add
-  const yanNeeded = Math.max(0, targetYan - yan);
-
-  // Approximate YAN contributions (mg N per g per litre)
-  const fermaidO_YAN = 20;
-  const fermaidK_YAN = 25;
-  const dap_YAN      = 60;
-
-  let fermaidO = 0, fermaidK = 0, dap = 0;
-  if (type === "O") {
-    fermaidO = (yanNeeded / fermaidO_YAN) * vol;
-  } else if (type === "OK") {
-    fermaidO = (yanNeeded * 0.6 / fermaidO_YAN) * vol;
-    fermaidK = (yanNeeded * 0.4 / fermaidK_YAN) * vol;
-  } else if (type === "OKDAP") {
-    fermaidO = (yanNeeded * 0.5 / fermaidO_YAN) * vol;
-    fermaidK = (yanNeeded * 0.3 / fermaidK_YAN) * vol;
-    dap      = (yanNeeded * 0.2 / dap_YAN)      * vol;
+  // === Read FG / OG from UI ===
+  const fgText = root.querySelector('#tosnaFGOG')?.textContent || '';
+  const match = fgText.match(/FG:\s*([\d.]+).*OG:\s*([\d.]+)/);
+  if (!match) {
+    result.textContent = 'Unable to read FG / OG.';
+    return;
   }
 
-  console.log("🧮 calcTosna grams:", {
-    vol, yan, req, targetYan, yanNeeded,
-    fermaidO, fermaidK, dap
-  });
+  const FG = parseFloat(match[1]);
+  const OG = parseFloat(match[2]);
 
-  const oPerAddition = fermaidO / 4;
+  // === MeadTools gravity logic ===
+  const gravityPoints = (OG - FG) * 1000;
 
-  const schedule = [
-    `• 24h → ${oPerAddition.toFixed(2)} g O`,
-    `• 48h → ${oPerAddition.toFixed(2)} g O`,
-    `• 72h → ${oPerAddition.toFixed(2)} g O`,
-    `• 1/3 Break → ${oPerAddition.toFixed(2)} g O`
-      + (fermaidK > 0 ? ` + ${fermaidK.toFixed(2)} g K` : "")
-      + (dap      > 0 ? ` + ${dap.toFixed(2)} g DAP`   : "")
-  ].join("<br>");
+  const reqMultiplier = {
+    low: 1.0,
+    medium: 1.25,
+    high: 1.5
+  }[req] || 1.25;
 
-  result.innerHTML =
-    `📦 For <b>${vol.toFixed(1)} L</b> at <b>${targetYan} mg/L</b> target YAN<br><br>` +
-    `Fermaid O ≈ <b>${fermaidO.toFixed(1)} g</b>` +
-    ` · Fermaid K ≈ <b>${fermaidK.toFixed(1)} g</b>` +
-    ` · DAP ≈ <b>${dap.toFixed(1)} g</b><br><br>` +
-    `<b>Schedule:</b><br>${schedule}`;
+  let requiredYAN = gravityPoints * reqMultiplier;
 
-  console.log("✅ calcTosna() finished and updated tosnaResult in card:", root);
+  // MeadTools safety rounding
+  requiredYAN = Math.round(requiredYAN / 10) * 10;
+
+  // === Fermaid O actual YAN contribution ===
+  const FERMAID_O_YAN = 13; // mg N / g / L
+
+  const fermaidO = (requiredYAN / FERMAID_O_YAN) * vol;
+  const perAddition = fermaidO / 4;
+
+  result.innerHTML = `
+📦 <b>${vol.toFixed(1)} L</b><br>
+Target YAN: <b>${requiredYAN} mg/L</b><br><br>
+
+🍶 <b>Fermaid O total:</b> ${fermaidO.toFixed(1)} g<br>
+➗ <b>Per addition (×4):</b> ${perAddition.toFixed(1)} g<br><br>
+
+<b>Schedule:</b><br>
+• 24h – ${perAddition.toFixed(1)} g<br>
+• 48h – ${perAddition.toFixed(1)} g<br>
+• 72h – ${perAddition.toFixed(1)} g<br>
+• 1/3 Sugar Break – ${perAddition.toFixed(1)} g
+`;
 }
-
 
 
 function tosnaCard() {
@@ -2599,23 +2615,34 @@ function renderBatchList() {
         style: 'font-weight:600;cursor:default;'
       });
 
-      // Delete button
-      const delBtn = el('button', {
-        text: '✕',
-        class: 'btn-danger',
-        title: 'Delete batch',
-        onclick: e => {
-          e.stopPropagation();
-          if (!confirm(`Delete batch “${b.name}”? This cannot be undone.`)) return;
-          const i = state.batches.indexOf(b);
-          if (i >= 0) {
-            state.batches.splice(i, 1);
-            if (selectedId === b.id) selectedId = state.batches[0]?.id || null;
-            saveAll(state);
-            render();
-          }
-        }
-      });
+// Delete button
+const delBtn = el('button', {
+  text: '✕',
+  class: 'btn-danger',
+  title: 'Delete batch',
+  onclick: async e => {
+    e.stopPropagation();
+    if (!confirm(`Delete batch “${b.name}”? This cannot be undone.`)) return;
+
+    // Remove locally
+    state.batches = state.batches.filter(x => x.id !== b.id);
+    if (selectedId === b.id) selectedId = state.batches[0]?.id || null;
+    save(state);
+
+    // Optional cloud delete (safe)
+if (EXTENDS_BIN_ID && EXTENDS_KEY) {
+  const cloud = await cloudLoad();
+  if (cloud?.batches) {
+    cloud.batches = cloud.batches.filter(x => x.id !== b.id);
+    await cloudSave(cloud, true);
+  }
+}
+
+    renderBatchList();
+render();
+  }
+});
+
 
       const headerRow = el('div', {
         class: 'row',
@@ -2982,9 +3009,6 @@ const components = [
 
   drawChart(batch);
 }
-
-
-
 
 function chartCard(batch) {
   return el('div', {
@@ -4108,6 +4132,56 @@ $('#exportBtn')?.addEventListener('click', () => {
   }
 });
 
+function createBottleSafeQR({
+  data,
+  qrSize = 320,          // size of QR itself (px)
+  borderRatio = 0.30,    // 30% border = bottle safe
+}) {
+  // --- generate base QR ---
+  const qrCanvas = document.createElement('canvas');
+
+  QRCode.toCanvas(qrCanvas, data, {
+    width: qrSize,
+    errorCorrectionLevel: 'H', // 🔥 critical for curved surfaces
+    margin: 4,
+    color: {
+      dark: '#000000',
+      light: '#ffffff'
+    }
+  });
+
+  // --- calculate border ---
+  const borderPx = Math.round(qrSize * borderRatio);
+  const finalSize = qrSize + borderPx * 2;
+
+  // --- output canvas ---
+  const out = document.createElement('canvas');
+  out.width = finalSize;
+  out.height = finalSize;
+
+  const ctx = out.getContext('2d');
+
+  // solid white border (quiet zone booster)
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, finalSize, finalSize);
+
+  // draw QR centered
+  ctx.drawImage(qrCanvas, borderPx, borderPx);
+
+  return out;
+}
+
+
+function getBottledDate(batch) {
+  if (batch.bottledDate) return new Date(batch.bottledDate);
+  if (batch.bottlingDate) return new Date(batch.bottlingDate);
+
+  const evt = batch.events?.slice().reverse().find(e =>
+    e.type === 'bottled' || e.type === 'bottling'
+  );
+  return evt?.date ? new Date(evt.date) : null;
+}
+
 function openLabelMaker(batch) {
   const existing = document.getElementById('labelModal');
   if (existing) existing.remove();
@@ -4124,11 +4198,17 @@ function openLabelMaker(batch) {
     ? batch.sgReadings[batch.sgReadings.length - 1]
     : null;
 
+  const bottledDateObj = getBottledDate(batch);
+  const bottledDate = bottledDateObj
+    ? bottledDateObj.toLocaleDateString()
+    : '—';
+
   const OG = parseFloat(batch.og);
   const FG = lastReading ? parseFloat(lastReading.sg) : NaN;
   const abv = (isFinite(OG) && isFinite(FG))
     ? ((OG - FG) * 131.25).toFixed(1) + '%'
     : '–';
+
   const honey = batch.honey || 'Mixed Blossom';
 
   // 🧩 Create modal structure
@@ -4148,12 +4228,13 @@ function openLabelMaker(batch) {
         }),
         el('p', { text: `Batch: ${batch.name}` }),
         el('p', { text: `Start: ${date}` }),
+        el('p', { text: `Bottled: ${bottledDate}` }),
         el('p', { text: `ABV: ${abv}` }),
 
-        // 🧩 QR placeholder (auto-filled below)
+        // 🧩 QR placeholder
         el('div', {
           id: 'qrContainer',
-          style: 'width:80px;height:80px;margin:6mm auto 0 auto;'
+          style: 'margin:6mm auto 0 auto;text-align:center;'
         })
       ]),
       el('div', { class: 'row', style: 'justify-content:center;gap:8px;margin-top:10px;' }, [
@@ -4187,27 +4268,125 @@ function openLabelMaker(batch) {
     }
   });
 
-  // 🧩 Auto-generate QR code on open
-  setTimeout(() => {
-    const container = document.getElementById('qrContainer');
-    if (!container) return;
+  // 🧩 Bottle-safe QR generator
+  function createBottleSafeQR(text, qrSize = 300, borderRatio = 0.30) {
+    const qrCanvas = document.createElement('canvas');
 
-    // You can change the encoded text here
-    const qrText = `https://meadtrics.app/batch/${encodeURIComponent(batch.name)}`;
-
-    container.innerHTML = '';
-    new QRCode(container, {
-      text: qrText,
-      width: 80,
-      height: 80,
-      colorDark: '#000000',
-      colorLight: 'transparent',
-      correctLevel: QRCode.CorrectLevel.H
+    QRCode.toCanvas(qrCanvas, text, {
+      width: qrSize,
+      errorCorrectionLevel: 'H',
+      margin: 4,
+      color: {
+        dark: '#000000',
+        light: '#ffffff'
+      }
     });
 
-    console.log(`📦 QR code generated for: ${qrText}`);
-  }, 100);
+    const borderPx = Math.round(qrSize * borderRatio);
+    const outSize = qrSize + borderPx * 2;
+
+    const out = document.createElement('canvas');
+    out.width = outSize;
+    out.height = outSize;
+
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, outSize, outSize);
+    ctx.drawImage(qrCanvas, borderPx, borderPx);
+
+    return out;
+  }
+
+  // 🧩 Auto-generate QR code on open
+setTimeout(() => {
+  const container = document.getElementById('qrContainer');
+  if (!container) return;
+
+  const qrText = [
+    `Batch: ${batch.name || 'Unnamed Batch'}`,
+    `Honey: ${honey}`,
+    `Start: ${date}`,
+    `Bottled: ${bottledDate}`,
+    `ABV: ${abv}`
+  ].join('\n');
+
+  container.innerHTML = '';
+
+  // 1️⃣ Generate QR using existing qrcodejs
+  const temp = document.createElement('div');
+  temp.style.display = 'inline-block';
+
+  new QRCode(temp, {
+    text: qrText,
+    width: 300,
+    height: 300,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  const qrCanvas = temp.querySelector('canvas');
+  if (!qrCanvas) {
+    console.warn('QR canvas not generated');
+    return;
+  }
+
+  // 2️⃣ Layout sizes
+  const borderRatio = 0.30;              // white gullitone zone
+  const whiteBorder = Math.round(qrCanvas.width * borderRatio);
+  const blackBorder = 6;                 // thin visual frame
+  const captionHeight = 28;              // space for text
+
+  const finalSize =
+    qrCanvas.width +
+    whiteBorder * 2 +
+    blackBorder * 2;
+
+  const out = document.createElement('canvas');
+  out.width = finalSize;
+  out.height = finalSize + captionHeight;
+
+  const ctx = out.getContext('2d');
+
+  // 3️⃣ Background (white)
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, out.width, out.height);
+
+  // 4️⃣ Black outer border
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = blackBorder;
+  ctx.strokeRect(
+    blackBorder / 2,
+    blackBorder / 2,
+    finalSize - blackBorder,
+    finalSize - blackBorder
+  );
+
+  // 5️⃣ Draw QR centered inside white zone
+  const qrOffset = whiteBorder + blackBorder;
+  ctx.drawImage(qrCanvas, qrOffset, qrOffset);
+
+  // 6️⃣ Caption text
+  ctx.fillStyle = '#000000';
+  ctx.font = 'bold 14px system-ui, -apple-system, Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(
+    'Scan for details',
+    out.width / 2,
+    finalSize + captionHeight / 2
+  );
+
+  out.style.display = 'block';
+  out.style.margin = '0 auto';
+
+  container.appendChild(out);
+
+  console.log('📦 Bottle-safe QR with border + caption generated');
+}, 100);
+
 }
+
 
 
 
@@ -5123,5 +5302,94 @@ if (isPWA) {
 })();
 
 </script>
+
+<script>
+let waitingSW = null;
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+
+    // If an update is already waiting
+    if (reg.waiting) {
+      showUpdateToast(reg.waiting);
+    }
+
+    reg.addEventListener('updatefound', () => {
+      const newSW = reg.installing;
+      newSW.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateToast(newSW);
+        }
+      });
+    });
+  });
+
+  // Reload once the new SW takes control
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+}
+
+// 🔔 Toast logic
+async function showUpdateToast(sw) {
+  waitingSW = sw;
+
+  const toast = document.getElementById('updateToast');
+  const diffBox = document.getElementById('updateDiff');
+
+  const oldVersion = await getCurrentVersion();
+  const newVersion = await getManifestVersion();
+
+  diffBox.textContent =
+    oldVersion && newVersion
+      ? `v${oldVersion} → v${newVersion}`
+      : 'New version available';
+
+  toast.hidden = false;
+
+  document.getElementById('updateLater').onclick = () => {
+    toast.hidden = true;
+  };
+
+  document.getElementById('updateNow').onclick = () => {
+    waitingSW.postMessage({ type: 'SKIP_WAITING' });
+  };
+}
+
+// 🔢 Version helpers
+async function getManifestVersion() {
+  try {
+    const res = await fetch('./manifest.json', { cache: 'no-store' });
+    const m = await res.json();
+    return m.version || null;
+  } catch {
+    return null;
+  }
+}
+
+async function getCurrentVersion() {
+  try {
+    const res = await fetch('./manifest.json');
+    const m = await res.json();
+    return m.version || null;
+  } catch {
+    return null;
+  }
+}
+</script>
+
+<!-- 🔔 PWA Update Toast -->
+<div id="updateToast" hidden>
+  <div class="toast-content">
+    <strong>🍯 Update available</strong>
+    <div id="updateDiff" class="diff"></div>
+    <div class="actions">
+      <button id="updateLater">Later</button>
+      <button id="updateNow">Update</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
