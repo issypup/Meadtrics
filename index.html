@@ -9,18 +9,22 @@
    MeadTrics Stylesheet
    =============================== */
 
-/* === Theme Variables === */
+/* === Theme Variables: Honey Mead Cellar === */
 :root {
-  --bg: #0f1216;
-  --panel: #161a20;
-  --muted: #aab2c0;
-  --text: #e8edf5;
-  --accent: #82cfff;
-  --accent-2: #b5e08a;
-  --danger: #ff6b6b;
-  --border: #2a2f39;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --radius: 14px;
+  --bg: #120c06;
+  --panel: #24170b;
+  --panel-2: #2f1f10;
+  --muted: #d9b977;
+  --text: #fff6db;
+  --text-strong: #fff0b8;
+  --accent: #f4b83f;
+  --accent-2: #ffd86b;
+  --accent-3: #8f5a16;
+  --honey-glow: rgba(244, 184, 63, 0.35);
+  --danger: #ff7a5c;
+  --border: #5b3a17;
+  --shadow: 0 12px 34px rgba(20, 10, 0, 0.55), 0 0 24px rgba(244, 184, 63, 0.08);
+  --radius: 16px;
 }
 
 /* === Global Reset === */
@@ -29,14 +33,35 @@ html, body { height: 100%; margin: 0; }
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
     Helvetica, Arial, Noto Sans, "Apple Color Emoji", "Segoe UI Emoji";
-  background: radial-gradient(1200px 800px at 100% -10%, #16202e 0, #0f1216 50%);
+  background:
+    radial-gradient(900px 620px at 100% -10%, rgba(255, 190, 58, 0.22) 0, transparent 55%),
+    radial-gradient(800px 520px at 0% 110%, rgba(132, 72, 16, 0.34) 0, transparent 55%),
+    linear-gradient(135deg, #120c06 0%, #1b1007 48%, #0d0804 100%);
   color: var(--text);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.16;
+  background-image:
+    linear-gradient(30deg, rgba(255, 213, 111, 0.35) 12%, transparent 12.5%, transparent 87%, rgba(255, 213, 111, 0.35) 87.5%, rgba(255, 213, 111, 0.35)),
+    linear-gradient(150deg, rgba(255, 213, 111, 0.35) 12%, transparent 12.5%, transparent 87%, rgba(255, 213, 111, 0.35) 87.5%, rgba(255, 213, 111, 0.35)),
+    linear-gradient(30deg, rgba(255, 213, 111, 0.35) 12%, transparent 12.5%, transparent 87%, rgba(255, 213, 111, 0.35) 87.5%, rgba(255, 213, 111, 0.35)),
+    linear-gradient(150deg, rgba(255, 213, 111, 0.35) 12%, transparent 12.5%, transparent 87%, rgba(255, 213, 111, 0.35) 87.5%, rgba(255, 213, 111, 0.35)),
+    linear-gradient(60deg, rgba(255, 213, 111, 0.18) 25%, transparent 25.5%, transparent 75%, rgba(255, 213, 111, 0.18) 75%, rgba(255, 213, 111, 0.18));
+  background-size: 48px 84px;
+  background-position: 0 0, 0 0, 24px 42px, 24px 42px, 0 0;
 }
 
 /* === Input Styles === */
 input[type="number"] { font-size: 16px; }
 input[type="number"].wide { width: 100%; min-width: 150px; }
 
+/* === Honey Themed Inputs === */
 input[type="text"],
 input[type="date"],
 input[type="number"],
@@ -44,10 +69,58 @@ textarea,
 select {
   width: 100%;
   padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: #0f141b;
-  color: var(--text);
+  border-radius: 12px;
+
+  /* 🍯 Warm honey background */
+  background: linear-gradient(
+    180deg,
+    rgba(255, 204, 102, 0.08),
+    rgba(255, 153, 0, 0.05)
+  );
+
+  /* 🍯 Golden border */
+  border: 1px solid rgba(255, 183, 77, 0.35);
+
+  color: #fff3d6;
+
+  box-shadow:
+    inset 0 1px 2px rgba(0,0,0,0.4),
+    0 0 0 1px rgba(255, 183, 77, 0.05);
+
+  transition: all 0.15s ease;
+}
+
+/* ✨ Hover */
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: rgba(255, 183, 77, 0.6);
+  background: rgba(255, 183, 77, 0.08);
+}
+
+/* 🍯 Focus glow */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #ffb74d;
+
+  box-shadow:
+    0 0 0 2px rgba(255, 183, 77, 0.25),
+    0 0 12px rgba(255, 183, 77, 0.15);
+}
+
+/* 🐝 Placeholder text */
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255, 213, 128, 0.6);
+}
+
+/* 🧈 Disabled */
+input:disabled,
+textarea:disabled {
+  opacity: 0.5;
+  background: rgba(255, 255, 255, 0.05);
 }
 textarea { resize: vertical; min-height: 80px; }
 
@@ -713,9 +786,174 @@ html {
 }
 
 
+/* === Honey Theme Polish Overrides === */
+.card,
+.fieldset,
+.modal-content,
+.popup-content {
+  background:
+    linear-gradient(180deg, rgba(255, 216, 107, 0.055), rgba(255, 216, 107, 0.015)),
+    var(--panel);
+  border-color: rgba(173, 111, 28, 0.72);
+}
+
+.sidebar header {
+  background: linear-gradient(135deg, rgba(244,184,63,0.16), rgba(143,90,22,0.08));
+}
+
+.sidebar header h1::before {
+  content: "🍯 ";
+}
+
+input[type="text"],
+input[type="date"],
+input[type="number"],
+textarea,
+select,
+.search input {
+  background: #1a1007;
+  border-color: #6d4318;
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 216, 107, 0.05);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid rgba(244,184,63,0.35);
+  border-color: var(--accent);
+}
+
+button {
+  background: linear-gradient(180deg, #3b260f, #241509);
+  border-color: #7a4c18;
+  color: #fff2c4;
+}
+button:hover {
+  background: linear-gradient(180deg, #4d3315, #2e1d0c);
+  border-color: var(--accent);
+}
+
+.btn-accent,
+.icon-btn,
+#sidebarToggle {
+  background: linear-gradient(180deg, #ffd86b 0%, #f4b83f 48%, #b86f16 100%);
+  color: #241307;
+  border: 1px solid #ffd86b;
+  box-shadow: 0 4px 14px rgba(244, 184, 63, 0.28);
+}
+.btn-accent:hover,
+.icon-btn:hover,
+#sidebarToggle:hover {
+  background: linear-gradient(180deg, #ffe694 0%, #ffc94d 48%, #cf821d 100%);
+  color: #1a0d04;
+}
+
+.btn-danger {
+  background: #38140d;
+  border-color: #8a3924;
+  color: #ffd7c7;
+}
+
+.batch {
+  background: rgba(255, 216, 107, 0.025);
+}
+.batch:hover {
+  border-color: var(--accent);
+  background: rgba(244, 184, 63, 0.08);
+}
+.batch.active {
+  outline: 2px solid var(--accent);
+  background: linear-gradient(135deg, rgba(244,184,63,0.15), rgba(143,90,22,0.08));
+}
+
+.fieldset legend,
+.popup-content h3 {
+  color: var(--accent-2);
+  text-shadow: 0 0 12px rgba(244,184,63,0.15);
+}
+.fieldset + .fieldset {
+  background: rgba(255, 216, 107, 0.025);
+  border-color: rgba(173, 111, 28, 0.55);
+}
+
+.tag {
+  background: rgba(244,184,63,0.08);
+  border-color: rgba(244,184,63,0.35);
+  color: #f7d37a;
+}
+.tag:hover {
+  background: var(--accent);
+  color: #221104;
+  border-color: var(--accent-2);
+}
+
+.table th, .table td {
+  border-bottom-color: rgba(173, 111, 28, 0.5);
+}
+.table th {
+  color: var(--accent-2);
+}
+.table tr[data-type="feeding"] td {
+  background: rgba(244,184,63,0.09);
+  color: #ffe28a;
+}
+.table tr[data-type="bottled"] td {
+  background: rgba(181, 111, 22, 0.11);
+  color: #ffd86b;
+}
+.table tr[data-type="racked"] td {
+  color: #f0c56b;
+}
+
+canvas {
+  background: linear-gradient(180deg, #160d05, #0f0904);
+  border-color: #6d4318;
+}
+.chart-tooltip {
+  background: rgba(29, 17, 7, 0.96);
+  color: #fff6db;
+  border-color: var(--accent);
+}
+
+.footer {
+  background: linear-gradient(90deg, rgba(244,184,63,0.1), rgba(36,23,11,1));
+}
+
+.label-preview {
+  background:
+    linear-gradient(180deg, #fff2bc, #f5c45a 58%, #d88d24);
+  color: #2d1705;
+  border: 2px solid #8b5a17;
+}
+.label-preview p,
+.label-preview h1 {
+  color: #2d1705;
+}
+
+#updateToast {
+  background: linear-gradient(180deg, #3b260f, #201207);
+  border: 1px solid var(--accent);
+  box-shadow: var(--shadow);
+}
+#updateToast #updateNow {
+  background: var(--accent);
+  color: #1a0d04;
+}
+
+.list::-webkit-scrollbar-thumb,
+.detail::-webkit-scrollbar-thumb {
+  background: #6d4318;
+}
+.list::-webkit-scrollbar-thumb:hover,
+.detail::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+
   </style>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0f1216">
+  <meta name="theme-color" content="#120c06">
 </head>
 <body>
 <div class="app"></div>
