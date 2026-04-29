@@ -2223,8 +2223,9 @@ function renderFooterButtons() {
   const modeText = state.cloudEnabled
     ? '☁️ Cloud Sync Active'
     : '💾 Local-only (saved to your browser)';
-  const abvFormula = state.abvFormula || '(OG − FG) × 131.25';
-  const abvText = `ABV uses ${abvFormula}`;
+
+  const currentBatch = state.batches?.find(b => b.id === selectedId);
+  const abvText = getABVFormulaLabel(currentBatch);
 
   const modeTag = el('span', { class: 'tag', text: modeText });
   const abvTag = el('span', { class: 'tag', text: abvText });
@@ -2649,10 +2650,8 @@ render();
         style: 'justify-content:space-between;align-items:center;'
       }, [nameEl, delBtn]);
 
-      const latestSG = b.sgReadings?.length
-        ? b.sgReadings[b.sgReadings.length - 1].sg
-        : null;
-      const abv = calcABV(b.og, latestSG);
+      const latestSG = getLatestSG(b);
+      const abv = calcBatchABV(b);
 
       const bottledEvent = b.events.find(e => e.type === 'bottled');
       const maturityText = bottledEvent
@@ -2672,7 +2671,7 @@ render();
       const metaText =
         `${fmt(b.startDate)} · OG ${b.og}` +
         (latestSG ? ` · FG ${latestSG}` : '') +
-        (abv ? ` · ~${abv.toFixed(1)}% ABV` : '') +
+        (abv ? ` · ${getABVDisplayLabel(b)}` : '') +
         (fermentText ? `\n${fermentText}` : '') +
         (sugarBreakText ? `\n${sugarBreakText}` : '') +
         (maturityText ? `\n${maturityText}` : '');
@@ -2967,20 +2966,15 @@ function renderDetail() {
   const summarySection = (() => {
     const sugarBreak = calcSugarBreak(batch.og);
 
-    let currentSG = null;
-    if (Array.isArray(batch.sgReadings) && batch.sgReadings.length > 0) {
-      const last = batch.sgReadings[batch.sgReadings.length - 1];
-      currentSG = typeof last === 'object' ? last.sg : last;
-    }
-
-    const abv = calcABV(batch.og, currentSG);
+    const currentSG = getLatestSG(batch);
+    const abv = calcBatchABV(batch);
     console.log('Current SG reading for', batch.name, ':', currentSG, batch.sgReadings);
 
     const textParts = [];
     if (batch.startDate) textParts.push(`Started ${fmt(batch.startDate)}`);
     if (batch.og) textParts.push(`OG ${batch.og}`);
     if (currentSG) textParts.push(`SG ${currentSG}`);
-    if (abv) textParts.push(`ABV ${abv.toFixed(1)}%`);
+    if (abv) textParts.push(hasBacksweetenedEvent(batch) ? `ABV ${abv.toFixed(1)}% after backsweetening` : `ABV ${abv.toFixed(1)}%`);
     if (sugarBreak) textParts.push(`1/3 Break: ${sugarBreak}`);
 
     const metaLine = el('div', { text: textParts.join(' · ') });
@@ -3245,6 +3239,63 @@ function eventFormCard(batch) {
     })
   ]);
 
+  const backsweetWrap = el('div', {
+    class: 'col-12',
+    id: 'backsweetWrap',
+    style: 'display:none;'
+  }, [
+    el('p', {
+      style: 'font-size:13px;color:var(--muted);margin:4px 0 8px;',
+      text: 'Optional: add what you used for backsweetening so ABV can be adjusted for dilution.'
+    }),
+    el('div', { class: 'grid', style: 'gap:8px;' }, [
+      el('div', { class: 'col-6' }, [
+        el('label', { for: 'evHoneyGrams', text: 'Honey added (g)' }),
+        el('input', {
+          id: 'evHoneyGrams',
+          type: 'number',
+          step: '1',
+          min: '0',
+          placeholder: 'e.g. 235',
+          style: dateInput.getAttribute('style')
+        })
+      ]),
+      el('div', { class: 'col-6' }, [
+        el('label', { for: 'evNonLiquidGrams', text: 'Non-liquid addition (g)' }),
+        el('input', {
+          id: 'evNonLiquidGrams',
+          type: 'number',
+          step: '1',
+          min: '0',
+          placeholder: 'e.g. sugar',
+          style: dateInput.getAttribute('style')
+        })
+      ]),
+      el('div', { class: 'col-6' }, [
+        el('label', { for: 'evLiquidLitres', text: 'Liquid addition (L)' }),
+        el('input', {
+          id: 'evLiquidLitres',
+          type: 'number',
+          step: '0.01',
+          min: '0',
+          placeholder: 'optional',
+          style: dateInput.getAttribute('style')
+        })
+      ]),
+      el('div', { class: 'col-6' }, [
+        el('label', { for: 'evFinalVolumeLitres', text: 'Measured final volume (L)' }),
+        el('input', {
+          id: 'evFinalVolumeLitres',
+          type: 'number',
+          step: '0.01',
+          min: '0',
+          placeholder: 'optional override',
+          style: dateInput.getAttribute('style')
+        })
+      ])
+    ])
+  ]);
+
 
   const addBtn = el('button', {
     class: 'btn-accent',
@@ -3263,6 +3314,25 @@ function eventFormCard(batch) {
       const ev = { date, type };
       if (type === 'note' && note) ev.note = note;
 
+      if (type === 'backsweetened') {
+        const honeyGrams = parseFloat(card.querySelector('#evHoneyGrams')?.value || '0');
+        const nonLiquidGrams = parseFloat(card.querySelector('#evNonLiquidGrams')?.value || '0');
+        const liquidLitres = parseFloat(card.querySelector('#evLiquidLitres')?.value || '0');
+        const finalVolumeLitres = parseFloat(card.querySelector('#evFinalVolumeLitres')?.value || '0');
+
+        if (isFinite(honeyGrams) && honeyGrams > 0) ev.honeyGrams = honeyGrams;
+        if (isFinite(nonLiquidGrams) && nonLiquidGrams > 0) ev.nonLiquidGrams = nonLiquidGrams;
+        if (isFinite(liquidLitres) && liquidLitres > 0) ev.liquidLitres = liquidLitres;
+        if (isFinite(finalVolumeLitres) && finalVolumeLitres > 0) ev.finalVolumeLitres = finalVolumeLitres;
+
+        const parts = [];
+        if (ev.honeyGrams) parts.push(`${ev.honeyGrams}g honey`);
+        if (ev.nonLiquidGrams) parts.push(`${ev.nonLiquidGrams}g non-liquid addition`);
+        if (ev.liquidLitres) parts.push(`${ev.liquidLitres}L liquid addition`);
+        if (ev.finalVolumeLitres) parts.push(`final volume ${ev.finalVolumeLitres}L`);
+        ev.note = parts.length ? parts.join(' · ') : 'Backsweetened';
+      }
+
       batch.events.push(ev);
       saveAll(state, batch, ['events']);
       render();
@@ -3277,12 +3347,13 @@ function eventFormCard(batch) {
   const btnRow = el('div', { class: 'col-12' }, [addBtn]);
 
 
-  grid.append(dateCol, typeCol, noteWrap, btnRow);
+  grid.append(dateCol, typeCol, noteWrap, backsweetWrap, btnRow);
   card.append(grid);
 
 
   typeSelect.addEventListener('change', () => {
     noteWrap.style.display = typeSelect.value === 'note' ? 'block' : 'none';
+    backsweetWrap.style.display = typeSelect.value === 'backsweetened' ? 'block' : 'none';
   });
 
   return card;
@@ -3753,6 +3824,114 @@ function calcABV(og, fg) {
   return (OG - FG) * 131.25;
 }
 
+function hasBacksweetenedEvent(batch) {
+  return Array.isArray(batch?.events) &&
+    batch.events.some(e => e && e.type === 'backsweetened');
+}
+
+function getBacksweetenedEvents(batch) {
+  return (batch?.events || [])
+    .filter(e => e && e.type === 'backsweetened')
+    .slice()
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+function getLatestSG(batch) {
+  const readings = (batch?.sgReadings || [])
+    .slice()
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (!readings.length) return null;
+  const last = readings[readings.length - 1];
+  const sg = typeof last === 'object' ? parseFloat(last.sg) : parseFloat(last);
+  return isFinite(sg) ? sg : null;
+}
+
+function getLastSGBeforeDate(batch, cutoffDate) {
+  const cutoffTs = new Date(cutoffDate).getTime();
+  const readings = (batch?.sgReadings || [])
+    .slice()
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .filter(r => {
+      const t = new Date(r.date).getTime();
+      return isFinite(t) && (!isFinite(cutoffTs) || t <= cutoffTs);
+    });
+
+  if (!readings.length) return null;
+  const last = readings[readings.length - 1];
+  const sg = typeof last === 'object' ? parseFloat(last.sg) : parseFloat(last);
+  return isFinite(sg) ? sg : null;
+}
+
+function getBacksweeteningAddedVolumeLitres(batch) {
+  const HONEY_DENSITY_G_PER_ML = 1.42;
+  const NON_LIQUID_ML_PER_G = 0.625;
+
+  return getBacksweetenedEvents(batch).reduce((total, ev) => {
+    const honeyGrams = parseFloat(ev.honeyGrams || 0);
+    const nonLiquidGrams = parseFloat(ev.nonLiquidGrams || 0);
+    const liquidLitres = parseFloat(ev.liquidLitres || 0);
+
+    const honeyLitres = isFinite(honeyGrams)
+      ? (honeyGrams / HONEY_DENSITY_G_PER_ML) / 1000
+      : 0;
+
+    const nonLiquidLitres = isFinite(nonLiquidGrams)
+      ? (nonLiquidGrams * NON_LIQUID_ML_PER_G) / 1000
+      : 0;
+
+    return total + honeyLitres + nonLiquidLitres + (isFinite(liquidLitres) ? liquidLitres : 0);
+  }, 0);
+}
+
+function calcBatchABV(batch) {
+  if (!batch?.og) return null;
+
+  const OG = parseFloat(batch.og);
+  if (!isFinite(OG)) return null;
+
+  const latestSG = getLatestSG(batch);
+  if (!isFinite(latestSG)) return null;
+
+  if (!hasBacksweetenedEvent(batch)) {
+    return calcABV(OG, latestSG);
+  }
+
+  const firstBacksweetened = getBacksweetenedEvents(batch)[0];
+  const trueFG = getLastSGBeforeDate(batch, firstBacksweetened?.date) ?? latestSG;
+  const abvBeforeBacksweetening = calcABV(OG, trueFG);
+
+  const volumeBefore = parseFloat(batch.volume);
+  const addedVolume = getBacksweeteningAddedVolumeLitres(batch);
+  const finalVolumeOverride = parseFloat(firstBacksweetened?.finalVolumeLitres || 0);
+
+  if (!isFinite(abvBeforeBacksweetening)) return null;
+
+  if (isFinite(finalVolumeOverride) && finalVolumeOverride > 0 && isFinite(volumeBefore) && volumeBefore > 0) {
+    return abvBeforeBacksweetening * (volumeBefore / finalVolumeOverride);
+  }
+
+  if (!isFinite(volumeBefore) || volumeBefore <= 0 || addedVolume <= 0) {
+    return abvBeforeBacksweetening;
+  }
+
+  return abvBeforeBacksweetening * (volumeBefore / (volumeBefore + addedVolume));
+}
+
+function getABVDisplayLabel(batch) {
+  const abv = calcBatchABV(batch);
+  if (!isFinite(abv)) return null;
+  return hasBacksweetenedEvent(batch)
+    ? `~${abv.toFixed(1)}% ABV after backsweetening`
+    : `~${abv.toFixed(1)}% ABV`;
+}
+
+function getABVFormulaLabel(batch) {
+  return hasBacksweetenedEvent(batch)
+    ? 'ABV uses ((OG − FG_true) × 131.25) × (V_before ÷ V_after)'
+    : 'ABV uses (OG − FG) × 131.25';
+}
+
 function getBacksweetenCutoffTs(batch) {
   // earliest backsweetened event (first time you sweeten)
   const times = (batch.events || [])
@@ -3847,6 +4026,27 @@ function getLastFermentationSGBefore(batch, cutoffTs = null) {
   return isFinite(val) ? val : null;
 }
 
+
+function calcBatchABVForReading(batch, reading) {
+  if (!batch || !reading) return null;
+  const sg = parseFloat(reading.sg);
+  if (!isFinite(sg)) return null;
+
+  if (!hasBacksweetenedEvent(batch)) {
+    return calcABV(batch.og, sg);
+  }
+
+  const firstBacksweetened = getBacksweetenedEvents(batch)[0];
+  const readingTs = new Date(reading.date).getTime();
+  const sweetTs = new Date(firstBacksweetened?.date).getTime();
+
+  if (!isFinite(readingTs) || !isFinite(sweetTs) || readingTs < sweetTs) {
+    return calcABV(batch.og, sg);
+  }
+
+  return calcBatchABV(batch);
+}
+
 // --- Main chart ---
 function drawChart(batch) {
   const c = document.getElementById('sgChart');
@@ -3874,7 +4074,7 @@ function drawChart(batch) {
 
   const points = readings.map(r => ({
     x: new Date(r.date).getTime(),
-    y: chartMode === 'sg' ? parseFloat(r.sg) : calcABV(batch.og, r.sg),
+    y: chartMode === 'sg' ? parseFloat(r.sg) : calcBatchABVForReading(batch, r),
     date: r.date,
     sg: parseFloat(r.sg)
   }));
@@ -4203,10 +4403,9 @@ function openLabelMaker(batch) {
     ? bottledDateObj.toLocaleDateString()
     : '—';
 
-  const OG = parseFloat(batch.og);
-  const FG = lastReading ? parseFloat(lastReading.sg) : NaN;
-  const abv = (isFinite(OG) && isFinite(FG))
-    ? ((OG - FG) * 131.25).toFixed(1) + '%'
+  const calculatedABV = calcBatchABV(batch);
+  const abv = isFinite(calculatedABV)
+    ? calculatedABV.toFixed(1) + '%'
     : '–';
 
   const honey = batch.honey || 'Mixed Blossom';
