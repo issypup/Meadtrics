@@ -6228,23 +6228,24 @@ function integrityCheck() {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then(reg => {
+  navigator.serviceWorker.register('/Meadtrics/sw.js', {
+    scope: '/Meadtrics/'
+  }).then(reg => {
     console.log('✅ Service Worker registered');
 
-    // 🔹 Check if there’s an updated service worker waiting
     function showUpdatePrompt(worker) {
-      const shouldUpdate = confirm("🧪 MeadTrics update available!\n\nReload now to apply the latest version?");
+      const shouldUpdate = confirm(
+        "🧪 MeadTrics update available!\n\nReload now to apply the latest version?"
+      );
       if (shouldUpdate) {
         worker.postMessage({ type: 'SKIP_WAITING' });
       }
     }
 
-    // If a new worker is waiting
     if (reg.waiting) {
       showUpdatePrompt(reg.waiting);
     }
 
-    // If a new worker is installed and waiting
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       newWorker?.addEventListener('statechange', () => {
@@ -6254,13 +6255,13 @@ if ('serviceWorker' in navigator) {
       });
     });
 
-    // When the new worker activates
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (refreshing) return;
       refreshing = true;
       window.location.reload();
     });
+
   }).catch(err => console.warn('⚠️ SW registration failed:', err));
 }
 
