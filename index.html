@@ -2258,6 +2258,434 @@ function syncCard() {
   return card;
 }
 
+function openBrewSheet(batch) {
+  if (!batch) return alert("No batch selected.");
+
+  const events = Array.isArray(batch.events) ? batch.events : [];
+  const readings = Array.isArray(batch.sgReadings) ? batch.sgReadings : [];
+  const ingredients = Array.isArray(batch.ingredients) ? batch.ingredients : [];
+
+  const latestSG = getLatestSG(batch);
+  const og = batch.og || "";
+  const fg = latestSG || "";
+  const abv = calcBatchABV(batch);
+
+  // ===============================
+  // TOSNA for Brew Sheet
+  // ===============================
+  function getBatchTosnaForSheet(batch) {
+    const volumeL = parseFloat(batch.volume);
+    const sg = parseFloat(batch.og);
+
+    if (!isFinite(volumeL) || volumeL <= 0 || !isFinite(sg) || sg <= 1) {
+      return null;
+    }
+
+    // Defaults for now
+    const requirement = batch.tosnaRequirement || "medium";
+    const nutrientType = batch.tosnaNutrientType || "OKDAP";
+    const goFermType = batch.tosnaGoFermType || "goferm";
+
+    if (typeof calculateTosna !== "function") return null;
+
+    return calculateTosna({
+      volumeL,
+      sg,
+      requirement,
+      nutrientType,
+      goFermType
+    });
+  }
+
+  function formatDose(row) {
+    const parts = [];
+
+    if (row.fermaidO && row.fermaidO > 0) {
+      parts.push(`${row.fermaidO.toFixed(2)}g Fermaid O`);
+    }
+
+    if (row.fermaidK && row.fermaidK > 0) {
+      parts.push(`${row.fermaidK.toFixed(2)}g Fermaid K`);
+    }
+
+    if (row.dap && row.dap > 0) {
+      parts.push(`${row.dap.toFixed(2)}g DAP`);
+    }
+
+    return parts.length ? parts.join(" + ") : "No nutrient addition";
+  }
+
+  function formatTosnaInstruction(row, batch) {
+    const dose = formatDose(row);
+
+    if (row.time === "24 hours") {
+      return `At 24 hours after yeast pitch, add ${dose} to your must.`;
+    }
+
+    if (row.time === "48 hours") {
+      return `At 48 hours after yeast pitch, add ${dose} to your must.`;
+    }
+
+    if (row.time === "72 hours") {
+      return `At 72 hours after yeast pitch, add ${dose} to your must.`;
+    }
+
+    if (row.time === "1/3 sugar break") {
+      const sugarBreak = calcSugarBreak(batch.og);
+      return `When the must reaches the 1/3 sugar break${sugarBreak ? `, around SG ${sugarBreak}` : ""}, but no later than 7 days after yeast pitch, add ${dose} to your must.`;
+    }
+
+    return `${row.time}: add ${dose}.`;
+  }
+
+  const tosna = getBatchTosnaForSheet(batch);
+
+  const tosnaRows = tosna?.schedule?.length
+    ? tosna.schedule.map(row => `
+      <tr>
+        <td>${escapeHtml(row.time)}</td>
+        <td>${escapeHtml(row.fermaidO ? row.fermaidO.toFixed(2) + " g" : "—")}</td>
+        <td>${escapeHtml(row.fermaidK ? row.fermaidK.toFixed(2) + " g" : "—")}</td>
+        <td>${escapeHtml(row.dap ? row.dap.toFixed(2) + " g" : "—")}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="4">No TOSNA schedule available.</td></tr>`;
+
+  const tosnaInstructions = tosna?.schedule?.length
+    ? tosna.schedule.map(row => `
+      <li>${escapeHtml(formatTosnaInstruction(row, batch))}</li>
+    `).join("")
+    : `<li>No nutrient schedule calculated for this batch.</li>`;
+
+  const eventRows = events.length
+    ? events.map(ev => `
+      <tr>
+        <td>${escapeHtml(fmt(ev.date) || ev.date || "")}</td>
+        <td>${escapeHtml(ev.type || ev.name || "")}</td>
+        <td>${escapeHtml(ev.note || ev.notes || ev.sg || "")}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="3">No events recorded.</td></tr>`;
+
+  const readingRows = readings.length
+    ? readings.map(r => `
+      <tr>
+        <td>${escapeHtml(fmt(r.date) || r.date || "")}</td>
+        <td>${escapeHtml(r.sg || "")}</td>
+        <td>${escapeHtml(r.note || r.notes || "")}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="3">No gravity readings recorded.</td></tr>`;
+
+  const ingredientRows = ingredients.length
+    ? ingredients.map(i => `
+      <tr>
+        <td>${escapeHtml(i.honey || "—")}</td>
+        <td>${escapeHtml(i.sugar || "—")}</td>
+        <td>${escapeHtml(i.water || "—")}</td>
+        <td>${escapeHtml(i.additives || "—")}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="4">No ingredients recorded.</td></tr>`;
+
+  const bottledEvent = events.find(e => e.type === "bottled");
+  const backsweetened = hasBacksweetenedEvent(batch);
+
+  const html = `
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Brew Sheet - ${escapeHtml(batch.name || "Untitled Batch")}</title>
+
+  <style>
+    :root {
+      --ink: #222;
+      --muted: #666;
+      --line: #ccc;
+      --soft: #f5f5f5;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      color: var(--ink);
+      margin: 0;
+      padding: 24px;
+      background: white;
+    }
+
+    .sheet {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 3px solid var(--ink);
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    h2 {
+      margin-top: 26px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 4px;
+      font-size: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 24px;
+    }
+
+    .field {
+      border-bottom: 1px dotted var(--line);
+      padding: 5px 0;
+    }
+
+    .label {
+      font-weight: bold;
+      color: var(--muted);
+      display: inline-block;
+      min-width: 150px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    th, td {
+      border: 1px solid var(--line);
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 13px;
+    }
+
+    th {
+      background: var(--soft);
+    }
+
+    ul {
+      margin-top: 8px;
+      padding-left: 22px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    .notes {
+      white-space: pre-wrap;
+      border: 1px solid var(--line);
+      padding: 10px;
+      min-height: 70px;
+      background: #fff;
+    }
+
+    .print-actions {
+      text-align: right;
+      margin-bottom: 16px;
+    }
+
+    button {
+      padding: 8px 14px;
+      border: 1px solid #222;
+      background: #fff;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .formula {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      font-style: italic;
+    }
+
+    footer {
+      margin-top: 32px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+      }
+
+      .print-actions {
+        display: none;
+      }
+
+      .sheet {
+        max-width: none;
+      }
+
+      h2 {
+        break-after: avoid;
+      }
+
+      table {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="sheet">
+    <div class="print-actions">
+      <button onclick="window.print()">Print</button>
+    </div>
+
+    <header>
+      <h1>${escapeHtml(batch.name || "Untitled Batch")}</h1>
+      <div class="subtitle">Clean Brew Sheet</div>
+    </header>
+
+    <h2>Batch Summary</h2>
+    <div class="grid">
+      ${field("Start date", batch.startDate ? fmt(batch.startDate) : "")}
+      ${field("Status", bottledEvent ? "Bottled / Archived" : "Active")}
+      ${field("Volume", batch.volume ? `${batch.volume} L` : "")}
+      ${field("Honey type", batch.honey)}
+      ${field("Yeast", batch.yeast)}
+      ${field("Tags", Array.isArray(batch.tags) ? batch.tags.join(", ") : "")}
+    </div>
+
+    <h2>Gravity & ABV</h2>
+    <div class="grid">
+      ${field("Original gravity", og)}
+      ${field("Current / final gravity", fg)}
+      ${field("Estimated ABV", isFinite(abv) ? `${abv.toFixed(2)}%` : "")}
+      ${field("Backsweetened", backsweetened ? "Yes" : "No")}
+      ${field("1/3 sugar break", batch.og ? calcSugarBreak(batch.og) : "")}
+      ${field("Formula", getABVFormulaLabel(batch))}
+    </div>
+
+    <h2>Ingredients</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Honey (kg)</th>
+          <th>Sugar (kg)</th>
+          <th>Water (L)</th>
+          <th>Additives</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${ingredientRows}
+      </tbody>
+    </table>
+
+    <h2>Nutrient Schedule / TOSNA</h2>
+    <div class="grid">
+      ${field("Target YAN", tosna ? `${tosna.targetYAN} mg N/L` : "")}
+      ${field("Fermaid O total", tosna ? `${tosna.totals.fermaidO.toFixed(2)} g` : "")}
+      ${field("Fermaid K total", tosna ? `${tosna.totals.fermaidK.toFixed(2)} g` : "")}
+      ${field("DAP total", tosna ? `${tosna.totals.dap.toFixed(2)} g` : "")}
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Addition</th>
+          <th>Fermaid O</th>
+          <th>Fermaid K</th>
+          <th>DAP</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tosnaRows}
+      </tbody>
+    </table>
+
+    <h2>TOSNA Instructions</h2>
+    <ul>
+      ${tosnaInstructions}
+    </ul>
+
+    <h2>Gravity Readings</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>SG</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${readingRows}
+      </tbody>
+    </table>
+
+    <h2>Event Timeline</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Event</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${eventRows}
+      </tbody>
+    </table>
+
+    <h2>Notes</h2>
+    <div class="notes">${escapeHtml(batch.description || batch.notes || "")}</div>
+
+    <footer>
+      Generated from MeadTrics
+    </footer>
+  </div>
+</body>
+</html>
+`;
+
+  const win = window.open("", "_blank");
+  if (!win) return alert("Popup blocked. Please allow popups to open the Brew Sheet.");
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+function field(label, value) {
+  return `
+    <div class="field">
+      <span class="label">${escapeHtml(label)}:</span>
+      ${escapeHtml(value || "")}
+    </div>
+  `;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[ch]));
+}
+
 /* ===============================
    TOSNA Calculator - MeadTools + ABV
    =============================== */
@@ -3018,7 +3446,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-
 function renderBatchList() {
   const list = document.getElementById('batchList');
   if (!list) return;
@@ -3049,7 +3476,6 @@ function renderBatchList() {
         style: `
           display:flex;
           align-items:center;
-          justify-content:flex-start;
           gap:6px;
           cursor:pointer;
           user-select:none;
@@ -3080,76 +3506,77 @@ function renderBatchList() {
     batches.forEach(b => {
       const item = el('div', { class: 'batch' });
 
-      // 🔹 Non-editable name
+      // === Name ===
       const nameEl = el('div', {
         class: 'batchName',
         text: b.name,
         style: 'font-weight:600;cursor:default;'
       });
 
-// Delete button
-const delBtn = el('button', {
-  text: '✕',
-  class: 'btn-danger',
-  title: 'Delete batch',
-  onclick: async e => {
+      // === 📄 Brew Sheet Button ===
+const brewSheetBtn = el('button', {
+  text: '📄 Brew',
+  class: 'btn-accent',
+  title: 'Open Brew Sheet',
+  style: 'padding:2px 7px;font-size:11px;border-radius:8px;white-space:nowrap;',
+  onclick: e => {
     e.stopPropagation();
-    if (!confirm(`Delete batch “${b.name}”? This cannot be undone.`)) return;
-
-    // Remove locally
-    state.batches = state.batches.filter(x => x.id !== b.id);
-    if (selectedId === b.id) selectedId = state.batches[0]?.id || null;
-    save(state);
-
-    // Optional cloud delete (safe)
-if (EXTENDS_BIN_ID && EXTENDS_KEY) {
-  const cloud = await cloudLoad();
-  if (cloud?.batches) {
-    cloud.batches = cloud.batches.filter(x => x.id !== b.id);
-    await cloudSave(cloud, true);
-  }
-}
-
-    renderBatchList();
-render();
+    openBrewSheet(b);
   }
 });
 
+      // === Delete Button ===
+      const delBtn = el('button', {
+        text: '✕',
+        class: 'btn-danger',
+        title: 'Delete batch',
+        onclick: async e => {
+          e.stopPropagation();
+          if (!confirm(`Delete batch “${b.name}”? This cannot be undone.`)) return;
 
+          state.batches = state.batches.filter(x => x.id !== b.id);
+          if (selectedId === b.id) selectedId = state.batches[0]?.id || null;
+          save(state);
+
+          if (EXTENDS_BIN_ID && EXTENDS_KEY) {
+            const cloud = await cloudLoad();
+            if (cloud?.batches) {
+              cloud.batches = cloud.batches.filter(x => x.id !== b.id);
+              await cloudSave(cloud, true);
+            }
+          }
+
+          renderBatchList();
+          render();
+        }
+      });
+
+      // === Buttons grouped ===
+      const actionBtns = el('div', {
+        class: 'row',
+        style: 'gap:4px;'
+      }, [brewSheetBtn, delBtn]);
+
+      // === Header row ===
       const headerRow = el('div', {
         class: 'row',
         style: 'justify-content:space-between;align-items:center;'
-      }, [nameEl, delBtn]);
+      }, [nameEl, actionBtns]);
 
+      // === Meta ===
       const latestSG = getLatestSG(b);
       const abv = calcBatchABV(b);
 
       const bottledEvent = b.events.find(e => e.type === 'bottled');
-      const maturityText = bottledEvent
-        ? `🧭 Mature: ${formatMaturityDays(bottledEvent.date)}`
-        : '';
-      const fermentText =
-        !bottledEvent && b.startDate
-          ? `🧪 ${formatFermentationDays(b.startDate)}`
-          : '';
-
-      let sugarBreakText = '';
-      if (!bottledEvent && b.og) {
-        const target = calcSugarBreak(b.og);
-        if (target) sugarBreakText = `🍯 1/3 Sugar Break: ${target}`;
-      }
 
       const metaText =
         `${fmt(b.startDate)} · OG ${b.og}` +
         (latestSG ? ` · FG ${latestSG}` : '') +
-        (abv ? ` · ${getABVDisplayLabel(b)}` : '') +
-        (fermentText ? `\n${fermentText}` : '') +
-        (sugarBreakText ? `\n${sugarBreakText}` : '') +
-        (maturityText ? `\n${maturityText}` : '');
+        (abv ? ` · ${getABVDisplayLabel(b)}` : '');
 
       const metaDiv = el('div', { class: 'meta', text: metaText });
 
-      // === 🏷️ Tag display under batch ===
+      // === Tags ===
       const tagsRow = el('div', {
         class: 'row',
         style: 'flex-wrap:wrap;gap:4px;margin-top:4px;'
@@ -3157,31 +3584,14 @@ render();
 
       if (Array.isArray(b.tags) && b.tags.length > 0) {
         b.tags.forEach(tag => {
-          const tagEl = el('span', {
-            class: 'tag',
-            text: tag,
-            style: `
-              font-size:11px;
-              padding:2px 6px;
-              border-color:#2f3b4b;
-              background:#1a2028;
-              color:var(--accent);
-            `
-          });
-          tagsRow.append(tagEl);
+          tagsRow.append(el('span', { class: 'tag', text: tag }));
         });
-      } else {
-        tagsRow.append(el('span', {
-          class: 'tag',
-          text: 'No tags',
-          style: 'opacity:0.5;font-size:11px;'
-        }));
       }
 
       item.append(headerRow, metaDiv, tagsRow);
+
       item.classList.toggle('active', b.id === selectedId);
 
-      // Clicking item now only opens detail view
       item.addEventListener('click', () => {
         selectedId = b.id;
         render();
