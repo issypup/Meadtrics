@@ -5806,59 +5806,57 @@ window.addEventListener('online', async () => {
 });
 
 function normaliseCloudData(raw) {
+  console.log("☁️ Raw cloud data:", raw);
+
   let data = raw;
 
-  // unwrap common ExtendsClass / old MeadTrics shapes
-  for (let i = 0; i < 5; i++) {
-    if (data?.__compressed) {
-      data = decompressPayload(data);
-      continue;
-    }
-
-    if (data?.data?.__compressed) {
-      data = decompressPayload(data.data);
-      continue;
-    }
-
-    if (data?.data?.batches) {
-      data = data.data;
-      continue;
-    }
-
-    if (data?.state?.batches) {
-      data = data.state;
-      continue;
-    }
-
-    break;
+  // ExtendsClass sometimes stores your payload inside .data
+  if (data && data.data) {
+    data = data.data;
   }
 
-  if (Array.isArray(data?.batches)) return data;
-  if (Array.isArray(data)) return { batches: data };
+  // Handle compressed payload
+  if (data && data.__compressed) {
+    data = decompressPayload(data);
+  }
 
-  return { batches: [] };
+  // Handle nested shapes safely
+  if (data && data.state) {
+    data = data.state;
+  }
+
+  if (data && data.data && data.data.batches) {
+    data = data.data;
+  }
+
+  if (data && data.batches && Array.isArray(data.batches)) {
+    return {
+      ...state,
+      ...data,
+      batches: data.batches,
+      cloudEnabled: true
+    };
+  }
+
+  console.warn("☁️ Cloud data did not contain a valid batches array:", raw);
+
+  return {
+    ...state,
+    cloudEnabled: true
+  };
 }
 
 async function cloudLoad() {
   try {
-    let { apiKey, securityKey, binId } = getCloudConfig();
+    const apiKey = localStorage.getItem("EXTENDS_API_KEY");
+    const securityKey = localStorage.getItem("EXTENDS_KEY") || EXTENDS_KEY;
+    const binId = localStorage.getItem("EXTENDS_BIN_ID");
 
-    if (!apiKey) {
-      console.warn("⚠️ No API key — skipping cloud load.");
-      return null;
+    if (!apiKey || !securityKey || !binId) {
+      throw new Error("Missing API key, Security key, or bin ID");
     }
 
-    if (!binId) {
-      binId = await getExistingBin();
-    }
-
-    if (!binId) {
-      console.warn("⚠️ No cloud bin found.");
-      return null;
-    }
-
-    EXTENDS_BIN_ID = binId;
-    localStorage.setItem("EXTENDS_BIN_ID", binId);
+    localStorage.setItem("EXTENDS_KEY", securityKey);
 
     const res = await fetch(`${EXTENDS_API}/${binId}`, {
       method: "GET",
@@ -5871,23 +5869,64 @@ async function cloudLoad() {
     const text = await res.text();
 
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}\n${text.slice(0, 300)}`);
+      throw new Error(`Cloud load failed: HTTP ${res.status}\n${text.slice(0, 300)}`);
     }
 
-    const raw = text ? JSON.parse(text) : {};
-    const data = normaliseCloudData(raw);
-
+    let raw = JSON.parse(text);
     console.log("☁️ Raw cloud data:", raw);
-    console.log("☁️ Normalised cloud data:", data);
 
-    if (!Array.isArray(data.batches)) {
-      return { batches: [] };
+    let data = raw;
+
+    if (data && data.data) data = data.data;
+    if (data && data.__compressed) data = decompressPayload(data);
+    if (data && data.state) data = data.state;
+    if (data && data.data && data.data.batches) data = data.data;
+
+    if (!data || !Array.isArray(data.batches)) {
+      console.warn("☁️ Cloud data has no valid batches array:", raw);
+
+      return {
+        ...state,
+        cloudEnabled: true
+      };
     }
 
-    return data;
+    const loadedState = {
+      ...state,
+      ...data,
+      batches: data.batches,
+      cloudEnabled: true
+    };
+
+    console.log("☁️ Normalised cloud data:", loadedState);
+    console.log("☁️ Final cloud batches:", loadedState.batches);
+
+    state = loadedState;
+    selectedId = state.batches[0]?.id || null;
+
+    save(state);
+
+    if (typeof render === "function") {
+      render();
+    } else {
+      if (typeof renderApp === "function") renderApp();
+      if (typeof renderBatchList === "function") renderBatchList();
+      if (typeof renderDetail === "function") renderDetail();
+      if (typeof renderFooterButtons === "function") renderFooterButtons();
+      if (typeof updateSyncCard === "function") updateSyncCard();
+      if (typeof updateViewBinButton === "function") updateViewBinButton();
+    }
+
+    return state;
 
   } catch (err) {
-    console.error("⚠️ Cloud load failed:", err);
+    console.error("☁️ Cloud load failed:", err);
+
+    alert(
+      "Cloud load failed:\n\n" +
+      (err && err.message ? err.message : String(err))
+    );
+
     return null;
   }
 }
