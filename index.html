@@ -5480,7 +5480,31 @@ async function safeJsonResponse(res) {
   }
 }
 
+// ===============================
+// Cloud Config Helper
+// ===============================
+function getCloudConfig() {
+  const apiKey =
+    localStorage.getItem("EXTENDS_API_KEY") ||
+    document.getElementById("apiKeyInput")?.value?.trim() ||
+    "";
 
+  const securityKey =
+    localStorage.getItem("EXTENDS_KEY") ||
+    EXTENDS_KEY ||
+    "";
+
+  const binId =
+    localStorage.getItem("EXTENDS_BIN_ID") ||
+    EXTENDS_BIN_ID ||
+    "";
+
+  return {
+    apiKey: apiKey.trim(),
+    securityKey: securityKey.trim(),
+    binId: binId.trim()
+  };
+}
 
 let EXTENDS_BIN_ID = localStorage.getItem("EXTENDS_BIN_ID") || null;
 let EXTENDS_API_KEY = localStorage.getItem("EXTENDS_API_KEY") || "";
@@ -5755,50 +5779,6 @@ async function fetchJsonOrThrow(url, options = {}) {
   return data;
 }
 
-async function cloudLoad() {
-  try {
-    const apiKey = localStorage.getItem("EXTENDS_API_KEY");
-    const securityKey = localStorage.getItem("EXTENDS_KEY") || EXTENDS_KEY;
-    const binId = localStorage.getItem("EXTENDS_BIN_ID");
-
-    if (!apiKey || !securityKey || !binId) {
-      throw new Error("Missing API key, Security key, or bin ID");
-    }
-
-    localStorage.setItem("EXTENDS_KEY", securityKey);
-
-    const url = `${EXTENDS_API}/${binId}`;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "Api-key": apiKey,
-        "Security-key": securityKey
-      }
-    });
-
-    const text = await res.text();
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}\n${text.slice(0, 200)}`);
-    }
-
-    let data = JSON.parse(text);
-
-    if (data && data.data && data.data.__compressed) {
-      data.data = decompressPayload(data.data);
-    }
-
-    if (data.data && data.data.batches) data = data.data;
-
-    console.log("☁️ Cloud data loaded:", data);
-    return data;
-  } catch (err) {
-    console.error("Failed to load bin:", err);
-    alert("⚠️ Failed to load cloud data.\n" + err.message);
-    throw err;
-  }
-}
 
 let offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
 
@@ -5816,108 +5796,132 @@ window.addEventListener('online', async () => {
   localStorage.removeItem('offlineQueue');
 });
 
-
-
-async function cloudSave(payload, patchOnly = true) {
+async function cloudLoad() {
   try {
-    // 🧩 Offline queue support (for PWA)
-    if (!navigator.onLine) {
-      console.log("📦 Offline — queuing save for later sync.");
-      const offlineQueue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
-      offlineQueue.push(payload);
-      localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
-      save(state); // always keep local up to date
-      return;
+    let { apiKey, securityKey, binId } = getCloudConfig();
+
+    // 🚫 No API key = do nothing (not an error)
+    if (!apiKey) {
+      console.warn("⚠️ No API key — skipping cloud load.");
+      return null;
     }
 
-    // --- Safety guards ---
-    if (!EXTENDS_BIN_ID || !EXTENDS_KEY) {
-      console.warn("⚠️ No ExtendsClass bin/key — skipping cloud save.");
-      return;
+    // 🔍 Try find bin if missing
+    if (!binId) {
+      binId = await getExistingBin();
     }
 
-    // --- Merge state with patch payload ---
-    let merged = structuredClone(state);
-    if (payload && payload.batches) {
-      for (const patchBatch of payload.batches) {
-        const idx = merged.batches.findIndex(b => b.id === patchBatch.id);
-        if (idx !== -1) Object.assign(merged.batches[idx], patchBatch);
-        else merged.batches.push(patchBatch);
+    // 🆕 Still no bin? Create one instead of failing
+    if (!binId) {
+      console.log("☁️ No bin found — creating new one...");
+      binId = await createBin();
+    }
+
+    if (!binId) {
+      console.warn("⚠️ Could not resolve bin.");
+      return null;
+    }
+
+    EXTENDS_BIN_ID = binId;
+    localStorage.setItem("EXTENDS_BIN_ID", binId);
+
+    const res = await fetch(`${EXTENDS_API}/${binId}`, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "Security-key": securityKey
       }
-    }
-
-    // --- Detect legacy bin format ---
-    let shouldMigrate = false;
-    try {
-      const checkRes = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
-        headers: { "Security-key": EXTENDS_KEY }
-      });
-      if (checkRes.ok) {
-        const checkJson = await checkRes.json();
-        if (Array.isArray(checkJson.batches) && !checkJson.data) {
-          console.log("🧩 Legacy bin detected — migrating to {data:...} format.");
-          shouldMigrate = true;
-        }
-      }
-    } catch (e) {
-      console.warn("⚠️ Could not inspect bin before save:", e);
-    }
-
-    // --- Compress payload before upload ---
-    let compressedData;
-    try {
-      if (typeof LZString !== "undefined") {
-        const json = JSON.stringify(merged);
-        const compressed = LZString.compressToBase64(json);
-        compressedData = { __compressed: true, data: compressed };
-      } else {
-        console.warn("⚠️ LZString not loaded — saving uncompressed.");
-        compressedData = merged;
-      }
-    } catch (err) {
-      console.warn("⚠️ Compression failed — fallback to plain JSON:", err);
-      compressedData = merged;
-    }
-
-    // --- Prepare request ---
-    const method = patchOnly ? "PATCH" : "PUT";
-    const headers = {
-      "Content-Type": patchOnly ? "application/merge-patch+json" : "application/json",
-      "Security-key": EXTENDS_KEY
-    };
-
-    // remove redundant nesting if needed
-    if (merged.data && merged.batches) delete merged.batches;
-
-    const body = JSON.stringify({ data: compressedData });
-
-    const res = await fetch(`${EXTENDS_API}/${EXTENDS_BIN_ID}`, {
-      method,
-      headers,
-      body
     });
 
-    if (!res.ok) {
-      if (patchOnly && (res.status === 400 || res.status === 404)) {
-        console.warn(`⚠️ PATCH failed (${res.status}), retrying full PUT`);
-        return cloudSave(state, false);
-      }
-      throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+
+    if (res.status === 404) {
+      console.warn("☁️ Bin exists but empty.");
+      return { batches: [] };
     }
 
-    console.log(`☁️ ${method} sync successful${shouldMigrate ? " — bin migrated to new format" : ""}`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}\n${text.slice(0, 200)}`);
+    }
+
+    let data = JSON.parse(text);
+
+    if (data?.data?.__compressed) {
+      data = decompressPayload(data.data);
+    } else if (data?.data?.batches) {
+      data = data.data;
+    }
+
+    if (!data?.batches) {
+      console.warn("☁️ No batches in bin.");
+      return { batches: [] };
+    }
+
+    console.log("☁️ Cloud data loaded:", data);
+    return data;
+
+  } catch (err) {
+    console.error("⚠️ Cloud load failed:", err);
+    return null; // 🔥 DO NOT throw → prevents UI breaking
+  }
+}
+
+async function cloudSave(payload = state) {
+  try {
+    if (!navigator.onLine) {
+      console.log("📦 Offline — queuing save for later sync.");
+      const queue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
+      queue.push(payload);
+      localStorage.setItem("offlineQueue", JSON.stringify(queue));
+      save(state);
+      return;
+    }
+
+    let { securityKey, binId } = getCloudConfig();
+
+    if (!binId) {
+      binId = await getExistingBin();
+    }
+
+    if (!binId) {
+      binId = await createBin();
+    }
+
+    if (!binId) {
+      throw new Error("Missing bin ID");
+    }
+
+    EXTENDS_BIN_ID = binId;
+    localStorage.setItem("EXTENDS_BIN_ID", binId);
+    localStorage.setItem("EXTENDS_KEY", securityKey);
+
+    const dataToSave = payload?.batches ? payload : state;
+
+    const bodyData = compressPayload(dataToSave);
+
+    const res = await fetch(`${EXTENDS_API}/${binId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Security-key": securityKey
+      },
+      body: JSON.stringify({
+        data: bodyData
+      })
+    });
+
+    const text = await res.text();
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}\n${text.slice(0, 300)}`);
+    }
+
+    console.log("☁️ PUT sync successful");
     updateViewBinButton();
+    updateSyncCard();
+
   } catch (err) {
     console.warn("⚠️ ExtendsClass sync failed:", err);
-
-    // Fallback: if offline or failed mid-way, queue for later
-    if (!navigator.onLine) {
-      const offlineQueue = JSON.parse(localStorage.getItem("offlineQueue") || "[]");
-      offlineQueue.push(payload);
-      localStorage.setItem("offlineQueue", JSON.stringify(offlineQueue));
-      console.log("📦 Queued cloud save due to network issue.");
-    }
-
     updateViewBinButton();
   }
 }
@@ -6020,39 +6024,26 @@ if (saveApiKeyBtn) {
 }
 
 async function getExistingBin() {
-  if (!EXTENDS_API_KEY) {
-    console.log("⚠️ No ExtendsClass API key — skipping bin lookup.");
-    return null;
-  }
+  const { apiKey } = getCloudConfig();
+
+  if (!apiKey) return null;
 
   try {
-    const res = await fetch(`https://json.extendsclass.com/bins?nocache=${Date.now()}`, {
-      headers: { "Api-key": EXTENDS_API_KEY },
-      cache: "no-store"
+    const res = await fetch("https://json.extendsclass.com/bins", {
+      headers: {
+        "Api-key": apiKey
+      }
     });
 
-    console.log("Fetched /bins at", new Date().toISOString(), "status", res.status);
-
-    if (res.status === 401) {
-      console.warn("⚠️ Wrong API key — cannot fetch bins.");
-      return null;
-    }
-    if (res.status === 429) {
-      console.warn("⚠️ ExtendsClass rate limit exceeded — try again later.");
-      return null;
-    }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) return null;
 
     const bins = await res.json();
-    if (Array.isArray(bins) && bins.length > 0) {
-      console.log(`☁️ Found existing bins: ${bins.join(", ")}`);
-      return bins[0];
-    }
 
-    console.log("☁️ No existing bins found for this API key.");
-    return null;
-  } catch (err) {
-    console.warn("⚠️ Could not fetch existing bins:", err);
+    if (!Array.isArray(bins) || bins.length === 0) return null;
+
+    return bins[0];
+
+  } catch {
     return null;
   }
 }
