@@ -5805,29 +5805,55 @@ window.addEventListener('online', async () => {
   localStorage.removeItem('offlineQueue');
 });
 
+function normaliseCloudData(raw) {
+  let data = raw;
+
+  // unwrap common ExtendsClass / old MeadTrics shapes
+  for (let i = 0; i < 5; i++) {
+    if (data?.__compressed) {
+      data = decompressPayload(data);
+      continue;
+    }
+
+    if (data?.data?.__compressed) {
+      data = decompressPayload(data.data);
+      continue;
+    }
+
+    if (data?.data?.batches) {
+      data = data.data;
+      continue;
+    }
+
+    if (data?.state?.batches) {
+      data = data.state;
+      continue;
+    }
+
+    break;
+  }
+
+  if (Array.isArray(data?.batches)) return data;
+  if (Array.isArray(data)) return { batches: data };
+
+  return { batches: [] };
+}
+
 async function cloudLoad() {
   try {
     let { apiKey, securityKey, binId } = getCloudConfig();
 
-    // 🚫 No API key = do nothing (not an error)
     if (!apiKey) {
       console.warn("⚠️ No API key — skipping cloud load.");
       return null;
     }
 
-    // 🔍 Try find bin if missing
     if (!binId) {
       binId = await getExistingBin();
     }
 
-    // 🆕 Still no bin? Create one instead of failing
     if (!binId) {
-      console.log("☁️ No bin found — creating new one...");
-      binId = await createBin();
-    }
-
-    if (!binId) {
-      console.warn("⚠️ Could not resolve bin.");
+      console.warn("⚠️ No cloud bin found.");
       return null;
     }
 
@@ -5844,36 +5870,28 @@ async function cloudLoad() {
 
     const text = await res.text();
 
-    if (res.status === 404) {
-      console.warn("☁️ Bin exists but empty.");
-      return { batches: [] };
-    }
-
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}\n${text.slice(0, 200)}`);
+      throw new Error(`HTTP ${res.status}\n${text.slice(0, 300)}`);
     }
 
-    let data = JSON.parse(text);
+    const raw = text ? JSON.parse(text) : {};
+    const data = normaliseCloudData(raw);
 
-    if (data?.data?.__compressed) {
-      data = decompressPayload(data.data);
-    } else if (data?.data?.batches) {
-      data = data.data;
-    }
+    console.log("☁️ Raw cloud data:", raw);
+    console.log("☁️ Normalised cloud data:", data);
 
-    if (!data?.batches) {
-      console.warn("☁️ No batches in bin.");
+    if (!Array.isArray(data.batches)) {
       return { batches: [] };
     }
 
-    console.log("☁️ Cloud data loaded:", data);
     return data;
 
   } catch (err) {
     console.error("⚠️ Cloud load failed:", err);
-    return null; // 🔥 DO NOT throw → prevents UI breaking
+    return null;
   }
 }
+
 
 async function cloudSave(payload = state) {
 
@@ -6327,10 +6345,10 @@ if ('serviceWorker' in navigator) {
 
 (async () => {
 
-  const hasValidBin =
-    typeof EXTENDS_BIN_ID !== "undefined" &&
-    EXTENDS_BIN_ID &&
-    EXTENDS_BIN_ID.trim() !== "";
+const hasValidBin =
+  EXTENDS_API_KEY &&
+  EXTENDS_BIN_ID &&
+  EXTENDS_BIN_ID.trim() !== "";
 
 
   const manuallyDisabled = localStorage.getItem("EXTENDS_MANUAL_DISABLE") === "1";
