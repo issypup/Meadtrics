@@ -1,4 +1,4 @@
-let CACHE_NAME = 'meadtrics-cache-v1.0.3.7.9';
+let CACHE_NAME = 'meadtrics-cache-v1.0.3.8.0';
 
 const ASSETS = [
   './',
