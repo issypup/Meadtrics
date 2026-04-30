@@ -2123,8 +2123,12 @@ function syncCard() {
           alert("✅ API key saved — cloud data loaded successfully.");
         } else {
           console.log("☁️ Cloud empty — uploading local data to cloud.");
-          await cloudSave(state);
-          alert("✅ API key saved — local data uploaded to cloud.");
+if (hasMeaningfulLocalData(state)) {
+  await cloudSave();
+  console.log("✅ API key saved — local data uploaded to cloud.");
+} else {
+  console.log("✅ API key saved — no local batches found, skipping upload.");
+}
         }
       } catch (err) {
         console.warn("⚠️ Failed to load cloud data:", err);
@@ -5872,6 +5876,12 @@ async function cloudLoad() {
 }
 
 async function cloudSave(payload = state) {
+
+  if (!hasMeaningfulLocalData(state)) {
+    console.warn("☁️ Skipped cloud save: no local batch data.");
+    return false;
+  }
+  
   try {
     if (!navigator.onLine) {
       console.log("📦 Offline — queuing save for later sync.");
@@ -6133,6 +6143,13 @@ function updateViewBinButton() {
   }
 }
 
+function hasMeaningfulLocalData(data = state) {
+  return !!(
+    data &&
+    Array.isArray(data.batches) &&
+    data.batches.length > 0
+  );
+}
 
 async function saveAll(state, changedBatch = null, changedFields = null) {
   save(state); 
