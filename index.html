@@ -2065,7 +2065,6 @@ function syncCard() {
   const syncStatus = el("div", {
     id: "syncStatus",
     style: "margin-top:6px;color:var(--muted);font-size:13px;",
-    // ✅ set dynamically at render time
     text: hasCloud ? "☁️ Cloud Sync Active" : "💾 Local-only mode"
   });
 
@@ -2094,45 +2093,55 @@ function syncCard() {
       localStorage.setItem("EXTENDS_API_KEY", EXTENDS_API_KEY);
       localStorage.setItem("EXTENDS_KEY", EXTENDS_KEY);
       state.cloudEnabled = true;
+
       syncStatus.textContent = "☁️ Cloud API key saved.";
       console.log("☁️ Cloud API key saved:", key);
 
-      if (!EXTENDS_BIN_ID) {
-        const existingBin = await getExistingBin();
-        if (existingBin) {
-          EXTENDS_BIN_ID = existingBin;
-          localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
-          console.log(`☁️ Using existing bin: ${EXTENDS_BIN_ID}`);
-        } else {
-          await createBin();
-        }
-      }
-
-      updateViewBinButton();
-      updateSyncCard();
-
       try {
-        let cloudData = await cloudLoad();
-        if (cloudData?.data?.batches) cloudData = cloudData.data;
+        let binId = localStorage.getItem("EXTENDS_BIN_ID") || EXTENDS_BIN_ID;
 
-        if (cloudData && cloudData.batches?.length) {
+        if (!binId) {
+          binId = await getExistingBin();
+        }
+
+        if (!binId) {
+          binId = await createBin();
+        }
+
+        if (!binId) {
+          throw new Error("No ExtendsClass bin ID found or created.");
+        }
+
+        EXTENDS_BIN_ID = binId;
+        localStorage.setItem("EXTENDS_BIN_ID", binId);
+
+        console.log("☁️ Using bin:", binId);
+
+        updateViewBinButton();
+        updateSyncCard();
+
+        const cloudData = await cloudLoad();
+
+        if (cloudData?.batches?.length) {
           console.log("☁️ Loaded cloud data after saving key:", cloudData);
           state = cloudData;
           save(state);
           render();
           alert("✅ API key saved — cloud data loaded successfully.");
-        } else {
+          return;
+        }
+
+        if (hasMeaningfulLocalData(state)) {
           console.log("☁️ Cloud empty — uploading local data to cloud.");
-if (hasMeaningfulLocalData(state)) {
-  await cloudSave();
-  console.log("✅ API key saved — local data uploaded to cloud.");
-} else {
-  console.log("✅ API key saved — no local batches found, skipping upload.");
-}
+          await cloudSave(state);
+          alert("✅ API key saved — local data uploaded to cloud.");
+        } else {
+          console.log("✅ API key saved — no local batches found, skipping upload.");
+          alert("✅ API key saved — no local batches found, skipping upload.");
         }
       } catch (err) {
-        console.warn("⚠️ Failed to load cloud data:", err);
-        alert("⚠️ API key saved, but cloud load failed. Using local data for now.");
+        console.error("Cloud setup failed:", err);
+        alert("Cloud setup failed:\n" + err.message);
       }
     }
   });
@@ -2144,6 +2153,7 @@ if (hasMeaningfulLocalData(state)) {
     style: "display:none;width:100%;margin-top:6px;",
     onclick: async (e) => {
       e.stopPropagation();
+
       const bin = localStorage.getItem("EXTENDS_BIN_ID");
       if (!bin) return alert("⚠️ No bin ID found yet.");
 
@@ -2190,8 +2200,8 @@ if (hasMeaningfulLocalData(state)) {
         `);
         popup.document.close();
 
-        const jsonString = JSON.stringify(data, null, 2);
-        popup.document.getElementById("jsonArea").textContent = jsonString;
+        popup.document.getElementById("jsonArea").textContent =
+          JSON.stringify(data, null, 2);
 
         console.log("✅ Cloud bin opened in popup");
       } catch (err) {
@@ -2201,22 +2211,33 @@ if (hasMeaningfulLocalData(state)) {
     }
   });
 
-  const syncUrl = el("span", { id: "syncUrl", text: hasCloud ? `${EXTENDS_API}/${hasBIN}` : "Local only" });
-  const syncKey = el("span", { id: "syncKey", text: EXTENDS_KEY || "meadtracker" });
+  const syncUrl = el("span", {
+    id: "syncUrl",
+    text: hasCloud ? `${EXTENDS_API}/${hasBIN}` : "Local only"
+  });
+
+  const syncKey = el("span", {
+    id: "syncKey",
+    text: EXTENDS_KEY || "meadtracker"
+  });
 
   const syncInfo = el("div", {
     id: "syncInfo",
     class: "tag",
     style: "display:block;word-break:break-all;"
   }, [
-    el("b", { text: "Bin:" }), document.createTextNode(" "), syncUrl
+    el("b", { text: "Bin:" }),
+    document.createTextNode(" "),
+    syncUrl
   ]);
 
   const keyInfo = el("div", {
     class: "tag",
     style: "margin-top:4px;"
   }, [
-    el("b", { text: "Security Key:" }), document.createTextNode(" "), syncKey
+    el("b", { text: "Security Key:" }),
+    document.createTextNode(" "),
+    syncKey
   ]);
 
   const body = el("div", {
@@ -2249,7 +2270,6 @@ if (hasMeaningfulLocalData(state)) {
     style: "margin-top:16px;"
   }, [legend, body]);
 
-  // expand automatically if cloud is active
   if (hasCloud) {
     collapsed = false;
     body.style.display = "block";
@@ -6108,20 +6128,36 @@ async function getExistingBin() {
 
   try {
     const res = await fetch("https://json.extendsclass.com/bins", {
+      method: "GET",
       headers: {
+        "Accept": "application/json",
         "Api-key": apiKey
       }
     });
 
+    const text = await res.text();
+
+    console.log("☁️ /bins status:", res.status);
+    console.log("☁️ /bins raw response:", text);
+
     if (!res.ok) return null;
 
-    const bins = await res.json();
+    const bins = JSON.parse(text);
+
+    console.log("☁️ Found existing bins:", bins);
 
     if (!Array.isArray(bins) || bins.length === 0) return null;
 
-    return bins[0];
+    const first = bins[0];
 
-  } catch {
+    if (typeof first === "string") return first;
+    if (first.id) return first.id;
+    if (first._id) return first._id;
+    if (first.binId) return first.binId;
+
+    return null;
+  } catch (err) {
+    console.warn("⚠️ Could not list ExtendsClass bins:", err);
     return null;
   }
 }
