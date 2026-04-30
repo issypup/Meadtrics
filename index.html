@@ -1648,6 +1648,66 @@ function stabilCard() {
   return card;
 }
 
+/* ===============================
+   Fining Calculator - Upgraded
+   =============================== */
+
+const FININGS = {
+  kieselsol: {
+    name: "Kieselsol",
+    doseMlPerL: 1.5,
+    doseText: "1.5 mL / L",
+    note: "Add first, stir gently, then wait 12–24 hours."
+  },
+  chitosan: {
+    name: "Chitosan",
+    doseMlPerL: 1.0,
+    doseText: "1 mL / L",
+    note: "Add after Kieselsol, stir gently, then leave 1–3 days."
+  },
+  bentonite: {
+    name: "Bentonite",
+    doseGPerL: 0.5,
+    doseText: "0.5 g / L",
+    note: "Hydrate before use, then leave several days to clear."
+  },
+  sparkolloid: {
+    name: "Sparkolloid",
+    doseGPerL: 0.25,
+    doseText: "0.25 g / L",
+    note: "Prepare hot before adding, then leave 1–2 weeks."
+  }
+};
+
+function calcFinings(volumeL, selected = ["kieselsol", "chitosan"]) {
+  if (!volumeL || volumeL <= 0) return [];
+
+  return selected.map(key => {
+    const f = FININGS[key];
+    if (!f) return null;
+
+    let amount = 0;
+    let unit = "";
+
+    if (f.doseMlPerL) {
+      amount = volumeL * f.doseMlPerL;
+      unit = "mL";
+    } else {
+      amount = volumeL * f.doseGPerL;
+      unit = "g";
+    }
+
+    return {
+      key,
+      name: f.name,
+      doseText: f.doseText,
+      amount: +amount.toFixed(2),
+      unit,
+      note: f.note
+    };
+  }).filter(Boolean);
+}
+
 function finingCard() {
   let collapsed = true;
 
@@ -1661,47 +1721,88 @@ function finingCard() {
     placeholder: "Enter batch volume (L)"
   });
 
-  const resultTable = el("table", {
-    class: "table",
-    style: "font-size:13px;width:100%;margin-bottom:6px;"
-  });
+  const selectedFinings = {
+    kieselsol: true,
+    chitosan: true,
+    bentonite: false,
+    sparkolloid: false
+  };
 
   const resultBody = el("tbody");
 
-  const updateFining = () => {
-    const vol = parseFloat(volumeInput.value);
-    if (isNaN(vol) || vol <= 0) {
-      resultBody.innerHTML = `<tr><td colspan="5" style="color:var(--muted);">⚠️ Enter a valid volume above.</td></tr>`;
+  const checkboxWrap = el("div", {
+    style: "display:grid;gap:6px;margin:8px 0;"
+  });
+
+  Object.entries(FININGS).forEach(([key, fining]) => {
+    const checkbox = el("input", {
+      type: "checkbox",
+      checked: selectedFinings[key] ? true : undefined,
+      style: "width:auto;margin-right:6px;"
+    });
+
+    checkbox.addEventListener("change", () => {
+      selectedFinings[key] = checkbox.checked;
+      updateFining();
+    });
+
+    const row = el("label", {
+      style: "display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted);cursor:pointer;"
+    }, [
+      checkbox,
+      document.createTextNode(`${fining.name} (${fining.doseText})`)
+    ]);
+
+    checkboxWrap.append(row);
+  });
+
+  function getSelectedFiningKeys() {
+    return Object.entries(selectedFinings)
+      .filter(([, isSelected]) => isSelected)
+      .map(([key]) => key);
+  }
+
+  function updateFining() {
+    const volumeL = parseFloat(volumeInput.value);
+
+    if (!isFinite(volumeL) || volumeL <= 0) {
+      resultBody.innerHTML = `
+        <tr>
+          <td colspan="4" style="color:var(--muted);">
+            ⚠️ Enter a valid volume above.
+          </td>
+        </tr>
+      `;
       return;
     }
 
-    // Densities: assume 1 mL ≈ 1 g (both are near water density)
-    const kiesel_mL = vol * 1.5;
-    const chito_mL = vol * 1.0;
+    const selected = getSelectedFiningKeys();
 
-    const kiesel_g = kiesel_mL;
-    const chito_g = chito_mL;
+    if (!selected.length) {
+      resultBody.innerHTML = `
+        <tr>
+          <td colspan="4" style="color:var(--muted);">
+            Select at least one fining.
+          </td>
+        </tr>
+      `;
+      return;
+    }
 
-    const kiesel_oz = kiesel_mL * 0.033814;
-    const chito_oz = chito_mL * 0.033814;
+    const results = calcFinings(volumeL, selected);
 
-    resultBody.innerHTML = `
+    resultBody.innerHTML = results.map(r => `
       <tr>
-        <td>Chitosan</td>
-        <td>1 mL / L</td>
-        <td>${chito_mL.toFixed(1)} mL</td>
-        <td>${chito_g.toFixed(1)} g</td>
-        <td>${chito_oz.toFixed(2)} fl oz</td>
+        <td>${r.name}</td>
+        <td>${r.doseText}</td>
+        <td><b>${r.amount.toFixed(2)} ${r.unit}</b></td>
+        <td>${r.note}</td>
       </tr>
-      <tr>
-        <td>Kieselsol (silica)</td>
-        <td>1.5 mL / L</td>
-        <td>${kiesel_mL.toFixed(1)} mL</td>
-        <td>${kiesel_g.toFixed(1)} g</td>
-        <td>${kiesel_oz.toFixed(2)} fl oz</td>
-      </tr>
-    `;
-  };
+    `).join("");
+  }
+
+  volumeInput.addEventListener("input", updateFining);
+  volumeInput.addEventListener("change", updateFining);
 
   const calcBtn = el("button", {
     text: "Calculate Fining Dosage",
@@ -1710,35 +1811,43 @@ function finingCard() {
     onclick: updateFining
   });
 
-  const body = el("div", { class: "card-content", id: "finingContent", style: "margin-top:8px;" }, [
+  const body = el("div", {
+    class: "card-content",
+    id: "finingContent",
+    style: "margin-top:8px;"
+  }, [
     el("p", {
       style: "font-size:13px;color:var(--muted);",
-      text: "Enter your batch size below to calculate fining additions:"
+      text: "Calculate fining additions for your batch. Select one or more fining agents below."
     }),
+
     el("label", { text: "Batch Volume (L):" }),
     volumeInput,
+
+    el("label", { text: "Fining Agents:" }),
+    checkboxWrap,
+
     calcBtn,
-    el("table", { class: "table", style: "font-size:13px;width:100%;margin-bottom:6px;" }, [
+
+    el("table", {
+      class: "table",
+      style: "font-size:13px;width:100%;margin-bottom:6px;"
+    }, [
       el("thead", {}, [
         el("tr", {}, [
           el("th", { text: "Fining" }),
-          el("th", { text: "Standard Dose" }),
-          el("th", { text: "For Batch" }),
-          el("th", { text: "In grams*" }),
-          el("th", { text: "In fluid oz" }),
+          el("th", { text: "Dose" }),
+          el("th", { text: "Amount" }),
+          el("th", { text: "Notes" })
         ])
       ]),
       resultBody
     ]),
+
     el("p", {
       style: "font-size:12.5px;color:var(--muted);margin-bottom:8px;",
-      text: "*Both have density ≈ water (1 mL ≈ 1 g)."
-    }),
-    el("ul", { style: "font-size:13px;color:var(--muted);" }, [
-      el("li", { text: "Degas first (important for good clearing)." }),
-      el("li", { text: "Add Kieselsol → stir gently → wait 12–24 h." }),
-      el("li", { text: "Add Chitosan → stir gently → leave 1–3 days to clear." }),
-    ])
+      text: "Tip: Degas first. Finings work best when CO₂ is removed and the mead is no longer actively fermenting."
+    })
   ]);
 
   const legend = el("legend", {
@@ -1751,23 +1860,18 @@ function finingCard() {
     }
   });
 
-  const card = el("fieldset", {
+  const card = el("div", {
     class: "fieldset collapsible",
     id: "finingCard",
     style: "margin-top:16px;"
   }, [legend, body]);
 
-  // collapsed by default
-  collapsed = true;
   body.style.display = "none";
 
-  // calculate initial default (5 L)
   setTimeout(updateFining, 50);
 
   return card;
 }
-
-
 
 
 function brixCard() {
@@ -5092,22 +5196,52 @@ function calcPriming() {
 }
 
 
-function calcStabilisation() {
-  const vol = parseFloat(document.getElementById('stab_volume').value);
-  if (isNaN(vol) || vol <= 0) {
-    alert("Enter a valid batch volume in litres.");
-    return;
+function calcStabilisation({ volumeL, abv, ph, usePH = true, metaType = "kmeta" }) {
+  if (!volumeL || volumeL <= 0) return null;
+
+  // ----------------------------
+  // Sorbate (MeadTools formula)
+  // ----------------------------
+  const sorbateG = ((-25 * abv + 400) / 750) * volumeL;
+
+  // ----------------------------
+  // SO2 Target
+  // ----------------------------
+  function getSO2ppmFromPH(ph) {
+    const rounded = Math.round(ph * 10) / 10;
+
+    if (rounded <= 2.9) return 11;
+    if (rounded === 3.0) return 13;
+    if (rounded === 3.1) return 16;
+    if (rounded === 3.2) return 21;
+    if (rounded === 3.3) return 26;
+    if (rounded === 3.4) return 32;
+    if (rounded === 3.5) return 39;
+    if (rounded === 3.6) return 50;
+    if (rounded === 3.7) return 63;
+    if (rounded === 3.8) return 98;
+    return 123; // fallback for higher pH
   }
 
+  const targetSO2ppm = usePH ? getSO2ppmFromPH(ph || 3.5) : 50;
 
-  const sorbate = vol * 0.2;
-  const meta = vol * 0.15;
+  // ----------------------------
+  // Metabisulfite
+  // ----------------------------
+  const divisor = metaType === "nameta" ? 674 : 570;
+  const metaG = (volumeL * targetSO2ppm) / divisor;
 
-  document.getElementById('stabResult').innerHTML = `
-    For <b>${vol.toFixed(1)} L</b> batch:<br>
-    • Add <b>${sorbate.toFixed(2)} g</b> Potassium Sorbate<br>
-    • Add <b>${meta.toFixed(2)} g</b> Potassium Metabisulfite<br>
-  `;
+  // ----------------------------
+  // Campden tablets equivalent
+  // ----------------------------
+  const campdenTabs = (targetSO2ppm / 75) * (volumeL / 3.785);
+
+  return {
+    sorbateG: +sorbateG.toFixed(2),
+    metaG: +metaG.toFixed(2),
+    campdenTabs: +campdenTabs.toFixed(2),
+    targetSO2ppm
+  };
 }
 
 
