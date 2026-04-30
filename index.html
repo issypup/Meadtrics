@@ -6190,7 +6190,7 @@ function exportCloudDebug() {
 }
 
 async function getExistingBin() {
-  const { apiKey } = getCloudConfig();
+  const { apiKey, securityKey } = getCloudConfig();
 
   if (!apiKey) {
     console.warn("⚠️ Cannot list bins — missing API key.");
@@ -6216,73 +6216,83 @@ async function getExistingBin() {
     console.log("☁️ /bins content-type:", res.headers.get("content-type"));
     console.log("☁️ /bins raw response:", trimmed.slice(0, 500));
 
-    if (!res.ok) {
-      console.warn("⚠️ /bins request failed:", res.status, trimmed.slice(0, 300));
-      return null;
-    }
-
-    // ✅ ExtendsClass may say text/html even when body is valid JSON.
-    // So only reject it if the BODY is actually HTML.
-    if (trimmed.startsWith("<")) {
-      console.warn(
-        "⚠️ /bins returned HTML instead of JSON. Hosted page may be blocked/intercepted."
-      );
-      console.warn("⚠️ HTML preview:", trimmed.slice(0, 500));
-      return null;
-    }
+    if (!res.ok || trimmed.startsWith("<")) return null;
 
     let bins;
     try {
       bins = JSON.parse(trimmed);
     } catch (err) {
-      console.warn("⚠️ Could not parse /bins response as JSON:", err);
-      console.warn("⚠️ Response preview:", trimmed.slice(0, 500));
+      console.warn("⚠️ Could not parse /bins JSON:", err);
       return null;
     }
 
-    console.log("☁️ Found existing bins:", bins);
-
-    if (!Array.isArray(bins) || bins.length === 0) {
-      console.warn("⚠️ /bins returned no bins:", bins);
+    if (!Array.isArray(bins) || !bins.length) {
+      console.warn("⚠️ No ExtendsClass bins found.");
       return null;
     }
 
-    const savedBinId = localStorage.getItem("EXTENDS_BIN_ID");
+    const binIds = bins.map(b => {
+      if (typeof b === "string") return b;
+      return b?.id || b?._id || b?.binId || null;
+    }).filter(Boolean);
 
-    if (savedBinId && bins.some(b => {
-      if (typeof b === "string") return b === savedBinId;
-      return b?.id === savedBinId || b?._id === savedBinId || b?.binId === savedBinId;
-    })) {
-      console.log("☁️ Using saved existing bin:", savedBinId);
-      return savedBinId;
+    console.log("☁️ Candidate bins:", binIds);
+
+    for (const binId of binIds) {
+      try {
+        const check = await fetch(`${EXTENDS_API}/${binId}`, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+            "Security-key": securityKey
+          },
+          cache: "no-store"
+        });
+
+        const binText = await check.text();
+        const binTrimmed = binText.trim();
+
+        if (!check.ok || binTrimmed.startsWith("<")) {
+          console.warn(`☁️ Skipping bin ${binId}: HTTP ${check.status}`);
+          continue;
+        }
+
+        let raw;
+        try {
+          raw = JSON.parse(binTrimmed);
+        } catch {
+          console.warn(`☁️ Skipping bin ${binId}: invalid JSON`);
+          continue;
+        }
+
+        let data = raw;
+
+        if (data && data.data) data = data.data;
+        if (data && data.__compressed) data = decompressPayload(data);
+        if (data && data.state) data = data.state;
+        if (data && data.data && data.data.batches) data = data.data;
+
+        const batchCount = Array.isArray(data?.batches) ? data.batches.length : 0;
+
+        console.log(`☁️ Checked bin ${binId}: ${batchCount} batch(es)`);
+
+        if (batchCount > 0) {
+          console.log("☁️ Using MeadTrics bin with data:", binId);
+          localStorage.setItem("EXTENDS_BIN_ID", binId);
+          EXTENDS_BIN_ID = binId;
+          return binId;
+        }
+
+      } catch (err) {
+        console.warn(`☁️ Could not inspect bin ${binId}:`, err);
+      }
     }
 
-    const first = bins[0];
-
-    let binId = null;
-
-    if (typeof first === "string") binId = first;
-    else if (first?.id) binId = first.id;
-    else if (first?._id) binId = first._id;
-    else if (first?.binId) binId = first.binId;
-
-    if (!binId) {
-      console.warn("⚠️ Could not extract bin ID from:", first);
-      return null;
-    }
-
-    console.log("☁️ Using first bin:", binId);
-    return binId;
+    console.warn("⚠️ No bin with MeadTrics batches found.");
+    return null;
 
   } catch (err) {
     console.warn("⚠️ Could not list ExtendsClass bins:", err);
-
-    const savedBinId = localStorage.getItem("EXTENDS_BIN_ID");
-    if (savedBinId) {
-      console.warn("☁️ Falling back to saved bin ID:", savedBinId);
-      return savedBinId;
-    }
-
     return null;
   }
 }
