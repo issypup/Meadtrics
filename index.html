@@ -6329,55 +6329,17 @@ if (isPWA) {
 let waitingSW = null;
 
 // Register Service Worker
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then(reg => {
+navigator.serviceWorker.register('/sw.js').then(reg => {
+  reg.addEventListener('updatefound', () => {
+    const newWorker = reg.installing;
 
-    // If an update is already waiting
-    if (reg.waiting) {
-      showUpdateToast(reg.waiting);
-    }
-
-    reg.addEventListener('updatefound', () => {
-      const newSW = reg.installing;
-      newSW.addEventListener('statechange', () => {
-        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-          showUpdateToast(newSW);
-        }
-      });
+    newWorker.addEventListener('statechange', () => {
+      if (newWorker.state === 'installed') {
+        console.log('New version available');
+      }
     });
   });
-
-  // Reload once the new SW takes control
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
-  });
-}
-
-// 🔔 Toast logic
-async function showUpdateToast(sw) {
-  waitingSW = sw;
-
-  const toast = document.getElementById('updateToast');
-  const diffBox = document.getElementById('updateDiff');
-
-  const oldVersion = await getCurrentVersion();
-  const newVersion = await getManifestVersion();
-
-  diffBox.textContent =
-    oldVersion && newVersion
-      ? `v${oldVersion} → v${newVersion}`
-      : 'New version available';
-
-  toast.hidden = false;
-
-  document.getElementById('updateLater').onclick = () => {
-    toast.hidden = true;
-  };
-
-  document.getElementById('updateNow').onclick = () => {
-    waitingSW.postMessage({ type: 'SKIP_WAITING' });
-  };
-}
+});
 
 // 🔢 Version helpers
 async function getManifestVersion() {
@@ -6401,17 +6363,6 @@ async function getCurrentVersion() {
 }
 </script>
 
-<!-- 🔔 PWA Update Toast -->
-<div id="updateToast" hidden>
-  <div class="toast-content">
-    <strong>🍯 Update available</strong>
-    <div id="updateDiff" class="diff"></div>
-    <div class="actions">
-      <button id="updateLater">Later</button>
-      <button id="updateNow">Update</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
