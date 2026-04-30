@@ -5700,51 +5700,56 @@ function sgToBrix(sg) {
 }
 
 async function createBin() {
-  const cloudApiKeyInput = document.getElementById("cloudApiKey");
-  const cloudSecurityKeyInput = document.getElementById("cloudSecurityKey");
-
-  const apiKey = cloudApiKeyInput?.value?.trim() || localStorage.getItem("extendsClassApiKey");
-  const securityKey = cloudSecurityKeyInput?.value?.trim() || localStorage.getItem("extendsClassSecurityKey");
+  const { apiKey, securityKey } = getCloudConfig();
 
   if (!apiKey) {
-    alert("Please enter your ExtendsClass API key first.");
+    console.warn("⚠️ Cannot create bin — missing API key.");
     return null;
   }
 
-  const payload = getSerializableState ? getSerializableState() : state;
+  const payload = {
+    data: compressPayload(state)
+  };
 
   const res = await fetch("https://json.extendsclass.com/bin", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Api-key": apiKey,
-      ...(securityKey ? { "Security-key": securityKey } : {})
+      "Security-key": securityKey,
+      "Private": "true"
     },
     body: JSON.stringify(payload)
   });
 
-  const data = await safeJsonResponse(res);
+  const text = await res.text();
 
-  if (!res.ok || !data) {
-    console.warn("⚠️ Could not create ExtendsClass bin:", res.status, data);
-    alert("Could not create ExtendsClass bin. Check your API key.");
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    console.warn("⚠️ Create bin response was not JSON:", text.slice(0, 300));
     return null;
   }
 
-  const binId = data.id || data._id || data.bin || data.key;
+  if (!res.ok) {
+    console.warn("⚠️ Could not create ExtendsClass bin:", res.status, data);
+    return null;
+  }
+
+  const binId = data.id;
 
   if (!binId) {
     console.warn("⚠️ Bin created but no ID found:", data);
-    alert("Bin created, but MeadTrics could not find the bin ID.");
     return null;
   }
 
-  localStorage.setItem("extendsClassApiKey", apiKey);
-  localStorage.setItem("extendsClassBinId", binId);
+  EXTENDS_BIN_ID = binId;
+  EXTENDS_API_KEY = apiKey;
 
-  if (securityKey) {
-    localStorage.setItem("extendsClassSecurityKey", securityKey);
-  }
+  localStorage.setItem("EXTENDS_API_KEY", apiKey);
+  localStorage.setItem("EXTENDS_KEY", securityKey);
+  localStorage.setItem("EXTENDS_BIN_ID", binId);
 
   console.log("☁️ Created ExtendsClass bin:", binId);
   return binId;
@@ -5877,7 +5882,13 @@ async function cloudSave(payload = state) {
       return;
     }
 
-    let { securityKey, binId } = getCloudConfig();
+    let { apiKey, securityKey, binId } = getCloudConfig();
+
+if (!apiKey) {
+  console.warn("⚠️ No API key — skipping cloud save.");
+  save(state);
+  return;
+}
 
     if (!binId) {
       binId = await getExistingBin();
