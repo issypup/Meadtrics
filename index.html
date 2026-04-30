@@ -5664,76 +5664,101 @@ function sgToBrix(sg) {
 }
 
 async function createBin() {
-  try {
-    const EXTENDS_API_KEY = localStorage.getItem("EXTENDS_API_KEY");
-    const EXTENDS_KEY = localStorage.getItem("EXTENDS_KEY");
-    if (!EXTENDS_API_KEY || !EXTENDS_KEY)
-      throw new Error("Missing API or Security key");
+  const apiKey = localStorage.getItem("EXTENDS_API_KEY");
+  const securityKey = localStorage.getItem("EXTENDS_KEY") || EXTENDS_KEY;
 
-    console.log("Api-key:", `"${EXTENDS_API_KEY}"`);
-    console.log("Security-key:", `"${EXTENDS_KEY}"`);
-
-    const res = await fetch(EXTENDS_API, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Api-key": EXTENDS_API_KEY,
-        "Security-key": EXTENDS_KEY,
-        "Private": "true"
-      },
-      body: JSON.stringify({ data: { batches: [] } })
-    });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    EXTENDS_BIN_ID = data.id;
-    localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
-    updateViewBinButton();
-    updateSyncCard();
-    alert(`✅ Created JSON bin:\n${EXTENDS_BIN_ID}`);
-  } catch (err) {
-    console.error("Failed to create bin:", err);
-    alert("⚠️ Could not create JSON bin.\n" + err.message);
+  if (!apiKey || !securityKey) {
+    throw new Error("Missing API or Security key");
   }
+
+  localStorage.setItem("EXTENDS_KEY", securityKey);
+
+  const res = await fetch(EXTENDS_API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "Api-key": apiKey,
+      "Security-key": securityKey,
+      "Private": "true"
+    },
+    body: JSON.stringify({ data: { batches: [] } })
+  });
+
+  const text = await res.text();
+
+  if (!res.ok) {
+    throw new Error(`Create bin failed: HTTP ${res.status}\n${text.slice(0, 200)}`);
+  }
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(
+      "ExtendsClass did not return JSON. It returned:\n" +
+      text.slice(0, 200)
+    );
+  }
+
+  const id = data.id || data._id || data.bin || data.binId;
+
+  if (!id) {
+    throw new Error("Bin created but no bin ID was returned:\n" + JSON.stringify(data));
+  }
+
+  EXTENDS_BIN_ID = id;
+  localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
+
+  updateViewBinButton();
+  updateSyncCard();
+
+  console.log("✅ Created JSON bin:", EXTENDS_BIN_ID);
+  return EXTENDS_BIN_ID;
 }
 
 async function cloudLoad() {
   try {
-    const EXTENDS_API_KEY = localStorage.getItem("EXTENDS_API_KEY");
-    const EXTENDS_KEY = localStorage.getItem("EXTENDS_KEY");
-    const EXTENDS_BIN_ID = localStorage.getItem("EXTENDS_BIN_ID");
-    if (!EXTENDS_API_KEY || !EXTENDS_KEY || !EXTENDS_BIN_ID)
-      throw new Error("Missing API key, Security key, or bin ID");
+    const apiKey = localStorage.getItem("EXTENDS_API_KEY");
+    const securityKey = localStorage.getItem("EXTENDS_KEY") || EXTENDS_KEY;
+    const binId = localStorage.getItem("EXTENDS_BIN_ID");
 
-    const url = `${EXTENDS_API}/${EXTENDS_BIN_ID}`;
+    if (!apiKey || !securityKey || !binId) {
+      throw new Error("Missing API key, Security key, or bin ID");
+    }
+
+    localStorage.setItem("EXTENDS_KEY", securityKey);
+
+    const url = `${EXTENDS_API}/${binId}`;
     const res = await fetch(url, {
       method: "GET",
       headers: {
-        "Api-key": EXTENDS_API_KEY,
-        "Security-key": EXTENDS_KEY
+        "Accept": "application/json",
+        "Api-key": apiKey,
+        "Security-key": securityKey
       }
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-	
-	let data = await res.json();
-	
-// 🔹 Handle compressed payloads and unwrap formats
-if (data && data.data && data.data.__compressed) {
-  data.data = decompressPayload(data.data);
-}
-if (data.data && data.data.batches) data = data.data;
+    const text = await res.text();
 
-console.log("☁️ Cloud data loaded:", data);
-return data;
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}\n${text.slice(0, 200)}`);
+    }
 
-    // 🧩 unwrap legacy/new bin formats
+    let data = JSON.parse(text);
+
+    if (data && data.data && data.data.__compressed) {
+      data.data = decompressPayload(data.data);
+    }
+
     if (data.data && data.data.batches) data = data.data;
+
     console.log("☁️ Cloud data loaded:", data);
     return data;
   } catch (err) {
     console.error("Failed to load bin:", err);
     alert("⚠️ Failed to load cloud data.\n" + err.message);
+    throw err;
   }
 }
 
@@ -5910,9 +5935,19 @@ if (saveApiKeyBtn) {
         EXTENDS_BIN_ID = existingBin;
         localStorage.setItem("EXTENDS_BIN_ID", EXTENDS_BIN_ID);
         console.log(`☁️ Using existing bin: ${EXTENDS_BIN_ID}`);
-      } else {
-        await createBin();
-      }
+} else {
+  try {
+    const newBinId = await createBin();
+
+    if (!newBinId) {
+      throw new Error("No bin ID was created.");
+    }
+  } catch (err) {
+    console.error("Failed to create bin:", err);
+    alert("⚠️ Could not create JSON bin.\n" + err.message);
+    return;
+  }
+}
     }
 
     updateViewBinButton();
