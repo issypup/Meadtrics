@@ -1061,6 +1061,12 @@ function save(state) {
   }
 }
 
+function clearAll() {
+  state = { batches: [] };
+  selectedId = null;
+  save(state);
+  render();
+}
 
 function batchHeaderCard() {
   return el('div', {
@@ -1116,207 +1122,10 @@ function utilitiesHeaderCard() {
 }
 
 
-function calcTosna(sourceEl) {
-  let root = document;
-  if (sourceEl?.closest) {
-    root = sourceEl.closest('#tosnaCard') || document;
-  }
-
-  const vol = parseFloat(root.querySelector('#tosnaVol')?.value || 0);
-  const req = root.querySelector('#tosnaReq')?.value || 'medium';
-  const result = root.querySelector('#tosnaResult');
-
-  if (!vol || !result) {
-    result.textContent = 'Please enter a valid volume.';
-    return;
-  }
-
-  // === Read FG / OG from UI ===
-  const fgText = root.querySelector('#tosnaFGOG')?.textContent || '';
-  const match = fgText.match(/FG:\s*([\d.]+).*OG:\s*([\d.]+)/);
-  if (!match) {
-    result.textContent = 'Unable to read FG / OG.';
-    return;
-  }
-
-  const FG = parseFloat(match[1]);
-  const OG = parseFloat(match[2]);
-
-  // === MeadTools gravity logic ===
-  const gravityPoints = (OG - FG) * 1000;
-
-  const reqMultiplier = {
-    low: 1.0,
-    medium: 1.25,
-    high: 1.5
-  }[req] || 1.25;
-
-  let requiredYAN = gravityPoints * reqMultiplier;
-
-  // MeadTools safety rounding
-  requiredYAN = Math.round(requiredYAN / 10) * 10;
-
-  // === Fermaid O actual YAN contribution ===
-  const FERMAID_O_YAN = 13; // mg N / g / L
-
-  const fermaidO = (requiredYAN / FERMAID_O_YAN) * vol;
-  const perAddition = fermaidO / 4;
-
-  result.innerHTML = `
-📦 <b>${vol.toFixed(1)} L</b><br>
-Target YAN: <b>${requiredYAN} mg/L</b><br><br>
-
-🍶 <b>Fermaid O total:</b> ${fermaidO.toFixed(1)} g<br>
-➗ <b>Per addition (×4):</b> ${perAddition.toFixed(1)} g<br><br>
-
-<b>Schedule:</b><br>
-• 24h – ${perAddition.toFixed(1)} g<br>
-• 48h – ${perAddition.toFixed(1)} g<br>
-• 72h – ${perAddition.toFixed(1)} g<br>
-• 1/3 Sugar Break – ${perAddition.toFixed(1)} g
-`;
-}
 
 
-function tosnaCard() {
- 
-  let collapsed = true;
 
-  
-  const volInput = el('input', {
-    id: 'tosnaVol',
-    type: 'number',
-    step: '0.1',
-    value: '5',
-    style: 'width:100%;margin-bottom:6px;'
-  });
 
-const abvInput = el('input', {
-  id: 'tosnaYeastABV',
-  type: 'number',
-  step: '0.1',
-  value: '14',
-  style: 'width:100%;margin-bottom:6px;'
-});
-
-const sweetSel = el('select', {
-  id: 'tosnaSweetness',
-  style: 'width:100%;margin-bottom:6px;'
-}, [
-  el('option', { value: 'dry', text: 'Dry (little to no residual sugar)' }),
-  el('option', { value: 'semi', text: 'Semi-sweet (balanced)', selected: true }),
-  el('option', { value: 'sweet', text: 'Sweet (high residual sugar)' })
-]);
-
-abvInput.addEventListener('input', updateFGOG);
-sweetSel.addEventListener('change', updateFGOG);
-
-  const reqSel = el('select', {
-    id: 'tosnaReq',
-    style: 'width:100%;margin-bottom:6px;'
-  }, [
-    el('option', {
-      value: 'low',
-      text: 'Low — e.g., D47, 71B, K1V — Traditional, show, hydromel'
-    }),
-    el('option', {
-      value: 'medium',
-      text: 'Medium — e.g., QA23, D21, RC212 — Melomel, metheglin, pyment',
-      selected: true
-    }),
-    el('option', {
-      value: 'high',
-      text: 'High — e.g., EC-1118, BM4x4, D254 — Bochet, capsicumel, cyser, braggot'
-    })
-  ]);
-
-  const yanInput = el('input', {
-    id: 'tosnaYan',
-    type: 'number',
-    step: '1',
-    value: '150',
-    style: 'width:100%;margin-bottom:6px;'
-  });
-
-  const typeSel = el('select', {
-    id: 'tosnaType',
-    style: 'width:100%;margin-bottom:6px;'
-  }, [
-    el('option', { value: 'O', text: 'Fermaid O (TOSNA)' }),
-    el('option', { value: 'OK', text: 'Fermaid O + K' }),
-    el('option', { value: 'OKDAP', text: 'Fermaid O + K + DAP' })
-  ]);
-
-  const fgog = el('div', {
-    id: 'tosnaFGOG',
-    style: 'font-size:13px;color:var(--muted);margin-bottom:8px;',
-    text: 'Estimated FG: 1.010 → Suggested OG: 1.110'
-  });
-
-  const result = el('div', {
-    id: 'tosnaResult',
-    style: 'font-size:13px;color:var(--muted);'
-  });
-
-const calcBtn = el('button', {
-  id: 'calcTosna',
-  class: 'btn-accent',
-  text: 'Calculate TOSNA',
-  style: 'width:100%;',
-  onclick: () => calcTosna()
-});
-
-  const body = el('div', {
-    id: 'tosnaContent',
-    style: 'margin-top:8px;'
-  }, [
-    el('p', {
-      style: 'font-size:13px;color:var(--muted);',
-      text: 'Based on TOSNA 2.0 — calculates nutrient additions by volume, yeast, and target YAN.'
-    }),
-    el('label', { text: 'Volume (L):' }),
-    volInput,
-    el('label', { text: 'Yeast ABV Tolerance (%):' }),
-    abvInput,
-    el('label', { text: 'Desired Sweetness:' }),
-    sweetSel,
-    fgog,
-    el('label', { text: 'Yeast Nitrogen Requirement:' }),
-    reqSel,
-    el('label', { text: 'Target YAN (mg N/L):' }),
-    yanInput,
-    el('label', { text: 'Nutrient Type:' }),
-    typeSel,
-    calcBtn,
-    el('hr', {
-      style: 'margin:10px 0;border:none;border-top:1px solid var(--border);'
-    }),
-    result
-  ]);
- 
-  const legend = el('legend', {
-    text: '🍯 TOSNA Calculator',
-    style: 'cursor:pointer;',
-    onclick: () => {
-      collapsed = !collapsed;
-      body.style.display = collapsed ? 'none' : 'block';
-      legend.textContent = (collapsed ? '▶ ' : '▼ ') + '🍯 TOSNA Calculator';
-    }
-  });
-
-  
-  const card = el('div', {
-    id: 'tosnaCard',
-    class: 'fieldset collapsible',
-    style: 'margin-top:16px;'
-  }, [legend, body]);
-
-  
-  collapsed = true;
-  body.style.display = 'none';
-
-  return card;
-}
 
 
 function backsweetCard() {
@@ -1479,7 +1288,6 @@ function backsweetCard() {
   });
 
   return card;
-  updateFGOG();
   
 }
 
@@ -2346,6 +2154,327 @@ function syncCard() {
   return card;
 }
 
+/* ===============================
+   TOSNA Calculator - MeadTools + ABV
+   =============================== */
+
+const TOSNA = {
+  yanFromFermaidO: 40,
+  yanFromFermaidK: 100,
+  yanFromDAP: 210,
+
+  organicMultiplierWithGoFerm: 4,
+  organicMultiplierNoGoFerm: 3,
+
+  tspPerGramFermaidO: 0.25,
+  tspPerGramFermaidK: 0.20,
+  tspPerGramDAP: 0.20
+};
+
+function tosnaToBrix(sg) {
+  return -668.962 + 1262.45 * sg - 776.43 * sg ** 2 + 182.94 * sg ** 3;
+}
+
+function getTosnaSGFromTargetABV(targetABV, fg = 1.000) {
+  return fg + targetABV / 131.25;
+}
+
+function getTosnaNitrogenMultiplier(requirement) {
+  if (requirement === "veryLow") return 0.75;
+  if (requirement === "low") return 0.75;
+  if (requirement === "medium") return 0.9;
+  if (requirement === "high") return 1.25;
+  if (requirement === "veryHigh") return 1.8;
+  return 0.9;
+}
+
+function getTosnaTargetYAN({ sg, requirement }) {
+  const SG = parseFloat(sg);
+  if (!isFinite(SG) || SG <= 1) return 0;
+
+  const brix = tosnaToBrix(SG);
+  const sugarGPL = brix * SG * 10;
+  const multiplier = getTosnaNitrogenMultiplier(requirement);
+
+  return Math.round(sugarGPL * multiplier);
+}
+
+function calculateTosna({ volumeL, sg, requirement, nutrientType, goFermType }) {
+  const targetYAN = getTosnaTargetYAN({ sg, requirement });
+
+  const organicMultiplier =
+    goFermType === "none"
+      ? TOSNA.organicMultiplierNoGoFerm
+      : TOSNA.organicMultiplierWithGoFerm;
+
+  const effectiveFermaidOYan = TOSNA.yanFromFermaidO * organicMultiplier;
+  const schedule = [];
+
+  if (nutrientType === "O") {
+    const totalO = (targetYAN / effectiveFermaidOYan) * volumeL;
+
+    schedule.push(
+      { time: "24 hours", fermaidO: totalO * 0.25, fermaidK: 0, dap: 0 },
+      { time: "48 hours", fermaidO: totalO * 0.25, fermaidK: 0, dap: 0 },
+      { time: "72 hours", fermaidO: totalO * 0.25, fermaidK: 0, dap: 0 },
+      { time: "1/3 sugar break", fermaidO: totalO * 0.25, fermaidK: 0, dap: 0 }
+    );
+  }
+
+  if (nutrientType === "OK") {
+    const yanFromO = targetYAN * 0.45;
+    const yanFromK = targetYAN * 0.55;
+
+    const totalO = (yanFromO / effectiveFermaidOYan) * volumeL;
+    const totalK = (yanFromK / TOSNA.yanFromFermaidK) * volumeL;
+
+    schedule.push(
+      { time: "24 hours", fermaidO: totalO * 0.5, fermaidK: 0, dap: 0 },
+      { time: "48 hours", fermaidO: totalO * 0.5, fermaidK: 0, dap: 0 },
+      { time: "72 hours", fermaidO: 0, fermaidK: totalK * 0.5, dap: 0 },
+      { time: "1/3 sugar break", fermaidO: 0, fermaidK: totalK * 0.5, dap: 0 }
+    );
+  }
+
+  if (nutrientType === "OKDAP") {
+    const yanFromO = targetYAN * 0.45;
+    const yanFromK = targetYAN * 0.50;
+    const yanFromDAP = targetYAN * 0.05;
+
+    const totalO = (yanFromO / effectiveFermaidOYan) * volumeL;
+    const totalK = (yanFromK / TOSNA.yanFromFermaidK) * volumeL;
+    const totalDAP = (yanFromDAP / TOSNA.yanFromDAP) * volumeL;
+
+    schedule.push(
+      { time: "24 hours", fermaidO: totalO * 0.5, fermaidK: 0, dap: 0 },
+      { time: "48 hours", fermaidO: totalO * 0.5, fermaidK: 0, dap: 0 },
+      { time: "72 hours", fermaidO: 0, fermaidK: totalK * 0.5, dap: totalDAP * 0.5 },
+      { time: "1/3 sugar break", fermaidO: 0, fermaidK: totalK * 0.5, dap: totalDAP * 0.5 }
+    );
+  }
+
+  const totals = schedule.reduce((sum, row) => {
+    sum.fermaidO += row.fermaidO;
+    sum.fermaidK += row.fermaidK;
+    sum.dap += row.dap;
+    return sum;
+  }, { fermaidO: 0, fermaidK: 0, dap: 0 });
+
+  return { targetYAN, schedule, totals };
+}
+
+function tosnaCard() {
+  let collapsed = true;
+  const inputStyle = "width:100%;margin-bottom:6px;";
+
+  const volumeInput = el("input", {
+    type: "number",
+    step: "0.1",
+    min: "0.1",
+    value: "5",
+    style: inputStyle
+  });
+
+  const targetABVInput = el("input", {
+    type: "number",
+    step: "0.1",
+    min: "1",
+    value: "14",
+    style: inputStyle
+  });
+
+  const fgInput = el("input", {
+    type: "number",
+    step: "0.001",
+    min: "0.990",
+    max: "1.100",
+    value: "1.000",
+    style: inputStyle
+  });
+
+  const sgInput = el("input", {
+    type: "number",
+    step: "0.001",
+    readonly: true,
+    style: inputStyle
+  });
+
+  const requirementSelect = el("select", { style: inputStyle }, [
+    el("option", { value: "low", text: "Low nitrogen requirement" }),
+    el("option", { value: "medium", text: "Medium nitrogen requirement", selected: true }),
+    el("option", { value: "high", text: "High nitrogen requirement" })
+  ]);
+
+  const goFermSelect = el("select", { style: inputStyle }, [
+    el("option", { value: "goferm", text: "Using Go-Ferm" }),
+    el("option", { value: "none", text: "No Go-Ferm" })
+  ]);
+
+  const nutrientSelect = el("select", { style: inputStyle }, [
+    el("option", { value: "O", text: "Fermaid O only" }),
+    el("option", { value: "OK", text: "Fermaid O + Fermaid K" }),
+    el("option", { value: "OKDAP", text: "Fermaid O + Fermaid K + DAP" })
+  ]);
+
+  const estimateBox = el("div", {
+    style: "font-size:13px;color:var(--muted);margin:8px 0;"
+  });
+
+  const resultBox = el("div", {
+    style: "font-size:13px;color:var(--muted);"
+  });
+
+  function updateEstimate() {
+    const abv = parseFloat(targetABVInput.value) || 14;
+    const fg = parseFloat(fgInput.value) || 1.000;
+    const sg = getTosnaSGFromTargetABV(abv, fg);
+
+    sgInput.value = sg.toFixed(3);
+
+    const brix = tosnaToBrix(sg);
+    const yan = getTosnaTargetYAN({
+      sg,
+      requirement: requirementSelect.value
+    });
+
+    estimateBox.innerHTML = `
+      Target ABV: <b>${abv.toFixed(1)}%</b><br>
+      Estimated FG: <b>${fg.toFixed(3)}</b><br>
+      Calculated OG: <b>${sg.toFixed(3)}</b><br>
+      Estimated Brix: <b>${brix.toFixed(1)} °Bx</b><br>
+      Target YAN: <b>${yan} mg N/L</b>
+    `;
+  }
+
+  function renderResult() {
+    const volumeL = parseFloat(volumeInput.value);
+    const abv = parseFloat(targetABVInput.value) || 14;
+    const fg = parseFloat(fgInput.value) || 1.000;
+    const sg = getTosnaSGFromTargetABV(abv, fg);
+
+    sgInput.value = sg.toFixed(3);
+
+    if (!isFinite(volumeL) || volumeL <= 0) {
+      resultBox.textContent = "Please enter a valid volume.";
+      return;
+    }
+
+    const { targetYAN, schedule, totals } = calculateTosna({
+      volumeL,
+      sg,
+      requirement: requirementSelect.value,
+      nutrientType: nutrientSelect.value,
+      goFermType: goFermSelect.value
+    });
+
+    const rows = schedule.map(row => `
+      <tr>
+        <td>${row.time}</td>
+        <td>${row.fermaidO ? row.fermaidO.toFixed(2) + " g" : "—"}</td>
+        <td>${row.fermaidK ? row.fermaidK.toFixed(2) + " g" : "—"}</td>
+        <td>${row.dap ? row.dap.toFixed(2) + " g" : "—"}</td>
+      </tr>
+    `).join("");
+
+    resultBox.innerHTML = `
+      <b>For ${volumeL.toFixed(1)} L at OG ${sg.toFixed(3)}:</b><br>
+      Target YAN: <b>${targetYAN} mg N/L</b><br><br>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Addition</th>
+            <th>Fermaid O</th>
+            <th>Fermaid K</th>
+            <th>DAP</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <br>
+      <b>Total nutrients:</b><br>
+      Fermaid O: <b>${totals.fermaidO.toFixed(2)} g</b><br>
+      Fermaid K: <b>${totals.fermaidK.toFixed(2)} g</b><br>
+      DAP: <b>${totals.dap.toFixed(2)} g</b>
+    `;
+  }
+
+  [volumeInput, targetABVInput, fgInput, requirementSelect, goFermSelect, nutrientSelect].forEach(input => {
+    input.addEventListener("input", () => {
+      updateEstimate();
+      renderResult();
+    });
+
+    input.addEventListener("change", () => {
+      updateEstimate();
+      renderResult();
+    });
+  });
+
+  const body = el("div", {
+    style: "margin-top:8px;"
+  }, [
+    el("p", {
+      style: "font-size:13px;color:var(--muted);",
+      text: "Calculate staggered nutrient additions from target ABV, estimated FG, batch volume, nitrogen requirement, Go-Ferm use, and nutrient type."
+    }),
+
+    el("label", { text: "Volume (L):" }),
+    volumeInput,
+
+    el("label", { text: "Target ABV (%):" }),
+    targetABVInput,
+
+    el("label", { text: "Estimated Final Gravity (FG):" }),
+    fgInput,
+
+    el("label", { text: "Calculated Original Gravity (OG):" }),
+    sgInput,
+
+    el("label", { text: "Yeast Nitrogen Requirement:" }),
+    requirementSelect,
+
+    el("label", { text: "Go-Ferm:" }),
+    goFermSelect,
+
+    el("label", { text: "Nutrient Type:" }),
+    nutrientSelect,
+
+    estimateBox,
+
+    el("hr", {
+      style: "margin:10px 0;border:none;border-top:1px solid var(--border);"
+    }),
+
+    resultBox
+  ]);
+
+  const legend = el("legend", {
+    text: "▶ 🍯 TOSNA Calculator",
+    style: "cursor:pointer;",
+    onclick: () => {
+      collapsed = !collapsed;
+      body.style.display = collapsed ? "none" : "block";
+      legend.textContent = (collapsed ? "▶ " : "▼ ") + "🍯 TOSNA Calculator";
+    }
+  });
+
+  const card = el("div", {
+    id: "tosnaCard",
+    class: "fieldset collapsible",
+    style: "margin-top:16px;"
+  }, [legend, body]);
+
+  body.style.display = "none";
+
+  setTimeout(() => {
+    updateEstimate();
+    renderResult();
+  }, 0);
+
+  return card;
+}
 
 function renderApp() {
   const app = document.querySelector('.app');
@@ -2965,7 +3094,7 @@ render();
     () => makeSection('active', '🧪 Active Batches', active, 'No active batches.'),
     () => makeSection('archived', '🍾 Archived (Bottled)', archived, 'No bottled batches.'),
     utilitiesHeaderCard,
-    //tosnaCard,
+    tosnaCard,
     backsweetCard,
     dilutionCard,
     primingCard,
@@ -2984,8 +3113,6 @@ render();
       console.error('Sidebar section error:', err);
     }
   }
-
-  initTosnaBindings();
 }
 
 
@@ -4828,6 +4955,7 @@ setTimeout(() => {
 
 
 
+
 let EXTENDS_BIN_ID = localStorage.getItem("EXTENDS_BIN_ID") || null;
 let EXTENDS_API_KEY = localStorage.getItem("EXTENDS_API_KEY") || "";
 const EXTENDS_API = "https://json.extendsclass.com/bin";
@@ -4867,93 +4995,6 @@ function updateSyncCard() {
   }
 
   renderFooterButtons();
-}
-
-
-
-
-function updateYAN() {
-  const yeastABV = parseFloat(document.getElementById('tosnaYeastABV').value) || 14;
-  const sweetness = document.getElementById('tosnaSweetness').value;
-  const req = document.getElementById('tosnaReq').value;
-  let effYAN = 150;
-
-  if (yeastABV <= 12) {
-    if (sweetness === 'dry') effYAN = req === 'low' ? 100 : req === 'medium' ? 125 : 150;
-    else if (sweetness === 'semi') effYAN = req === 'low' ? 120 : req === 'medium' ? 140 : 160;
-    else effYAN = req === 'low' ? 130 : req === 'medium' ? 150 : 180;
-  } else if (yeastABV <= 14) {
-    if (sweetness === 'dry') effYAN = req === 'low' ? 120 : req === 'medium' ? 140 : 160;
-    else if (sweetness === 'semi') effYAN = req === 'low' ? 130 : req === 'medium' ? 150 : 180;
-    else effYAN = req === 'low' ? 150 : req === 'medium' ? 180 : 200;
-  } else if (yeastABV <= 16) {
-    if (sweetness === 'dry') effYAN = req === 'low' ? 140 : req === 'medium' ? 170 : 190;
-    else if (sweetness === 'semi') effYAN = req === 'low' ? 160 : req === 'medium' ? 190 : 220;
-    else effYAN = req === 'low' ? 170 : req === 'medium' ? 200 : 250;
-  } else {
-    effYAN = req === 'low' ? 180 : req === 'medium' ? 210 : 260;
-  }
-
-  document.getElementById('tosnaYan').value = Math.round(effYAN);
-}
-
-function initTosnaBindings() {
-  // Support both desktop sidebar and mobile drawer copies
-  const abvInputs     = document.querySelectorAll('#tosnaYeastABV');
-  const sweetSelects  = document.querySelectorAll('#tosnaSweetness');
-  const reqSelects    = document.querySelectorAll('#tosnaReq');
-  const calcButtons   = document.querySelectorAll('#calcTosna');
-
-  if (!abvInputs.length || !sweetSelects.length || !reqSelects.length) {
-    // TOSNA card not rendered yet
-    return;
-  }
-
-  // Wire ABV / sweetness / requirement -> YAN + FG/OG
-  abvInputs.forEach(el => {
-    el.addEventListener('input', () => {
-      updateFGOG();
-      updateYAN();
-    });
-  });
-
-  sweetSelects.forEach(el => {
-    el.addEventListener('change', () => {
-      updateFGOG();
-      updateYAN();
-    });
-  });
-
-  reqSelects.forEach(el => {
-    el.addEventListener('change', updateYAN);
-  });
-
-  // Wire the Calculate button → calcTosna()
-  calcButtons.forEach(btn => {
-    btn.addEventListener('click', calcTosna);
-  });
-
-  // Initialise display once
-  updateFGOG();
-  updateYAN();
-}
-
-
-
-function updateFGOG() {
-  const yeastABV = parseFloat(document.getElementById('tosnaYeastABV').value) || 14;
-  const sweetness = document.getElementById('tosnaSweetness').value;
-  let fg = 1.000;
-
-  if (sweetness === 'dry') fg = 1.000;
-  else if (sweetness === 'semi') fg = 1.015;
-  else if (sweetness === 'sweet') fg = 1.030;
-
-
-  const og = (fg + (yeastABV / 131.25)).toFixed(3);
-
-  const display = document.getElementById('tosnaFGOG');
-  display.innerHTML = `Estimated FG: <b>${fg.toFixed(3)}</b> → Suggested OG: <b>${og}</b>`;
 }
 
 
